@@ -1,0 +1,1349 @@
+/* 0. CONFIGURACIÓN BASE PARA DIMENSIONES */
+* {
+    box-sizing: border-box;
+    /* Mejora el renderizado de fuentes en navegadores basados en Webkit */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* El dashboard es una app a pantalla completa: el scroll siempre ocurre
+   dentro de #main__container / .htmlcontent, nunca en el documento.
+   Esto elimina el overflow horizontal (menú contextual oculto) y el
+   vertical residual del body. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+/* 1. ICONOS Y CONFIGURACIÓN BASE (Material Symbols) */
+.material-symbols-rounded {
+    display: inline-block;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                font-variation-settings 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+    font-family: 'Material Symbols Rounded';
+    font-weight: 700;
+    font-variation-settings: 'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 48;
+}
+
+.material-symbols-rounded:active {
+    transform: scale(0.85);
+}
+
+/* 2. ESTRUCTURA Y LAYOUT */
+.htmlcontent{
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: "asi main";
+    overflow: hidden;
+    height: 100dvh;
+    width: 100dvw;
+    padding: 10px;
+    gap: 10px;
+
+    svg{
+        fill: var(--secundario-texto-color);
+    }
+}
+
+/* 3. BARRA LATERAL (ASIDE) */
+#aside{
+    grid-area: asi;
+    width: 15dvw;
+    min-width: 215px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    gap: 10px;
+    text-wrap: nowrap;
+    transition: all 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    flex-wrap: nowrap;
+}
+
+#aside a{
+    text-decoration: none;
+}
+
+#menu_open{
+    transition: all 0.3s ease-in-out;
+}
+
+/* --- Perfil de usuario en el aside ---
+   Tarjeta sobria: borde 1px + sombra suave, igual lenguaje que el resto
+   del aside. Sin lifts ni efectos flotantes en hover. */
+#usuario_perfil{
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--card) !important;
+    border: 1px solid rgba(15, 90, 171, 0.14);
+    border-radius: 18px;
+    box-shadow: 0 4px 16px rgba(15, 90, 171, 0.08);
+    width: 100%;
+    min-height: 72px;
+    align-items: center;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+#usuario_perfil:hover{
+    background: #f5faff !important;
+    border-color: rgba(15, 90, 171, 0.26);
+}
+
+/* Estado colapsado: igual que el resto de .opcion (píldora con icono centrado) */
+#aside.close #usuario_perfil{
+    gap: 0;
+    padding: 12px;
+    justify-content: center;
+    align-items: center;
+    min-height: 48px;
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid transparent;
+    background: var(--azul-lite) !important;
+    box-shadow: none;
+    transform: none;
+}
+
+#aside.close #usuario_perfil:hover{
+    background: #dceafb !important;
+}
+
+#aside.close #usuario_perfil .perfil-info,
+#aside.close #usuario_perfil .perfil-chevron{
+    display: none;
+}
+
+#aside.close #usuario_perfil .perfil-icon{
+    width: 24px;
+    height: 24px;
+    font-size: 1.5rem;
+    padding: 0;
+    background: none;
+    color: var(--text-color-prioritary);
+}
+
+#usuario_perfil .perfil-icon{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    font-size: 1.8rem;
+    color: var(--azul-dark);
+    /* Avatar redondo plano, mismo patrón que los iconos de .list-item__content */
+    background: var(--azul-lite);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+#usuario_perfil .perfil-info{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    /* Ocupa el espacio restante y deja sitio al chevron */
+    flex: 1;
+}
+
+#usuario_perfil .perfil-info .texto{
+    font-size: 1rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--txt);
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Rol como texto secundario plano: sin icono, sin fondo ni borde */
+#usuario_perfil .perfil-rol{
+    font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--soft);
+    opacity: 0.85;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Chevron indicador: comunica que abre un menú. Gira cuando la
+   infoCard está abierta (detectado con :has(), sin tocar JS). */
+#usuario_perfil .perfil-chevron{
+    margin-left: auto;
+    font-size: 20px;
+    color: var(--text-color-prioritary);
+    opacity: 0.45;
+    flex-shrink: 0;
+    cursor: default;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+body:has(#infoCard.show) #usuario_perfil{
+    border-color: rgba(15, 90, 171, 0.26);
+}
+
+body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
+    transform: rotate(180deg);
+    opacity: 0.8;
+}
+
+.opcion{
+    border-radius: 25px;
+    color: var(--text-color-prioritary);
+    background: var(--font-color-important);
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    width: 100%;
+    height: auto;
+    padding: 11px 20px;
+    border: none;
+    cursor: pointer;
+    font-family: Poppins;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+
+    p, span{
+        color: inherit; /* Hereda el color del botón en cada estado */
+        font-weight: 500;
+    }
+
+    /* Hover: azul medio-suave con texto oscuro -> se distingue del .active */
+    &:hover{
+        background: #7ee5f7;
+        color: var(--text-color-prioritary);
+    }
+
+    /* Press: azul sólido medio con texto blanco */
+    &:active{
+        background: var(--azul-med);
+        color: #ffffff;
+        transform: scale(0.95);
+
+        /* Onda blanca, visible sobre el fondo azul sólido */
+        .ripple{
+            background: rgba(255, 255, 255, 0.45);
+        }
+    }
+
+    &:focus{
+        outline: none;
+    }
+
+    /* Seleccionado: azul profundo sólido con texto blanco y onda blanca */
+    &.active {
+        color: #ffffff;
+        background: var(--azul-dark);
+
+        .material-symbols-rounded {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+
+        .ripple{
+            background: rgba(255, 255, 255, 0.45);
+        }
+    }
+}
+
+.texto{
+    color: white;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.mobile-only {
+    display: none !important;
+}
+
+#aside.close {
+    width: 50px;
+    min-width: 50px;
+
+    #menu_open {
+        rotate: 180deg;
+    }
+
+    .opcion {
+        transition: all 0.3s ease;
+        justify-content: center;
+        align-items: center;
+        padding: 13px;
+
+        &:hover {
+            padding: 20px;
+
+            .texto {
+                opacity: 1;
+            }
+        }
+    }
+
+    .texto {
+        opacity: 0;
+        pointer-events: none;
+        left: 4.2rem;
+        padding: 0.5rem;
+        background: #cacaca;
+        color: var(--text-color);
+        border-radius: 7px;
+        white-space: nowrap;
+        position: fixed;
+        font-weight: 600;
+    }
+}
+
+#main__container{
+    grid-area: main;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding: 10px;
+    border-radius: 12px;
+    background: var(--font-color-tercero);
+}
+
+.opciones__container{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: auto;
+    flex-shrink: 0;
+}
+
+.opciones__container-item{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.item-boton-menu{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    min-width: fit-content;
+    width: 45px;
+    height: 45px;
+    border: 2px solid var(--azul);
+    border-radius: 10px;
+    background: transparent;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+    /* Por defecto: el icono es visible, el spinner está oculto */
+    & > .material-symbols-rounded {
+        display: block;
+        color: var(--azul);
+    }
+    & > .boton-spinner {
+        display: none;
+    }
+}
+
+.item-boton-menu:hover{
+    background: var(--azul-lite);
+    border-color: var(--azul-dark);
+
+    /* Icono pasa al color oscuro del acento azul */
+    & > .material-symbols-rounded {
+        color: var(--azul-dark);
+    }
+}
+
+.opciones_descarga {
+    border: 2px solid var(--border);
+
+    p {
+        white-space: nowrap;
+    }
+}
+
+/* ============================================================
+   SISTEMA DE SUBMENÚ ANIDADO (soporta cualquier profundidad)
+   ============================================================ */
+
+/* Wrapper de opción con submenú */
+.submenu-wrap {
+    position: relative;
+    cursor: pointer;
+}
+
+.submenu-wrap > .submenu-arrow {
+    margin-left: auto;
+    font-size: 14px;
+    transition: transform 0.15s ease;
+}
+
+.submenu-wrap:hover > .submenu-arrow {
+    transform: translateX(2px);
+}
+
+/* Contenedor del submenú: hijo directo SOLAMENTE (evita mostrar anidados) */
+.submenu-wrap > .ctx-submenu {
+    position: absolute;
+    top: -6px;
+    left: calc(100% + 6px);        /* Por defecto: flyout a la derecha */
+    background: var(--bg, #edf2f9);
+    border: 1px solid var(--border, #c5d5ea);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 220px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-4px);
+    transition: opacity 0.12s ease, visibility 0s 0.12s, transform 0.12s ease;
+    z-index: 9999;
+    box-shadow: 0 4px 16px rgba(15, 90, 171, 0.18);
+}
+
+/* Direcciones alternativas (asignadas por JS dinámicamente) */
+.submenu-wrap > .ctx-submenu.right {
+    left: calc(100% + 6px);
+    right: auto;
+    top: -6px;
+}
+
+.submenu-wrap > .ctx-submenu.left {
+    left: auto;
+    right: calc(100% + 6px);
+    top: -6px;
+    transform: translateX(4px);
+}
+
+.submenu-wrap > .ctx-submenu.down {
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    bottom: auto;
+    transform: translateY(-4px);
+}
+
+.submenu-wrap > .ctx-submenu.above {
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: calc(100% + 2px);
+    transform: translateY(4px);
+}
+
+/* Combinaciones de direcciones horizontales y verticales */
+.submenu-wrap > .ctx-submenu.right.above {
+    left: calc(100% + 6px);
+    right: auto;
+    bottom: 0;
+    top: auto;
+    transform: translateX(-4px);
+}
+
+.submenu-wrap > .ctx-submenu.left.above {
+    left: auto;
+    right: calc(100% + 6px);
+    bottom: 0;
+    top: auto;
+    transform: translateX(4px);
+}
+
+/* Mostrar SOLO el hijo directo al hacer hover en el wrapper */
+.submenu-wrap:hover > .ctx-submenu:not(.left):not(.down):not(.above) {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    transition: opacity 0.15s ease, visibility 0s 0s, transform 0.15s ease;
+}
+
+.submenu-wrap:hover > .ctx-submenu.left:not(.above):not(.down) {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    transition: opacity 0.15s ease, visibility 0s 0s, transform 0.15s ease;
+}
+
+.submenu-wrap:hover > .ctx-submenu.right.above,
+.submenu-wrap:hover > .ctx-submenu.left.above {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    transition: opacity 0.15s ease, visibility 0s 0s, transform 0.15s ease;
+}
+
+.submenu-wrap:hover > .ctx-submenu.down {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.15s ease, visibility 0s 0s, transform 0.15s ease;
+}
+
+.submenu-wrap:hover > .ctx-submenu.above:not(.right):not(.left) {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.15s ease, visibility 0s 0s, transform 0.15s ease;
+}
+
+/* Mantener visible el submenú cuando el mouse está sobre él (incluye sus hijos) */
+.ctx-submenu:hover {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateX(0) !important;
+}
+.ctx-submenu.left:hover {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateX(0) !important;
+}
+.ctx-submenu.down:hover {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+}
+
+/* Safe bridge: mantiene el hover al mover el mouse sobre el gap */
+.submenu-wrap > .ctx-submenu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    pointer-events: auto;
+    z-index: -1;
+    left: -14px;           /* Puente a la izquierda (gap hacia el wrapper) */
+}
+.submenu-wrap > .ctx-submenu.left::before {
+    left: auto;
+    right: -14px;
+}
+.submenu-wrap > .ctx-submenu.down::before {
+    left: 0;
+    right: 0;
+    top: -10px;
+    bottom: auto;
+    width: 100%;
+    height: 10px;
+}
+
+/* Ítems dentro del submenú */
+.ctx-submenu .submenu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--secundario-texto-color, #474a54);
+    white-space: nowrap;
+    transition: background 0.15s;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+}
+
+.ctx-submenu .submenu-item:hover {
+    background: var(--bg2, #dce8f6);
+    color: var(--azul, #0f5aab);
+}
+
+.ctx-submenu .submenu-item .material-symbols-rounded {
+    font-size: 18px;
+}
+
+/* 🆕 Cuando un .submenu-wrap está dentro de un submenú, se comporta como item */
+.ctx-submenu .submenu-wrap .submenu-arrow {
+    margin-left: auto;
+    transition: transform 0.15s ease;
+}
+.ctx-submenu .submenu-wrap:hover > .submenu-arrow {
+    transform: translateX(2px);
+}
+
+/* Mantener el menú contextual por encima del contenido */
+.menu_contextual.show {
+    z-index: 1000 !important;
+}
+
+/* Cuando el item-boton-menu tiene la clase 'cargando' */
+.item-boton-menu.cargando {
+    & > .material-symbols-rounded {
+        display: none; /* Oculta el icono */
+    }
+    & > .boton-spinner {
+        display: flex; /* Muestra el spinner (usando flex para centrar su contenido) */
+    }
+}
+
+.search_input{
+    border: none;
+    font-family: Poppins;
+    height: 100%;
+    font-size: 1rem;
+
+    &:focus{
+        outline: none;
+    }
+    &:active{
+        outline: none;
+    }
+}
+
+/* 6. ESTILOS DE TABLA */
+.table {
+    position: relative; /* Necesario para la barra de selección absoluta */
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    background-color: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden; /* Mantiene el radio de borde */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    min-height: 0; /* Permite que el contenedor colapse y use scroll */
+}
+
+.table__header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    color: var(--secundario-texto-color);
+    font-family: 'Poppins', sans-serif;
+    flex-shrink: 0;
+}
+
+.table__container {
+    overflow-y: auto;
+    overflow-x: hidden; /* Evitamos scroll horizontal innecesario */
+    flex: 1;
+    min-height: 0; /* Crucial para que el scroll funcione en contenedores flex */
+    overscroll-behavior-y: contain;
+    /* Estilo de Scrollbar Moderno */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.05);
+}
+
+.table__container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table__container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.4); /* Más oscuro para mejor visibilidad */
+    border-radius: 10px;
+}
+
+.table__container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03); /* Un rastro sutil ayuda a saber que hay scroll */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-family: 'Poppins', sans-serif;
+}
+
+th {
+    padding: 14px 20px;
+    padding-left: 8px;
+    font-weight: 600;
+    color: var(--secundario-texto-color);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+td {
+    padding: 14px 20px;
+    padding-left: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--secundario-texto-color);
+    font-size: 0.95rem;
+    vertical-align: middle;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.actions-cell {
+    vertical-align: middle;
+}
+
+.actions-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: center; /* Centra los iconos verticalmente entre sí */
+    height: 100%;       /* Asegura que ocupe el alto de la celda */
+}
+
+.section_content{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    position: relative;
+    min-height: 0;
+    margin-top: 10px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* 7. BARRA DE SELECCIÓN (Integrated style) */
+.selection-bar {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 57px; /* Debe coincidir con el alto del header de la tabla */
+    background-color: #e8f0fe; /* Azul claro estilo selección profesional */
+    color: #1967d2;
+    padding: 0 20px;
+    z-index: 20;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Poppins', sans-serif;
+    transition: opacity 0.2s ease;
+    opacity: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.selection-bar.active {
+    display: flex;
+    opacity: 1;
+}
+
+.selection-bar__left {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    font-weight: 500;
+    gap: 12px;
+}
+
+.selection-bar__right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.selection-bar__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #1967d2;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.selection-bar__btn:hover {
+    background: rgba(25, 103, 210, 0.1);
+}
+
+.selection-bar__btn--delete:hover,
+.selection-bar__btn--close:hover {
+    color: #d93025;
+    background: rgba(217, 48, 37, 0.08);
+}
+
+/* 8. ESTILOS DE CHECKBOXES Y SELECCIÓN DE FILAS */
+.checkbox-th, .checkbox-td {
+    padding: 0 !important;
+    text-align: center;
+    width: 50px;
+}
+
+.checkbox-row {
+    --md-checkbox-state-layer-size: 40px;
+}
+
+.data-row {
+    transition: background-color 0.2s ease;
+    /* Evitamos que esté siempre en una capa separada si no es necesario */
+    backface-visibility: hidden;
+    transform: translateZ(0); /* Fuerza el uso de la GPU pero mantiene la nitidez */
+}
+
+.data-row.selected {
+    background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+.data-row:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+.data-row.selected:hover {
+    background-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* 9. ESTILOS DE PAGINACIÓN */
+.table__pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background-color: rgba(0, 0, 0, 0.01);
+    font-family: 'Poppins', sans-serif;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.pagination__info {
+    color: var(--secundario-texto-color);
+    font-size: 0.9rem;
+    min-width: fit-content;
+}
+
+.pagination__controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    min-width: fit-content;
+}
+
+.pagination__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    color: var(--secundario-texto-color);
+    transition: all 0.2s ease;
+}
+
+.pagination__btn:hover:not(:disabled) {
+    background: var(--enfoque-color);
+    color: white;
+    border-color: var(--enfoque-color);
+}
+
+.pagination__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination__numbers {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.pagination__number {
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--secundario-texto-color);
+    transition: all 0.2s ease;
+}
+
+.pagination__number:hover {
+    border-color: var(--enfoque-color);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.pagination__number.active {
+    background: var(--enfoque-color);
+    color: white;
+    border-color: var(--enfoque-color);
+}
+
+.pagination__items-per-page {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--secundario-texto-color);
+    font-size: 0.9rem;
+    min-width: fit-content;
+}
+
+.pagination__items-per-page label {
+    font-weight: 500;
+}
+
+.pagination__items-per-page select {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    color: var(--secundario-texto-color);
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.pagination__items-per-page select:hover {
+    border-color: var(--enfoque-color);
+}
+
+.pagination__items-per-page select:focus {
+    outline: none;
+    border-color: var(--enfoque-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* 10. ADAPTACIÓN A MÓVILES */
+@media screen and (max-width: 768px) {
+    #aside-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    #aside:not(.close) + #aside-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .htmlcontent {
+        grid-template-columns: 1fr;
+        grid-template-areas: "main";
+    }
+
+    #aside {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        width: 250px;
+        min-width: 250px;
+        height: 100dvh;
+        /* Fondo claro para que combine con el tema de la app (en escritorio el
+           aside es transparente sobre el fondo claro) */
+        background: var(--card);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+        margin: 0;
+        padding: 10px;
+        border-top-right-radius: 20px;
+        border-bottom-right-radius: 20px;
+    }
+
+    #aside.close {
+        transform: translateX(-100%);
+        width: 250px;
+        min-width: 250px;
+    }
+
+    #aside.close .texto {
+        position: static;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+
+    .opciones__container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    tr {
+        border: 1px solid var(--border);
+        margin: 12px 10px; /* Separación vertical entre tarjetas */
+        border-radius: 8px;
+        padding: 5px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        width: auto; /* Permite que respete los márgenes laterales */
+    }
+
+    td {
+        border: none;
+        border-bottom: 1px solid #f1f1f1;
+        position: relative;
+        padding-left: 45% !important;
+        text-align: right;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-height: 45px;
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    .checkbox-td {
+        justify-content: flex-start !important;
+        padding-left: 15px !important;
+        background-color: rgba(0, 0, 0, 0.01);
+    }
+
+    td:before {
+        position: absolute;
+        left: 15px;
+        width: 40%;
+        padding-right: 10px;
+        white-space: nowrap;
+        content: attr(data-label);
+        text-align: left;
+        font-weight: 600;
+        color: var(--secundario-texto-color);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    /* Paginación Responsive */
+    .table__pagination {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .pagination__controls {
+        order: -1;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .pagination__info, .pagination__items-per-page {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .selection-bar {
+        padding: 0 10px;
+    }
+
+    .actions-wrapper {
+        justify-content: flex-end;
+    }
+}
+
+/* Botón de cierre para menús contextuales */
+.menu-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+    z-index: 1010;
+}
+
+.menu-close-btn:hover {
+    transform: rotate(90deg);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.menu-close-btn-inline {
+    background: transparent;
+    border: none;
+    color: var(--secundario-texto-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+}
+
+.menu-close-btn-inline:hover {
+    transform: rotate(90deg);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* --- Variables Necesarias --- */
+:root {
+    --color-dark: #171717;
+    --color-gray: #27272A;
+}
+
+/* --- Tarjeta de perfil de usuario (info-card) --- */
+.info-card {
+    z-index: 1000;
+    background: var(--card);
+    color: var(--txt);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 12px;
+    width: 300px;
+    max-width: calc(100vw - 24px);
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+    transform-origin: top left;
+    transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+    pointer-events: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100dvh - 24px);
+    position: fixed;
+    box-shadow:
+        0 16px 24px rgba(15, 52, 95, 0.35),
+        0 6px 12px rgba(15, 52, 95, 0.24);
+}
+
+.info-card.show {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+    animation: infoCardOpen 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.info-card.closing {
+    opacity: 0;
+    pointer-events: none;
+    animation: infoCardClose 0.16s ease-in both;
+}
+
+@keyframes infoCardOpen {
+    from {
+        opacity: 0;
+        transform: scale(0.94) translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes infoCardClose {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.96) translateY(-5px);
+    }
+}
+
+/* --- Contenedor interno del perfil de usuario --- */
+.info_user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* --- Estilos de la Foto de Perfil --- */
+.user_profile {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.img_profile {
+    position: static;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+/* Modificador para la imagen dentro de la tarjeta */
+.img-card {
+    width: 100px !important;
+    height: 100px !important;
+}
+
+#infoCard .perfil-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 88px;
+    height: 88px;
+    color: var(--azul);
+    font-size: 4.4rem !important;
+    line-height: 1;
+    font-weight: 500 !important;
+    cursor: default;
+}
+
+/* --- Texto del nombre de usuario --- */
+.title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--txt);
+    text-align: center;
+    line-height: 1.25;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.perfil-card-rol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--azul-lite) 82%, white);
+    border: 1px solid color-mix(in srgb, var(--azul) 16%, transparent);
+    color: var(--azul);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+#infoCard .perfil-card-rol .rol-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    font-size: 1rem !important;
+    line-height: 1;
+    font-weight: 500 !important;
+    cursor: default;
+}
+
+.user-email {
+    max-width: 100%;
+    word-break: break-word;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--texto-color-secondary);
+    opacity: 0.7;
+    line-height: 1.3;
+}
+
+/* --- Botón de acción (Ir al inicio / Configuración) --- */
+.btn-accion {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    background: var(--azul-lite);
+    color: var(--azul);
+    border-radius: 12px;
+    padding: 10px 14px;
+    width: 100%;
+    height: 46px;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    cursor: pointer;
+    font-family: Poppins, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.btn-accion:hover {
+    background: var(--azul);
+    color: var(--font-color);
+    transform: scale(1.02);
+}
+
+/* --- Botón de cerrar sesión --- */
+.logout-btn {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    background: var(--azul-lite);
+    color: var(--azul);
+    border-radius: 12px;
+    padding: 10px 14px;
+    width: 100%;
+    height: 46px;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    cursor: pointer;
+    font-family: Poppins, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.logout-btn:hover {
+    background: var(--azul);
+    color: var(--font-color);
+    transform: scale(1.02);
+}
+
+/* --- Utilidades --- */
+.centrar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Responsividad --- */
+@media(width <=450px) {
+    .info-card {
+        width: calc(100% - 25px);
+    }
+}

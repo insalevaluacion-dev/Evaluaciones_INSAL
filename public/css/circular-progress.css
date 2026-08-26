@@ -1,0 +1,62 @@
+/* ── Boton Spinner M3 ── */
+.boton-spinner {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.boton-spinner:hover {
+    opacity: 0.85;
+}
+
+.arco-pista,
+.arco-indicador {
+    fill: none;
+    stroke-width: 5;
+    stroke-linecap: round;
+    shape-rendering: geometricPrecision;
+}
+
+.arco-indicador {
+    transform-origin: 18px 18px;
+    transition: stroke-dasharray 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes girar {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes arco-indeterminado {
+    0% {
+        stroke-dasharray: 15 67;
+        stroke-dashoffset: 0;
+    }
+
+    50% {
+        stroke-dasharray: 62 20;
+        stroke-dashoffset: -22;
+    }
+
+    100% {
+        stroke-dasharray: 15 67;
+        stroke-dashoffset: -82;
+    }
+}
+
+.svg-spinner.girando {
+    animation: girar 1.4s linear infinite;
+}
+
+.arco-indicador.indeterminado {
+    animation: arco-indeterminado 1.4s ease-in-out infinite;
+}

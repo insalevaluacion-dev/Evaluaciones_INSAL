@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --azul: #0f5aab;
+    --azul-dark: #0a3f7a;
+    --azul-med: #1a6bc7;
+    --azul-clr: #2a7de1;
+    --azul-lite: #e8f0fb;
+    --naranja: #fa8d08;
+    --naranja-drk: #d97507;
+    --naranja-clr: #ffaa33;
+    --naranja-bg: #fff5e0;
+    --dorado: #c9942a;
+    --rojo: #d62b0f;
+    --rojo-clr: #e73719;
+    --verde: #1a7a45;
+    --verde-clr: #22a85c;
+    --bg: #edf2f9;
+    --bg2: #dce8f6;
+    --card: #ffffff;
+    --txt: #0d1e35;
+    --soft: #4a607e;
+    --border: #c5d5ea;
+    --sh: 0 4px 24px rgba(15, 90, 171, .13);
+    --sh-sm: 0 2px 10px rgba(15, 90, 171, .09);
+    --sh-lg: 0 12px 40px rgba(15, 90, 171, .18);
+
+    --base-color: #11121a;
+    --background-color: #ffffff;
+    --hover-color: #474a54;
+    --texto-color: #000000;
+    --enfoque-color: #42434a;
+    --secundario-texto-color: #474a54;
+    --linea-color: #2a7de1;
+
+    --radius-md: 15px;
+    --surface-color: #39393c;
+    --primary-color: rgb(19, 19, 20);
+    --secondary-color: rgb(51, 51, 51);
+    --accent-color: rgba(128, 128, 128, 0.50);
+    --texto-secundario: rgb(230, 230, 230);
+    --texto-primario: rgb(255, 255, 255);
+    --md-linear-progress-track-height: 5px;
+    --md-linear-progress-track-shape: 0px;
+    --md-linear-progress-active-indicator-height: 5px;
+    --md-sys-color-primary: #0004ff;
+    --md-sys-color-surface-container-highest: #ffffff;
+    
+    
+    /* Circular progress */
+    --spinner-arco: rgba(25, 118, 210, 0.95); /* arco visible */
+    --spinner-pista: rgba(0, 0, 0, 0.1); /* track de fondo */
+    
+    /* Circular progress */
+    --progreso-arco: rgba(25, 118, 210, 0.95);
+    --progreso-pista: rgba(0, 0, 0, 0.1);
+    
+}
+
+:root {
+    --font-color: #F0EFF4;
+    --font-color-secondary: #ffffff;
+    --font-color-important: #C3E8FF;
+    --font-color-tercero: #d6efff;
+    --text-color: #47464b;
+    --text-color-secondary: #000000;
+    --text-color-prioritary: #045a7e;
+    --hover-color: #b2b6b9;
+    --principal-color: #03a2e6;
+
+    /* System tokens */
+    --md-sys-color-primary: #03a2e6;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-on-surface-variant: #3f4948;
+
+    /* Component tokens */
+    --md-checkbox-container-shape: 0px;
+}
+
+* {
+    /* Mejora el renderizado de fuentes en navegadores basados en Webkit/Blink */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body{
+    background: #F8FAFD;
+    color: var(--texto-color);
+    font-family: 'Poppins', sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+
+.icon{
+    color: white;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    font-family: 'Material Symbols Rounded';
+    font-weight: 700;
+    font-variation-settings: 'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 48;
+}
+
+dialog {
+    /* Posicionamiento centrado */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: none;
+    padding: 0;
+    font-size: 18px;
+    /* Dimensiones basadas en contenido, con ancho máximo respetuoso */
+    width: max-content;
+    max-width: min(560px, 95vw);
+    height: max-content;
+    max-height: calc(100dvh - 48px);
+    overflow: hidden;
+    /* Por defecto, el diálogo es transparente; cada variante define su bg */
+    background: transparent;
+    color: var(--txt);
+}
+
+/* Diálogo de menú de ajustes — usa todo el espacio disponible */
+dialog.opcionespanel {
+    border-radius: 17px;
+    background: var(--font-color);
+    min-width: 780px;
+    width: 55%;
+    height: 75%;
+    padding: 0.6em;
+}
+
+dialog.opcionespanel svg {
+    fill: var(--texto-color);
+}
+
+.foto_perfil{
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--azul-clr);
+}
+
+.btn-accion{
+    flex-direction: row;
+    gap: 10px;
+    background: var(--color-dark);
+    border-radius: 10px;
+    padding: 7px;
+    width: 100%;
+    height: 50px;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+@media(width <=800px) {
+    dialog {
+        height: 100dvh !important;
+        width: 100dvw !important;
+        min-width: 100vw !important;
+    }
+}
+
+.menu_contextual {
+    z-index: 1000 !important;
+    position: fixed !important;
+    opacity: 0;
+    transform: scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    overflow: visible !important;
+}
+
+.menu_contextual.show {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.btn{
+    border-radius: 25px;
+    color: var(--text-color-prioritary);
+    background: var(--font-color-important);
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: Poppins, sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    display: flex;
+    gap: 5px;
+}
+
+.fontblur{
+    position: absolute;
+    box-shadow: 0 0 100px 60px var(--principal-color);
+    z-index: -100;
+}
+
+.centrar{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

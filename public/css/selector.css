@@ -1,0 +1,133 @@
+.content{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    scrollbar-gutter: stable;
+    gap: 20px;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.principal{
+    width: 90dvw;
+    height: 90dvh;
+    background: var(--font-color-secondary);
+    border-radius: 20px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.modal-content{
+    max-height: 95dvh;
+    scrollbar-gutter: stable;
+    scrollbar-track-color: var(--font-color-secondary);
+}
+
+#contenedor-proyectos {
+    display: flex;
+    width: 100%;
+    height: auto;
+    max-height: 80dvh;
+    overflow-y: auto;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.grupo__element{
+    width: 100%;
+    height: auto;
+    background: var(--font-color);
+    flex-direction: column;
+    border-radius: 20px;
+    padding: 10px;
+    gap: 10px;
+}
+
+.principal__element--text{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-color-secondary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 14px;
+}
+
+.principal__element--icon{
+    font-size: 1.6rem;
+    color: var(--principal-color);
+} 
+
+p{
+    color: var(--text-color-secondary)
+}
+
+.principal__element--button{
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+}
+
+.form{
+    height: auto;
+    width: 100%;
+    max-width: 400px;
+}
+
+select {
+    text-wrap: wrap;
+    background: var(--font-color-tercero);
+    color: var(--text-color);
+    border: none;
+    border-radius: 25px;
+    padding: 10px;
+    outline: none;
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    width: 100%;
+    height: fit-content;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    transition: border 0.2s, box-shadow 0.2s;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 0.8rem center;
+    background-size: 1.5rem;
+}
+
+select:disabled {
+    background-color: #e0e0e0;
+    color: #666;
+    opacity: 1;
+}
+
+select:hover{
+    background: var(--hover-color);
+}
+
+select:focus {
+    background: var(--font-color-important);
+}
+
+/* Estilo para el menú desplegable (solo navegadores compatibles) */
+select::-webkit-dropdown{
+    background: var(--secondary-color);
+    color: white;
+    font-size: 1.2rem;
+    border-radius: 20px;
+    padding: 10px;
+}
+
+/* Para Webkit (Chrome, Edge, Safari) */
+select::-webkit-dropdown {
+    background: var(--secondary-color);
+    color: white;
+}

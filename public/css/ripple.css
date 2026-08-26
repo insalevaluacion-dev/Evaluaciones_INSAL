@@ -1,0 +1,28 @@
+.ripple-container {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Asegura que el texto y los iconos estén por encima de la onda */
+.ripple-container > * {
+    position: relative;
+    z-index: 2;
+    pointer-events: none; /* Evita que los hijos interfieran con el click del botón */
+}
+
+.ripple {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.50); /* Gris más intenso para mayor visibilidad */
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple-animation 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* Movimiento más fluido y natural */
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(2.5); /* Expansión más controlada para que se vea más denso */
+        opacity: 0;
+    }
+}

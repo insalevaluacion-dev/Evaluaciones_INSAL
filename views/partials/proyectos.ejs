@@ -1,0 +1,305 @@
+<dialog id="dialog-add-proyecto" class="app-dialog--sm" aria-labelledby="dialog-add-proyecto-titulo">
+    <form id="form-proyecto" class="dialog-inner" novalidate>
+        <button type="button" class="dialog-close-btn" onclick="toggleDialog('dialog-add-proyecto')" aria-label="Cerrar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <h2 class="dialog-title" id="dialog-add-proyecto-titulo">
+            <span class="material-symbols-rounded dialogo-editar__icono" aria-hidden="true">add</span>
+            Nuevo proyecto
+        </h2>
+        <p class="dialog-subtitle">Crea un proyecto para comenzar a evaluar.</p>
+        <div class="dialog-form">
+            <div class="field-group">
+                <label for="proyecto-nombre">Nombre <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <input type="text" required autocomplete="off" placeholder="Nombre del proyecto" class="campo-nota__input campo-nombre__input" name="nombre" id="proyecto-nombre" maxlength="80">
+                </div>
+                <span class="char-counter" data-for="proyecto-nombre">0/80</span>
+                <span class="error-message" id="error-proyecto-nombre"></span>
+            </div>
+            <div class="field-group">
+                <label for="proyecto-nivel">Rúbrica (nivel de evaluación) <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="proyecto-nivel" name="nivel_nombre" class="campo-nota__input" data-custom data-searchable required>
+                        <option value="" selected disabled hidden>Selecciona una rúbrica</option>
+                    </select>
+                    <input type="hidden" id="proyecto-nivel-id" name="nivel_id">
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="proyecto-grado-nivel">Grado <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="proyecto-grado-nivel" class="campo-nota__input" data-custom data-searchable required>
+                        <option value="" selected disabled hidden>Selecciona un grado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="proyecto-grado-esp">Especialidad <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="proyecto-grado-esp" class="campo-nota__input" data-custom data-searchable required disabled>
+                        <option value="" selected disabled hidden>Selecciona una especialidad</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="proyecto-grado">Sección <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="proyecto-grado" class="campo-nota__input" data-custom data-searchable required disabled>
+                        <option value="" selected disabled hidden>Selecciona una sección</option>
+                    </select>
+                    <input type="hidden" id="proyecto-grado-id" name="grado_id">
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="boton-cancelar" onclick="toggleDialog('dialog-add-proyecto')" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="submit" class="boton-confirmar" data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">add</span>
+                        <span>Añadir</span>
+                    </div>
+                    <!-- Estado enviando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Añadiendo…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+<div class="title-seccion">
+    <div class="title-seccion__izq">
+        <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú" data-ripple>
+            <span class="material-symbols-rounded">menu</span>
+        </button>
+        <p class="text-title-seccion">
+            Proyectos
+        </p>
+    </div>
+    <div class="display-flex row gap-btn ">
+        <button type="button" class="centrar boton gap-btn btn-opcion" data-ripple onclick="toggleDialog('dialog-add-proyecto')">
+            <span class="material-symbols-rounded">add</span>
+            <p>Añadir proyecto</p>
+        </button>
+        <button class="centrar boton btn-refresh btn-opcion" data-ripple onclick="loadProyectos(this)">
+            <span class="material-symbols-rounded btn-refresh-icon">
+                refresh
+            </span>
+            <div class="btn-refresh-spinner">
+                <div class="boton-spinner" style="background: var(--color-primario);">
+                    <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                        <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                        <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                            stroke="var(--spinner-arco)" />
+                    </svg>
+                </div>
+            </div>
+        </button>
+    </div>
+</div>
+<!-- Menú contextual flotante: Editar / Eliminar -->
+<div id="menu__list" class="boton-menu ContextMenu" role="menu" aria-hidden="true">
+    <ul class="boton-menu__list">
+        <li>
+            <button type="button" class="boton-menu__item" data-menu="editar" data-ripple role="menuitem">
+                <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+                <span>Editar</span>
+            </button>
+        </li>
+        <li>
+            <button type="button" class="boton-menu__item boton-menu__item--peligro" data-menu="eliminar" data-ripple role="menuitem">
+                <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                <span>Eliminar</span>
+            </button>
+        </li>
+    </ul>
+</div>
+<dialog id="dialogo-eliminar-proyecto" class="app-dialog--xs" aria-labelledby="dialogo-eliminar-proyecto-titulo">
+    <form method="dialog" class="dialog-inner">
+        <button type="button" class="dialog-close-btn" data-cancelar-rubrica aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <span class="material-symbols-rounded dialogo-confirmar__icono" aria-hidden="true">warning</span>
+        <h2 class="dialog-title" id="dialogo-eliminar-proyecto-titulo">¿Eliminar este proyecto?</h2>
+        <p class="dialog-subtitle">Se eliminarán también sus evaluaciones y estudiantes. Esta acción no se puede deshacer.</p>
+        <div class="form-actions">
+            <button type="button" class="boton-cancelar" data-cancelar-rubrica data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="button" class="boton-confirmar" data-accion="confirmar" data-confirmar-proyecto data-ripple data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">delete</span>
+                        <span>Eliminar</span>
+                    </div>
+                    <!-- Estado eliminando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Eliminando…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+<!-- Modal para editar el nombre, la rúbrica y el grado del proyecto -->
+<dialog id="dialogo-editar-proyecto" class="app-dialog--sm" aria-labelledby="dialogo-editar-proyecto-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-editar-proyecto-form" novalidate>
+        <button type="button" class="dialog-close-btn" id="btn-cerrar-editar-proyecto" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <h2 class="dialog-title" id="dialogo-editar-proyecto-titulo">
+            <span class="material-symbols-rounded dialogo-editar__icono" aria-hidden="true">edit</span>
+            Editar proyecto
+        </h2>
+        <p class="dialog-subtitle">Modifica el nombre, la rúbrica y el grado del proyecto.</p>
+        <div class="dialog-form">
+            <div class="field-group">
+                <label for="editar-nombre">Nombre <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <input type="text" id="editar-nombre" class="campo-nota__input" required
+                        maxlength="100" placeholder="Nombre del proyecto">
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="editar-nivel">Rúbrica (nivel de evaluación) <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="editar-nivel" class="campo-nota__input" data-custom data-searchable required>
+                        <option value="" selected disabled hidden>Selecciona una rúbrica</option>
+                    </select>
+                    <input type="hidden" id="editar-nivel-id">
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="editar-grado-nivel">Grado <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="editar-grado-nivel" class="campo-nota__input" data-custom data-searchable required>
+                        <option value="" selected disabled hidden>Selecciona un grado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="editar-grado-esp">Especialidad <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="editar-grado-esp" class="campo-nota__input" data-custom data-searchable required disabled>
+                        <option value="" selected disabled hidden>Selecciona una especialidad</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="editar-grado">Sección <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="editar-grado" class="campo-nota__input" data-custom data-searchable required disabled>
+                        <option value="" selected disabled hidden>Selecciona una sección</option>
+                    </select>
+                    <input type="hidden" id="editar-grado-id">
+                </div>
+            </div>
+        </div>
+<div class="form-actions">
+            <button type="button" class="boton-cancelar" id="btn-cancelar-editar-proyecto" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="submit" class="boton-confirmar" id="btn-guardar-editar-proyecto" data-ripple data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">check</span>
+                        <span>Guardar</span>
+                    </div>
+                    <!-- Estado enviando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Guardando…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+<section id="proyectos__container" class="list-container">
+    <!-- Barra de herramientas: búsqueda + ordenar -->
+    <div class="list-toolbar">
+        <div class="search-wrapper" onclick="focusSearchBar(this)">
+            <span class="material-symbols-rounded icon" aria-hidden="true">
+                search
+            </span>
+            <input type="text" placeholder="Buscar proyectos..." aria-label="Buscar proyectos" role="searchbox" spellcheck="false" autocomplete="off" id="search-proyectos" class="search-input">
+            <button type="button" class="search-clear" aria-label="Limpiar búsqueda" onclick="clearSearch(this)">
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </div>
+
+        <div class="toolbar-opciones">
+            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por año escolar">
+                <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                <span class="toolbar-control__label">Año:</span>
+                <select id="filtro-anio-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="anio" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                    <option value="" selected>Todos</option>
+                </select>
+            </label>
+            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por grado">
+                <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                <span class="toolbar-control__label">Grado:</span>
+                <select id="filtro-grado-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="gradoKey" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                    <option value="" selected>Todos</option>
+                </select>
+            </label>
+            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por sección">
+                <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                <span class="toolbar-control__label">Sección:</span>
+                <select id="filtro-seccion-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="seccion" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                    <option value="" selected>Todas</option>
+                </select>
+            </label>
+            <label class="toolbar-control toolbar-control--sort" aria-label="Ordenar proyectos">
+                <span class="material-symbols-rounded" aria-hidden="true">swap_vert</span>
+                <span class="toolbar-control__label">Ordenar por:</span>
+                <select id="orden-proyectos" class="toolbar-select" data-sort data-custom data-dropdown-anchor=".toolbar-control--sort">
+                    <option value="id-desc" selected>Más recientes</option>
+                    <option value="id-asc">Más antiguos</option>
+                </select>
+            </label>
+        </div>
+    </div>
+    <!-- Loader: siempre visible por defecto; se oculta al cargar datos -->
+    <div class="section-loader">
+        <div class="progreso-lineal indeterminado">
+            <div class="progreso-indicador"></div>
+        </div>
+    </div>
+    <div class="section-empty" style="display: none;">
+        <div class="empty-content">
+            <span class="material-symbols-rounded empty-icon">
+                school
+            </span>
+            <p class="empty-text">Aún no hay proyectos</p>
+            <p class="empty-subtext">Los proyectos que crees aparecerán aquí.</p>
+        </div>
+    </div>
+</section>

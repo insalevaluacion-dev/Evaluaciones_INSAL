@@ -1,0 +1,511 @@
+.main_document{
+    display: flex;
+    flex-direction: column;
+    background: var(--font-color);
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    height: 100dvh;
+    width: 100dvw;
+}
+
+form{
+    display: flex;
+    flex-direction: column;
+    background: var(--font-color);
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    border-radius: 20px;
+}
+
+.contenedor-criterios{
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+section{
+    background: var(--font-color-secondary);
+    width: 90dvw;
+    border-radius: 20px;
+}
+
+.container1{
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    border-left: 6px solid var(--principal-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.container2{
+    display: flex;
+    flex-direction: column;
+    height: 75dvh;
+    background: var(--font-color);
+    gap: 20px;
+    overflow-y: scroll;
+    overscroll-behavior-y: contain;
+    /* Scrollbar moderno (Firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--hover-color) transparent;
+}
+
+/* Scrollbar moderno (WebKit: Chrome, Edge, Safari) */
+.container2::-webkit-scrollbar {
+    width: 8px;
+}
+
+.container2::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.container2::-webkit-scrollbar-thumb {
+    background: var(--hover-color);
+    border-radius: 10px;
+}
+
+.container2::-webkit-scrollbar-thumb:hover {
+    background: var(--text-color);
+}
+
+.criterio{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    border-radius: 20px;
+    background: var(--font-color-secondary);
+    padding: 15px;
+    gap: 9px;
+}
+
+.input_text-field{
+    width: 100%;
+    height: auto;
+}
+
+.titulo__criterio{
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    width: 100%;
+    height: auto;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: var(--text-color-secondary);
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+.instrucciones{
+    padding: 7px;
+    width: 100%;
+    height: auto;
+    gap: 10px;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    font-weight: 400;
+    background: var(--font-color-secondary);
+    border-radius: 20px 20px 0px 0px;
+}
+
+.instrucciones span{
+    color: var(--text-color-secondary);
+}
+
+.descripcion{
+    background: var(--font-color);
+    border-left: 5px solid var(--principal-color);
+    width: 100%;
+    height: 0px;
+    overflow: hidden;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    interpolate-size: allow-keywords;
+}
+
+.descripcion.expandir{
+    margin-bottom: 5px;
+    padding: 7px;
+    height: fit-content;
+}
+
+.material-symbols-rounded {
+    transition: all .5s ease;
+}
+
+.material-symbols-rounded.rotar{
+    rotate: -180deg;
+}
+
+.estudiante-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.proyecto-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 16px;
+}
+
+/* En la vista /evaluacion el nombre del proyecto debe quedar pegado al
+   icono, alineado a la izquierda. Se acota a este contenedor (main.main_document)
+   porque las clases .proyecto-header/.proyecto-info también se usan en las
+   vistas de detalle y rúbrica (que sí necesitan espacio entre icono y botón). */
+main.main_document .proyecto-header {
+    justify-content: flex-start;
+}
+
+.proyecto-icon{
+    font-size: 2.6rem;
+    color: var(--principal-color);
+}
+
+.proyecto-info{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.proyecto-label{
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-color-secondary);
+    opacity: 0.7;
+}
+
+#nombre-proyecto{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-color-secondary);
+    font-size: 1.7rem;
+    font-weight: 600;
+}
+
+/* ── Feedback de carga en botones (Regresar / Enviar evaluación) ── */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#boton-regresar > #mensaje1-regresar,
+#boton-enviar > #mensaje1-enviar {
+    display: none;
+}
+
+#boton-regresar.cargando > #mensaje1-regresar,
+#boton-enviar.cargando > #mensaje1-enviar {
+    display: flex;
+}
+
+#boton-regresar.cargando > #mensaje2-regresar,
+#boton-enviar.cargando > #mensaje2-enviar {
+    display: none;
+}
+
+/* ── Feedback active / focus en botones ── */
+#boton-regresar,
+#boton-enviar {
+    transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+/* Estado presionado (solo si no está cargando) */
+#boton-regresar:active:not(:disabled),
+#boton-enviar:active:not(:disabled) {
+    transform: scale(0.96);
+    filter: brightness(0.93);
+}
+
+/* Foco por teclado: anillo visible accesible
+   (inset para que no se recorte con el scroll de .container2) */
+#boton-regresar:focus-visible,
+#boton-enviar:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--principal-color) 55%, transparent);
+}
+
+/* Sin anillo al hacer clic con mouse (solo teclado) */
+#boton-regresar:focus:not(:focus-visible),
+#boton-enviar:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ── Espaciado icono/texto en botones (gap-btn no está cargado aquí) ── */
+#boton-regresar [id^="mensaje"],
+#boton-enviar [id^="mensaje"] {
+    gap: 8px;
+}
+
+/* ── Campo de nota (input nativo) ── */
+.campo-nota{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.campo-nota__label{
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.campo-nota__label .requerido{
+    color: #b3261e;
+}
+
+.campo-nota__input{
+    width: 100%;
+    padding: 12px 16px;
+    font-family: Poppins, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    background: var(--font-color-secondary);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    outline: none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+/* Oculta las flechas del input number en Chrome/Safari/Edge */
+.campo-nota__input::-webkit-outer-spin-button,
+.campo-nota__input::-webkit-inner-spin-button{
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.campo-nota__input::placeholder{
+    color: var(--text-color);
+    opacity: .55;
+}
+
+.campo-nota__input:hover{
+    border-color: var(--principal-color);
+}
+
+.campo-nota__input:focus{
+    border-color: var(--principal-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+.campo-nota__supporting{
+    font-size: 0.9rem;
+    line-height: 1.3;
+    color: var(--text-color);
+    opacity: .7;
+    min-height: 1em;
+}
+
+/* Estado de error */
+.campo-nota.error .campo-nota__input{
+    border-color: #b3261e;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #b3261e 15%, transparent);
+}
+
+.campo-nota.error .campo-nota__supporting{
+    color: #b3261e;
+    opacity: 1;
+    font-weight: 500;
+}
+
+/* ══ MODAL ═══════════════════════════════════════════════════ */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100dvw;
+    height: 100dvh;
+    background-color: rgba(10, 63, 122, 0.30);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-content {
+    margin: auto;
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    background: var(--font-color-secondary, #ffffff);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: var(--sh, 0 4px 24px rgba(15, 90, 171, 0.13));
+    opacity: 0;
+    transform: scale(0.7);
+    transition: all 0.3s ease-in-out;
+}
+
+.modal.active .modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* ── Botón de cierre (circular, como el resto de modales) ── */
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--font-color);
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    font-size: 1.4rem;
+    transition: transform .12s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.modal-close:active:not(:disabled) {
+    transform: scale(0.92);
+    background: var(--hover-color);
+}
+
+.modal-content h2 {
+    margin: 0;
+    padding-right: 40px;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+}
+
+.modal-subtitulo {
+    margin: 4px 0 16px;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--text-color);
+}
+
+/* ── Formulario ── */
+#formulario-asistencia {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    background: transparent;
+    border-radius: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+#lista-estudiantes {
+    list-style: none;
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--font-color);
+    border-radius: 15px;
+    max-height: 240px;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hover-color) transparent;
+}
+
+#lista-estudiantes::-webkit-scrollbar {
+    width: 8px;
+}
+#lista-estudiantes::-webkit-scrollbar-track {
+    background: transparent;
+}
+#lista-estudiantes::-webkit-scrollbar-thumb {
+    background: var(--hover-color);
+    border-radius: 10px;
+}
+
+.estudiante-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--font-color-secondary, #ffffff);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.estudiante-checkbox:hover {
+    background: var(--font-color-important);
+}
+
+.estudiante-checkbox__nombre {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+}
+
+/* ── Botones de acción (píldoras .btn del sistema) ── */
+#formulario-asistencia .btn {
+    margin-top: 2px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* ── Feedback de carga en el botón Guardar asistencia ── */
+#boton-guardar-asistencia > #mensaje1-guardar-asistencia {
+    display: none;
+}
+
+#boton-guardar-asistencia.cargando > #mensaje1-guardar-asistencia {
+    display: flex;
+}
+
+#boton-guardar-asistencia.cargando > #mensaje2-guardar-asistencia {
+    display: none;
+}
+
+#formulario-asistencia .btn {
+    transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+#formulario-asistencia .btn:active:not(:disabled) {
+    transform: scale(0.96);
+    filter: brightness(0.93);
+}
+
+#formulario-asistencia .btn:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--principal-color) 55%, transparent);
+}
+
+#formulario-asistencia .btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* gap-btn no está cargado en esta página: lo definimos dentro del modal */
+.modal .gap-btn {
+    gap: 10px;
+}
+

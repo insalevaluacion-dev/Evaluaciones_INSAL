@@ -1,0 +1,239 @@
+<div class="content_inicio">
+    <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú"
+        data-ripple>
+        <span class="material-symbols-rounded">menu</span>
+    </button>
+    <a href="/menu/rubrica" class="back-link" data-link>
+        <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
+        <p>Atras</p>
+    </a>
+    <p class="text-title-seccion">Editar</p>
+    <span id="estado-sincronizacion" class="estado-sincronizacion estado-sincronizacion--cargando"
+        role="status" aria-live="polite">
+        <span class="material-symbols-rounded" aria-hidden="true">sync</span>
+        <span class="estado-sincronizacion__texto">Comprobando...</span>
+    </span>
+</div>
+<section class="contenedor-criterios" data-rubrica-id="<%= id %>">
+    <section class="container1">
+        <div class="proyecto-header">
+            <span class="material-symbols-rounded proyecto-icon">checklist</span>
+            <div class="proyecto-info">
+                <span class="proyecto-label">Rúbrica</span>
+                <span id="nombre-proyecto">
+                    <div class="proyecto-textos">
+                        <p class="proyecto-titulo" id="rubrica-titulo">Cargando…</p>
+                        <p class="proyecto-descripcion" id="rubrica-descripcion-vista">Cargando…</p>
+                    </div>
+                </span>
+            </div>
+            <button type="button" class="proyecto-acciones" id="btn-menu-rubrica"
+                aria-label="Opciones de la rúbrica" data-ripple>
+                <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>
+            </button>
+        </div>
+    </section>
+    <section class="container2">
+        <p class="form-cabecera">
+            <span class="material-symbols-rounded" aria-hidden="true">format_list_bulleted</span>
+            <span>Criterios de evaluación</span>
+            <span id="contador-criterios" class="form-cabecera__contador">0</span>
+        </p>
+        <div id="criterios-loader" class="criterios-loader" role="status" aria-label="Cargando criterios">
+            <div class="progreso-lineal indeterminado">
+                <div class="progreso-indicador"></div>
+            </div>
+        </div>
+        <div id="criterios-lista" class="criterios-lista"></div>
+
+        <p class="form-cabecera">
+            <span class="material-symbols-rounded" aria-hidden="true">add_circle</span>
+            <span>Añadir criterio</span>
+        </p>
+        <div class="criterio criterio-form" id="form-criterio" novalidate>
+            <div class="campo-nombre">
+                <label for="criterio-nombre" class="campo-nota__label">
+                    Nombre <span class="requerido">*</span>
+                </label>
+                <div class="campo-nota__input-wrap">
+                    <input type="text" id="criterio-nombre" name="nombre" required
+                        placeholder="Nombre del criterio" class="campo-nota__input campo-nombre__input">
+                </div>
+            </div>
+            <span class="error-message" id="error-criterio-nombre"></span>
+            <div class="campo-decripcion">
+                <label for="criterio-descripcion" class="campo-nota__label">
+                    Descripción
+                </label>
+                <div class="campo-nota__input-wrap">
+                    <textarea id="criterio-descripcion" name="descripcion" rows="3"
+                        placeholder="Descripción del criterio"
+                        class="campo-nota__input campo-decripcion__input"></textarea>
+                </div>
+            </div>
+            <span class="error-message" id="error-criterio-descripcion"></span>
+            <div class="campo-nota">
+                <label for="criterio-porcentaje" class="campo-nota__label">
+                    Ponderación (%) <span class="requerido">*</span>
+                </label>
+                <div class="campo-nota__input-wrap">
+                    <input type="number" id="criterio-porcentaje" name="porcentaje" min="1" max="100" step="1" required
+                        inputmode="numeric" placeholder="20" class="campo-nota__input">
+                </div>
+                <p class="campo-nota__supporting">Peso del criterio entre 1 y 100. La suma debe ser 100%.</p>
+                <span class="error-message" id="error-criterio-porcentaje"></span>
+            </div>
+            <div class="criterio-form__acciones oculto">
+                <button type="button" class="boton-confirmar" id="btn-confirmar-criterio" data-ripple>
+                    <span class="material-symbols-rounded" aria-hidden="true">check</span>
+                    <span>Confirmar</span>
+                </button>
+                <button type="button" class="boton-cancelar" id="btn-cancelar-criterio" data-ripple>
+                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                    <span>Cancelar</span>
+                </button>
+            </div>
+        </div>
+        <p class="form-puntuacion" id="form-puntuacion-card">
+            <span class="form-puntuacion__label">Puntuación total:</span>
+            <span id="puntuacion-total" class="form-puntuacion__valor">0%</span>
+            <span id="puntuacion-estado" class="form-puntuacion__estado"></span>
+        </p>
+        <div class="botones-accion">
+            <form id="form-guardar-criterios">
+                <button type="submit" class="boton-publicar" id="btn-guardar-criterios" data-ripple data-submit>
+                    <div class="submit-states">
+                        <!-- Estado normal -->
+                        <div class="centrar gap-btn mostrar" data-submit-content>
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <p>Guardar</p>
+                        </div>
+                        <!-- Estado enviando -->
+                        <div class="centrar gap-btn quitar" data-loading-content>
+                            <span class="material-symbols-rounded">hourglass_top</span>
+                            <p>Guardando…</p>
+                        </div>
+                        <!-- Estado éxito -->
+                        <div class="centrar gap-btn quitar" data-success-content>
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <p>¡Hecho!</p>
+                        </div>
+                    </div>
+                </button>
+            </form>
+</div>
+
+    </section>
+</section>
+
+<!-- Menú contextual flotante de la rúbrica: Editar / Eliminar -->
+<div id="menu__rubrica" class="boton-menu" role="menu" aria-hidden="true">
+    <ul class="boton-menu__list">
+        <li>
+            <button type="button" class="boton-menu__item" data-menu="editar" data-ripple role="menuitem">
+                <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+                <span>Editar</span>
+            </button>
+        </li>
+        <li>
+            <button type="button" class="boton-menu__item boton-menu__item--peligro" data-menu="eliminar" data-ripple role="menuitem">
+                <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                <span>Eliminar</span>
+            </button>
+        </li>
+    </ul>
+</div>
+
+<!-- Modal para editar el nombre y la descripción de la rúbrica -->
+<dialog id="dialogo-editar-rubrica" class="app-dialog--sm" aria-labelledby="dialogo-editar-rubrica-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-editar-rubrica-form" novalidate>
+        <button type="button" class="dialog-close-btn" id="btn-cerrar-editar-rubrica" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <h2 class="dialogo-editar-rubrica-title" id="dialogo-editar-rubrica-titulo">
+            <span class="material-symbols-rounded dialogo-editar__icono" aria-hidden="true">edit</span>
+            Editar rúbrica
+        </h2>
+        <p class="dialogo-editar-rubrica-subtitle" id="dialogo-editar-rubrica-subtitulo">
+            Modifica el nombre y la descripción de la rúbrica.
+        </p>
+        <div class="dialogo-editar-rubrica-form">
+            <div class="field-group">
+                <label for="editar-nombre">Nombre <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <input type="text" id="editar-nombre" class="campo-nota__input" required
+                        maxlength="100" placeholder="Nombre de la rúbrica">
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="editar-descripcion">Descripción</label>
+                <div class="campo-nota__input-wrap">
+                    <textarea id="editar-descripcion" class="campo-nota__input" rows="3"
+                        maxlength="500" placeholder="Describe el propósito de la rúbrica"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="dialogo-editar-rubrica-actions">
+            <button type="button" class="boton-cancelar" id="btn-cancelar-editar-rubrica" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="submit" class="boton-confirmar" id="btn-guardar-editar-rubrica" data-ripple data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">check</span>
+                        <span>Guardar</span>
+                    </div>
+                    <!-- Estado enviando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Guardando…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal de confirmación genérica de acción destructiva -->
+<dialog id="dialogo-confirmar" class="app-dialog--xs dialogo-confirmar" aria-labelledby="dialogo-confirmar-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-confirmar-form">
+        <button type="button" class="dialog-close-btn" data-accion="cancelar" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <span class="material-symbols-rounded dialogo-confirmar__icono" aria-hidden="true">warning</span>
+        <h2 class="dialogo-confirmar-title" id="dialogo-confirmar-titulo">¿Eliminar criterio?</h2>
+        <p class="dialogo-confirmar-subtitle" id="dialogo-confirmar-mensaje"></p>
+        <div class="dialogo-confirmar-actions">
+            <button type="button" class="boton-cancelar" data-accion="cancelar" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="button" class="boton-confirmar" data-accion="confirmar" data-ripple data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">check</span>
+                        <span>Confirmar</span>
+                    </div>
+                    <!-- Estado confirmando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Confirmando…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>

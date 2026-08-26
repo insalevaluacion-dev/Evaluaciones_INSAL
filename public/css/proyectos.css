@@ -1,0 +1,1786 @@
+.display-flex {
+    display: flex;
+}
+
+.row {
+    flex-direction: row;
+}
+
+.centrar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gap-row {
+    flex-direction: row;
+    gap: 10px;
+}
+
+.gap-btn {
+    gap: 10px;
+    flex-direction: row;
+}
+
+.quitar {
+    display: none;
+}
+
+/* ------------------------------------------------------------
+    Inputs del formulario
+------------------------------------------------------------ */
+
+.input__text {
+    width: 100%;
+    height: 55px;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: none;
+    background: #1e1f1f;
+    font-family: Poppins;
+    font-size: 1.3rem;
+    color: white;
+    outline: none;
+}
+
+.list-section {
+    display: flex;
+    flex-direction: column !important;
+}
+
+.list-input {
+    resize: none;
+    field-sizing: content !important;
+    max-height: 500px;
+    height: auto !important;
+}
+
+.input-char-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    flex-direction: column;
+}
+
+.char-counter {
+    align-self: flex-end;
+    font-size: 0.75rem;
+    color: var(--texto-color);
+    opacity: 0.5;
+    margin-top: 2px;
+    margin-right: 4px;
+    transition: color 0.2s, opacity 0.2s;
+}
+
+.char-counter--warn {
+    opacity: 0.85;
+    color: #f0a030;
+}
+
+.char-counter--limit {
+    opacity: 1;
+    color: #e04040;
+}
+
+/* ------------------------------------------------------------
+    Botones (.boton, refresh, btn-small/btn-mas)
+------------------------------------------------------------ */
+.boton {
+    font-family: Poppins;
+    font-size: 1.2rem;
+    height: 50px;
+    width: fit-content;
+    padding: 5px 15px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    gap: 10px;
+    background: #E4E2E5;
+    color: black !important;
+    flex-direction: row;
+
+    > p {
+        color: black !important;
+    }
+}
+
+.boton p {
+    color: black !important;
+}
+
+.boton:hover {
+    background: #d0ced3;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
+}
+
+.boton:active {
+    background: #bcbabe;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Botón de refrescar (icono cuadrado) */
+.btn-refresh {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+
+/* Icono refresh visible por defecto, spinner oculto */
+.btn-refresh-icon {
+    font-size: 1.5rem;
+    color: inherit;
+    display: flex;
+}
+
+.btn-refresh-spinner {
+    display: none;
+}
+
+/* Cuando el botón tiene clase .is-loading:
+   - icono se oculta
+   - spinner se muestra */
+.btn-refresh.is-loading .btn-refresh-icon {
+    display: none;
+}
+
+.btn-refresh.is-loading .btn-refresh-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ------------------------------------------------------------
+    Botones tipo píldora — mismo estilo/behavior que .opcion del aside
+    Aplicado a "Crear proyecto" y al botón de refrescar
+------------------------------------------------------------ */
+.btn-opcion {
+    border-radius: 25px;
+    background: var(--font-color-important);
+    color: var(--text-color-prioritary) !important;
+    box-shadow: none;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+
+    p {
+        color: var(--text-color-prioritary) !important;
+        font-weight: 500;
+    }
+
+    .material-symbols-rounded {
+        font-weight: 500;
+    }
+
+    /* Hover: azul medio-suave -> se distingue del :active */
+    &:hover {
+        background: #7ee5f7;
+        color: var(--text-color-prioritary) !important;
+        cursor: pointer;
+        box-shadow: none;
+
+        p {
+            color: var(--text-color-prioritary) !important;
+        }
+    }
+
+    /* Press: azul sólido con texto blanco + onda blanca */
+    &:active {
+        background: var(--azul-med);
+        color: #ffffff !important;
+        transform: scale(0.95);
+        box-shadow: none;
+
+        p {
+            color: #ffffff !important;
+        }
+
+        .ripple {
+            background: rgba(255, 255, 255, 0.45);
+        }
+    }
+
+    &:focus {
+        outline: none;
+    }
+}
+
+/* ── Ajuste específico dentro del main container ──
+   El fondo del contenedor es --font-color-tercero (#d6efff), muy parecido al
+   --font-color-important (#C3E8FF) del botón. Se usa un azul más saturado con
+   texto blanco para que los botones se distingan claramente del fondo. */
+#main__container .btn-opcion {
+    background: #3d9bde;
+    color: #ffffff !important;
+
+    p {
+        color: #ffffff !important;
+    }
+
+    &:hover {
+        background: #2f87c9;
+        color: #ffffff !important;
+
+        p {
+            color: #ffffff !important;
+        }
+    }
+
+    &:active {
+        background: var(--azul-dark);
+        color: #ffffff !important;
+        transform: scale(0.95);
+
+        p {
+            color: #ffffff !important;
+        }
+    }
+}
+
+/* ── Spinner del circular progress en botones azules ──
+   El arco por defecto (--spinner-arco) es azul y se confunde con el fondo
+   azul de estos botones, así que se pinta de blanco solo aquí. */
+#main__container .btn-opcion .svg-spinner .arco-indicador,
+.btn-refresh .svg-spinner .arco-indicador {
+    stroke: #ffffff;
+}
+
+#main__container .btn-opcion .svg-spinner .arco-pista,
+.btn-refresh .svg-spinner .arco-pista {
+    stroke: rgba(255, 255, 255, 0.25);
+}
+
+/* Botón "Abrir" pequeño (modificadores de list-item) */
+.btn-small {
+    padding: 5px 10px !important;
+    font-size: 1.1em;
+    font-weight: 500;
+    height: fit-content;
+}
+
+.btn-mas {
+    text-decoration: none;
+    border: 2px solid var(--linea-color);
+    background: none;
+    color: var(--azul) !important;
+    transition:
+        color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+        background 150ms cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+        transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+
+    p {
+        color: var(--azul) !important;
+        transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+}
+
+.btn-mas:hover {
+    color: black !important;
+    border-color: var(--texto-color);
+    transform: scale(1.03);
+
+    p {
+        color: black !important;
+    }
+}
+
+/* ------------------------------------------------------------
+   Título de sección
+   ------------------------------------------------------------ */
+.title-seccion {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+/* Grupo izquierdo del encabezado: botón de menú móvil + título */
+.title-seccion__izq {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.text-title-seccion {
+    font-size: 1.7rem;
+    font-weight: 400;
+    color: var(--texto-color);
+    margin: 0;
+}
+
+/* ------------------------------------------------------------
+   Contenedor de lista + estado vacío
+   ------------------------------------------------------------ */
+.list-container {
+    display: flex;
+    flex-direction: column !important;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--linea-color, #2a7de1) transparent;
+}
+
+/* Scrollbar personalizado para el contenedor de listas */
+.list-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.list-container::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+.list-container::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--linea-color, #2a7de1) 35%, transparent);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.3s ease;
+}
+
+.list-container::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--linea-color, #2a7de1) 60%, transparent);
+    background-clip: padding-box;
+}
+
+.list-container::-webkit-scrollbar-thumb:active {
+    background: var(--linea-color, #2a7de1);
+    background-clip: padding-box;
+}
+
+/* ------------------------------------------------------------
+   Buscador de listas (search) — rubrica / evaluaciones
+   ------------------------------------------------------------ */
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 25px;
+    box-shadow: var(--sh-sm);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    /* Icono de búsqueda */
+    .icon {
+        color: var(--azul-med);
+        font-size: 1.35rem;
+        display: flex;
+        cursor: default;
+        flex-shrink: 0;
+    }
+
+    /* Campo de texto */
+    .search-input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-family: 'Poppins', sans-serif;
+        font-size: 1rem;
+        color: var(--texto-color);
+    }
+
+    .search-input::placeholder {
+        color: var(--secundario-texto-color);
+        opacity: 0.55;
+    }
+
+    /* Foco dentro del buscador */
+    &:focus-within {
+        border-color: var(--azul-med);
+        box-shadow: 0 0 0 4px rgba(26, 107, 199, 0.15);
+    }
+}
+
+/* Botón de limpiar (✕) — visible solo al escribir */
+.search-clear {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--secundario-texto-color) 14%, transparent);
+    color: var(--secundario-texto-color);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+
+    .material-symbols-rounded {
+        font-size: 1.15rem;
+    }
+
+    &:hover {
+        background: color-mix(in srgb, var(--secundario-texto-color) 28%, transparent);
+        color: var(--texto-color);
+    }
+
+    &:active {
+        transform: scale(0.88);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--azul-med);
+        outline-offset: 2px;
+    }
+}
+
+.search-wrapper.has-value .search-clear {
+    display: flex;
+}
+
+/* Estado visual "sin resultados" de la búsqueda */
+.search-no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 50px 20px;
+    text-align: center;
+    animation: fadeInEmpty 0.25s ease;
+
+    .search-no-results-term {
+        font-style: italic;
+        font-weight: 500;
+    }
+}
+
+/* ============================================================
+   Barra de herramientas de lista (búsqueda + ordenar + filtros)
+   ============================================================ */
+.list-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh-sm);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+/* El buscador dentro de la toolbar adopta un campo integrado */
+.list-toolbar .search-wrapper {
+    position: static;
+    margin-bottom: 0;
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: var(--font-color-tercero);
+    box-shadow: none;
+}
+
+.toolbar-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolbar-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: var(--bg2);
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    > .material-symbols-rounded {
+        font-size: 1.15rem;
+        color: var(--azul-med);
+        flex-shrink: 0;
+    }
+}
+
+.toolbar-control__label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--secundario-texto-color);
+    white-space: nowrap;
+}
+
+/* Selector de orden y de filtro (usa el custom-select animado) */
+.toolbar-control--sort,
+.toolbar-control--filter {
+    flex: 0 1 auto;
+    min-width: 150px;
+    cursor: pointer;
+
+    &:focus-within {
+        border-color: var(--azul-med);
+        box-shadow: 0 0 0 3px rgba(26, 107, 199, 0.15);
+    }
+
+    /* Integración compacta del custom-select dentro de la toolbar */
+    .custom-select {
+        width: auto;
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .custom-select__trigger {
+        justify-content: flex-start;
+        gap: 4px;
+        padding: 0;
+        background: transparent;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--texto-color);
+    }
+
+    .custom-select__trigger:hover {
+        background: transparent;
+    }
+
+    .custom-select__trigger:focus-visible {
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .custom-select__arrow {
+        width: 9px;
+        height: 9px;
+        margin-left: 12px;
+        border-right-width: 1.5px;
+        border-bottom-width: 1.5px;
+    }
+
+    /* El ancho del menú lo define el ancla (.toolbar-control--sort) vía inline style;
+       solo evitamos que el texto haga wrap para que las opciones queden en una línea. */
+    .custom-select__dropdown {
+        white-space: nowrap;
+        border-radius: 12px;
+    }
+
+    .custom-select__option {
+        font-size: 0.9rem;
+        padding: 9px 14px;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 899px) {
+    .toolbar-opciones {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .toolbar-control {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+}
+
+.section-empty {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 60px 20px;
+    text-align: center;
+    animation: fadeInEmpty 0.5s ease;
+}
+
+.empty-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.empty-icon {
+    font-size: 64px !important;
+    color: var(--secundario-texto-color);
+    opacity: 0.6;
+    animation: floatIcon 3s ease-in-out infinite;
+}
+
+.empty-text {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--secundario-texto-color);
+    margin: 0 !important;
+}
+
+.empty-subtext {
+    font-size: 0.95rem;
+    color: var(--secundario-texto-color);
+    opacity: 0.7;
+    margin: 0 !important;
+    max-width: 320px;
+}
+
+@keyframes fadeInEmpty {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes floatIcon {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+
+/* Botón de cerrar del modal de creación */
+.cerrarbotonmenuajustes {
+    background: var(--bg2);
+    border-radius: 100%;
+    border: none;
+    padding: 10px;
+    display: grid;
+    place-items: center;
+    line-height: 1;
+    color: var(--txt);
+}
+
+.cerrarbotonmenuajustes .icon {
+    color: var(--txt);
+}
+
+.cerrarbotonmenuajustes:focus-visible {
+    outline: 2px solid var(--enfoque-color);
+}
+
+.cerrarbotonmenuajustes:hover {
+    background: var(--hover-color);
+}
+
+/* Modal de creación (rúbrica, evaluación, etc.) — tamaño acorde al contenido */
+.dialog-add-rubrica {
+    width: min(520px, calc(100vw - 32px));
+    min-width: 0;
+    height: max-content;
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+}
+
+.dialog-add-rubrica .dialogo-add__contenido {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    max-width: 100%;
+}
+
+.dialogo-add__cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+}
+
+.dialogo-add__titulo {
+    font-family: Poppins, sans-serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--txt);
+    margin: 0;
+}
+
+/* Grupo de campo: label e input usan todo el ancho, alineación izquierda */
+.dialog-add-rubrica .campo-nota {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 6px;
+}
+
+/* El wrapper interno también debe ocupar todo el ancho */
+.dialog-add-rubrica .campo-nota__input-wrap {
+    width: 100%;
+    display: block;
+}
+
+/* Labels de campos del modal */
+.dialog-add-rubrica .campo-nota__label {
+    font-family: Poppins, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    width: 100%;
+    text-align: left;
+    margin: 0;
+}
+
+.dialog-add-rubrica .requerido {
+    color: #b3261e;
+}
+
+/* Inputs dentro del modal: estilo campo-nota (coherente con editar criterios) */
+.dialog-add-rubrica .campo-nota__input {
+    background: var(--font-color-secondary);
+    color: var(--texto-color);
+    border: 2px solid var(--border);
+    padding: 12px 16px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    font-family: Poppins, sans-serif;
+    border-radius: 12px;
+    outline: none;
+    width: 100%;
+    display: block;
+    resize: none;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.dialog-add-rubrica .campo-nota__input::placeholder {
+    color: var(--texto-color);
+    opacity: 0.5;
+}
+
+.dialog-add-rubrica .campo-nota__input:focus {
+    border-color: var(--principal-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+/* Contador de caracteres */
+.dialog-add-rubrica .char-counter {
+    font-size: 0.75rem;
+    color: var(--texto-color);
+    opacity: 0.5;
+    margin-top: 2px;
+    margin-left: 0;
+    align-self: flex-end;
+    transition: color 0.2s, opacity 0.2s;
+}
+
+.dialog-add-rubrica .char-counter--warn {
+    opacity: 0.85;
+    color: #f0a030;
+}
+
+.dialog-add-rubrica .char-counter--limit {
+    opacity: 1;
+    color: #e04040;
+}
+
+/* ── Modales de proyecto (crear y editar): misma estructura y apariencia ──
+   Ambos usan el sistema base .app-dialog--sm + .dialog-inner (dialog.css). */
+#dialog-add-proyecto,
+#dialogo-editar-proyecto {
+    max-height: calc(100dvh - 32px);
+    /* overflow: visible para que los desplegables de los selects (que se montan
+       como hijos del <dialog>) puedan salirse del borde del diálogo sin cortarse.
+       El scroll interno de los campos lo gestiona .dialog-inner. */
+    overflow: visible;
+    /* Marco interior de seguridad: el contenedor con scroll (.dialog-inner)
+       queda incrustado 6px dentro del diálogo, de modo que su scrollbar y el
+       contenido recortado NUNCA llegan a tocar ni a asomarse por los bordes
+       del diálogo mientras se hace scroll. */
+    padding: 6px;
+}
+
+#dialog-add-proyecto .dialog-inner,
+#dialogo-editar-proyecto .dialog-inner {
+    /* El diálogo tiene padding 6px, así que el espacio interior disponible es
+       (100dvh - 32px) - 12px de padding = 100dvh - 44px. No se usa
+       max-height: inherit porque heredaría el valor del diálogo sin descontar
+       su padding y el inner se desbordaría por debajo. */
+    max-height: calc(100dvh - 44px);
+    overflow-y: auto;
+    /* No scroll horizontal: evita la barra inferior cuando el contenido
+       sobrepasa el ancho (custom-selects, botones) */
+    overflow-x: hidden;
+    min-height: 0;
+    /* Hereda el radio del diálogo (15px) y recorta el contenido + el
+       scrollbar contra las esquinas redondeadas. Sin esto, el scrollbar y
+       los campos "se salen" por los bordes del diálogo al hacer scroll. */
+    border-radius: inherit;
+    /* Scrollbar fino y discreto que no corta las esquinas redondeadas del diálogo */
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--border) 85%, transparent) transparent;
+    scrollbar-gutter: stable;
+}
+
+#dialog-add-proyecto .dialog-inner::-webkit-scrollbar,
+#dialogo-editar-proyecto .dialog-inner::-webkit-scrollbar {
+    width: 8px;
+}
+
+#dialog-add-proyecto .dialog-inner::-webkit-scrollbar-track,
+#dialogo-editar-proyecto .dialog-inner::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#dialog-add-proyecto .dialog-inner::-webkit-scrollbar-thumb,
+#dialogo-editar-proyecto .dialog-inner::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--border) 85%, transparent);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 8px;
+}
+
+#dialog-add-proyecto .dialog-inner::-webkit-scrollbar-thumb:hover,
+#dialogo-editar-proyecto .dialog-inner::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--principal-color) 45%, transparent);
+    background-clip: padding-box;
+}
+
+/* Grupo de campo: label e input usan todo el ancho, alineación izquierda */
+#dialog-add-proyecto .field-group,
+#dialogo-editar-proyecto .field-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    gap: 4px;
+}
+
+#dialog-add-proyecto .field-group label,
+#dialogo-editar-proyecto .field-group label {
+    font-family: Poppins, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    width: 100%;
+    text-align: left;
+    margin: 0;
+}
+
+/* Título y subtítulo de los diálogos de proyecto: un punto más grandes */
+#dialog-add-proyecto .dialog-title,
+#dialogo-editar-proyecto .dialog-title {
+    font-size: 1.5rem;
+}
+
+#dialog-add-proyecto .dialog-subtitle,
+#dialogo-editar-proyecto .dialog-subtitle {
+    font-size: 0.95rem;
+}
+
+#dialog-add-proyecto .requerido,
+#dialogo-editar-proyecto .requerido {
+    color: #b3261e;
+}
+
+#dialog-add-proyecto .campo-nota__input-wrap,
+#dialogo-editar-proyecto .campo-nota__input-wrap {
+    width: 100%;
+    min-width: 0;
+    display: block;
+}
+
+/* Mensaje de error del campo nombre: oculto por defecto para no romper el gap */
+#dialog-add-proyecto .error-message,
+#dialogo-editar-proyecto .error-message {
+    display: none;
+    margin: 0;
+    font-size: 0.85rem;
+    color: #b3261e;
+}
+
+#dialog-add-proyecto .error-message.show,
+#dialogo-editar-proyecto .error-message.show {
+    display: block;
+}
+
+/* Inputs de los campos (nombre de texto + selects nativos) */
+#dialog-add-proyecto .campo-nota__input,
+#dialogo-editar-proyecto .campo-nota__input {
+    background: var(--font-color-secondary);
+    color: var(--texto-color);
+    border: 2px solid var(--border);
+    padding: 10px 14px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    font-family: Poppins, sans-serif;
+    border-radius: 12px;
+    outline: none;
+    width: 100%;
+    display: block;
+    appearance: auto;
+    -webkit-appearance: auto;
+    box-sizing: border-box;
+}
+
+#dialog-add-proyecto .campo-nota__input::placeholder,
+#dialogo-editar-proyecto .campo-nota__input::placeholder {
+    color: var(--texto-color);
+    opacity: 0.5;
+}
+
+#dialog-add-proyecto .campo-nota__input:focus,
+#dialogo-editar-proyecto .campo-nota__input:focus {
+    border-color: var(--principal-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+/* Los <select> nativos ocultos del custom-select NO deben heredar el ancho de
+   los inputs del diálogo (width: 100%): se quedan en 0×0 e invisibles, como
+   diseña el componente. Sin esto, el nativo se extiende fuera del diálogo. */
+#dialog-add-proyecto select.custom-select__native,
+#dialogo-editar-proyecto select.custom-select__native {
+    width: 0;
+    height: 0;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+#dialog-add-proyecto .char-counter {
+    font-size: 0.75rem;
+    color: var(--texto-color);
+    opacity: 0.5;
+    margin-top: 2px;
+    margin-left: 0;
+    align-self: flex-end;
+    transition: color 0.2s, opacity 0.2s;
+}
+
+/* ── Selects personalizados dentro de los diálogos ──
+   Mismo aspecto que los selects de seleccion.ejs (estilo base del
+   componente): píldora, sin borde, fondo azul claro y hover suave.
+   Se aplica por igual a crear y a editar. */
+#dialog-add-proyecto .custom-select,
+#dialogo-editar-proyecto .custom-select {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+#dialog-add-proyecto .custom-select__trigger,
+#dialogo-editar-proyecto .custom-select__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 48px;
+    box-sizing: border-box;
+    padding: 10px 16px;
+    font-family: Poppins, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--texto-color);
+    text-align: left;
+    background: var(--font-color-tercero);
+    border: none;
+    border-radius: 25px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+#dialog-add-proyecto .custom-select__trigger:hover,
+#dialogo-editar-proyecto .custom-select__trigger:hover {
+    background: var(--hover-color);
+}
+
+#dialog-add-proyecto .custom-select__trigger:focus-visible,
+#dialogo-editar-proyecto .custom-select__trigger:focus-visible {
+    outline: none;
+    background: var(--font-color-important);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+#dialog-add-proyecto .custom-select__trigger:active,
+#dialogo-editar-proyecto .custom-select__trigger:active {
+    transform: scale(0.99);
+}
+
+#dialog-add-proyecto .custom-select__trigger-label,
+#dialogo-editar-proyecto .custom-select__trigger-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--texto-color);
+}
+
+/* Placeholder sin selección ("Selecciona …"): el label se atenúa en gris
+   hasta que se elige un valor (clase .has-value en custom-select.js). */
+#dialog-add-proyecto .custom-select:not(.has-value) .custom-select__trigger-label,
+#dialogo-editar-proyecto .custom-select:not(.has-value) .custom-select__trigger-label {
+    color: var(--texto-color);
+    opacity: 0.45;
+}
+
+/* Select deshabilitado: se atenúa todo el componente (fondo, texto y flecha).
+   El trigger adopta el fondo gris del estado base (custom-select.css: #e0e0e0
+   y color #666), igual que los selects deshabilitados de seleccion.ejs.
+   La especificidad del diálogo (id + clase) pisa al estilo píldora azul. */
+#dialog-add-proyecto .custom-select.is-disabled,
+#dialogo-editar-proyecto .custom-select.is-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+#dialog-add-proyecto .custom-select.is-disabled .custom-select__trigger,
+#dialogo-editar-proyecto .custom-select.is-disabled .custom-select__trigger {
+    background: #e0e0e0;
+    color: #666;
+    pointer-events: none;
+}
+
+#dialog-add-proyecto .custom-select__arrow,
+#dialogo-editar-proyecto .custom-select__arrow {
+    border-color: var(--texto-color);
+    opacity: 0.6;
+    margin-left: 10px;
+}
+
+/* Panel desplegable dentro del diálogo: ancho del campo y scroll propio */
+#dialog-add-proyecto .custom-select__dropdown,
+#dialogo-editar-proyecto .custom-select__dropdown {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35),
+        0 18px 44px rgba(0, 0, 0, 0.32);
+}
+
+#dialog-add-proyecto .custom-select__option,
+#dialogo-editar-proyecto .custom-select__option {
+    font-size: 1.05rem;
+    padding: 9px 12px;
+}
+
+#dialog-add-proyecto .custom-select__search,
+#dialogo-editar-proyecto .custom-select__search {
+    font-size: 1rem;
+}
+/* ============================================================
+   Estados del botón submit (data-submit) - submitHandler.js
+   ============================================================ */
+/* Estado saliente: se desliza hacia arriba y se desvanece */
+@keyframes slideOutUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+}
+
+/* Estado entrante: viene desde abajo deslizándose */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Contenedor del botón: overflow oculto para que el slide funcione */
+button[data-submit] {
+    position: relative;
+    overflow: hidden;
+    /* Aseguramos que los estados apilados no expandan el botón */
+    min-height: 50px;
+}
+
+/* Wrapper grid que apila todos los estados uno sobre otro */
+button[data-submit] .submit-states {
+    display: grid;
+    grid-template-areas: "stack";
+    width: 100%;
+}
+
+button[data-submit] .submit-states > * {
+    grid-area: stack;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-direction: row;
+    /* Colapsado por defecto (invisible + sin tamaño) */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0s 9999s; /* Transición infinita para mantener oculto */
+}
+
+/* Estado visible: se muestra normalmente */
+button[data-submit] .submit-states > .mostrar {
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+    position: relative;
+}
+
+/* Animación de salida (el que se oculta sube) */
+button[data-submit] .submit-states > .btn-exit {
+    opacity: 1;
+    pointer-events: none;
+    animation: slideOutUp 200ms ease-in forwards;
+}
+
+/* Animación de entrada (el que aparece sube desde abajo) */
+button[data-submit] .submit-states > .btn-enter {
+    opacity: 1;
+    pointer-events: auto;
+    animation: slideInUp 200ms ease-out forwards;
+}
+
+/* ============================================================
+Elementos de lista
+============================================================ */
+
+.list-item {
+    display: flex;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--sh-sm);
+    border-radius: 10px;
+    padding: 20px;
+    color: var(--texto-color);
+    font-family: Poppins;
+    margin-bottom: 10px;
+    /* Evita que el item se encoja verticalmente al aplicar overflow:hidden
+       (estado --refreshing), lo que colapsaba el contenido y "quitaba" el padding. */
+    flex-shrink: 0;
+    min-height: 56px;
+
+    & p {
+        margin: 0;
+        padding: 0;
+    }
+}
+
+.list-item__content {
+    display: flex;
+    flex-direction: row !important;
+    gap: 15px;
+    align-items: center;
+    justify-content: center;
+    /* Toma el espacio disponible y permite encogerse (min-width: 0) para
+       que el texto se trunque y el botón "Detalle" no salte a otra fila. */
+    flex: 1;
+    min-width: 0;
+}
+
+/* Icono con acento azul (tarjeta clara) */
+.list-item__content > .material-symbols-rounded {
+    color: var(--azul);
+    background: var(--azul-lite);
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 1.5rem;
+}
+
+.list-item__author {
+    font-weight: 500;
+    font-size: 1.2rem;
+}
+
+.list-item__desc {
+    font-weight: 500;
+    font-size: 0.92rem;
+    color: var(--texto-color);
+    opacity: 0.75;
+    margin-top: 3px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.list-item__text-block {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.list-item__actions {
+    margin-left: 10px;
+    background: none;
+    border: none;
+    color: var(--azul);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+        background: var(--azul-lite);
+        color: var(--azul-dark);
+    }
+    &:active {
+        background: var(--azul-lite);
+    }
+}
+
+/* ============================================================
+   Menú contextual flotante (.ContextMenu / .boton-menu)
+   Patrón replicado desde proyectos.js → #menu__list
+   ============================================================ */
+.boton-menu {
+    position: fixed;
+    z-index: 1100;
+    /* top/right se aplican dinámicamente desde JS */
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.95);
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0.15s ease-out;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh-lg);
+    padding: 6px 0;
+    min-width: 180px;
+}
+
+.boton-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+.boton-menu__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.boton-menu__item {
+    border: none;
+    background: none;
+    width: 100%;
+    color: var(--txt);
+    font-family: Poppins, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 10px 16px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s ease;
+}
+
+.boton-menu__item .material-symbols-rounded {
+    font-size: 1.15rem;
+    font-weight: 500;
+}
+
+.boton-menu__item:hover {
+    background: var(--azul-lite);
+    color: var(--azul);
+}
+
+/* Opción destructiva */
+.boton-menu__item--peligro {
+    color: #b3261e;
+}
+
+.boton-menu__item--peligro:hover {
+    background: color-mix(in srgb, #b3261e 12%, transparent);
+    color: #b3261e;
+}
+
+/* Cerrar el menú contextual al hacer clic fuera del contenedor */
+
+/* ============================================================
+   Animaciones de lista (pulso / shimmer)
+   NOTA: la ENTRADA/SALIDA/FILTRADO de los .list-item ya no vive en
+   CSS: está centralizada en public/js/listAnimations.js usando la
+   Web Animations API (colapso de altura real medido por JS, sin
+   max-height fijos ni clases --entering/--exiting/--filter-*).
+   Aquí solo permanecen los efectos de estado.
+   ============================================================ */
+/* ---- Pulso de confirmación (refresh) ---- */
+@keyframes pulseUpdate {
+    0% {
+        box-shadow: inset 0 0 0 0 rgba(94, 99, 255, 0.4);
+    }
+    50% {
+        box-shadow: inset 0 0 20px 4px rgba(94, 99, 255, 0.15);
+    }
+    100% {
+        box-shadow: inset 0 0 0 0 rgba(94, 99, 255, 0);
+    }
+}
+
+/* ---- Shimmer overlay (escaneo durante refresh) ---- */
+/* Estilo Material Design 3: barrido ancho y suave */
+@keyframes shimmerOverlay {
+    0% {
+        transform: translateX(-200%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+/* ---- Clases aplicables ----
+   Solo efectos de estado. Las transiciones de entrada/salida/filtrado
+   se ejecutan vía Web Animations API desde listAnimations.js. */
+
+/* Elemento que permanece tras refresh: pulso sutil */
+.list-item--updated {
+    animation: pulseUpdate 450ms ease;
+}
+
+/* Elemento en espera de refresh: shimmer overlay */
+.list-item--refreshing {
+    position: relative;
+    overflow: hidden;
+}
+
+.list-item--refreshing::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.015) 15%,
+        rgba(255, 255, 255, 0.04) 30%,
+        rgba(255, 255, 255, 0.07) 45%,
+        rgba(255, 255, 255, 0.09) 50%,
+        rgba(255, 255, 255, 0.07) 55%,
+        rgba(255, 255, 255, 0.04) 70%,
+        rgba(255, 255, 255, 0.015) 85%,
+        transparent 100%
+    );
+    animation: shimmerOverlay 1.2s cubic-bezier(0.4, 0.0, 0.6, 1.0) infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ---- Accesibilidad ---- */
+/* La entrada/salida/filtrado (Web Animations API) comprueba
+   prefers-reduced-motion directamente en listAnimations.js y resuelve
+   sin animar, así que aquí solo queda desactivar los efectos de estado. */
+@media (prefers-reduced-motion: reduce) {
+    .list-item--updated {
+        animation: none !important;
+    }
+    .list-item--refreshing::after {
+        display: none;
+    }
+}
+
+/* ============================================================
+   Spinner circular (boton-spinner / svg-spinner) — circular-progress.css
+   ============================================================ */
+.boton-spinner {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.boton-spinner:hover {
+    opacity: 0.85;
+}
+
+.arco-pista,
+.arco-indicador {
+    fill: none;
+    stroke-width: 5;
+    stroke-linecap: round;
+    shape-rendering: geometricPrecision;
+}
+
+.arco-indicador {
+    transform-origin: 18px 18px;
+    transition: stroke-dasharray 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes girar {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes arco-indeterminado {
+    0% {
+        stroke-dasharray: 15 67;
+        stroke-dashoffset: 0;
+    }
+
+    50% {
+        stroke-dasharray: 62 20;
+        stroke-dashoffset: -22;
+    }
+
+    100% {
+        stroke-dasharray: 15 67;
+        stroke-dashoffset: -82;
+    }
+}
+
+.svg-spinner.girando {
+    animation: girar 1.4s linear infinite;
+}
+
+.arco-indicador.indeterminado {
+    animation: arco-indeterminado 1.4s ease-in-out infinite;
+}
+
+/* ============================================================
+   Barra de progreso lineal (loader de la sección) —
+   linear-progress.css
+   ============================================================ */
+.progreso-lineal {
+    width: 100%;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--progreso-pista);
+    position: relative;
+    overflow: hidden;
+}
+
+.progreso-indicador {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--progreso-arco);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progreso-lineal.indeterminado .progreso-indicador {
+    display: none;
+}
+
+.progreso-lineal.indeterminado::before,
+.progreso-lineal.indeterminado::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--progreso-arco);
+}
+
+@keyframes linea-1 {
+    0% {
+        left: -70%;
+        width: 60%;
+    }
+
+    65% {
+        left: 110%;
+        width: 70%;
+    }
+
+    100% {
+        left: 110%;
+        width: 70%;
+    }
+}
+
+@keyframes linea-2 {
+    0% {
+        left: -90%;
+        width: 45%;
+    }
+
+    45% {
+        left: -90%;
+        width: 45%;
+    }
+
+    100% {
+        left: 110%;
+        width: 60%;
+    }
+}
+
+.progreso-lineal.indeterminado::before {
+    animation: linea-1 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.progreso-lineal.indeterminado::after {
+    animation: linea-2 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    animation-delay: 0.2s;
+}
+
+/* ============================================================
+   Media queries (dashboard.css) — tablet / móvil
+   ============================================================ */
+@media (max-width: 899px) {
+    /* Dialog de ajustes */
+    .opcionespanel {
+        min-width: auto;
+        width: 95%;
+        height: 90%;
+        padding: 0.4em;
+        border-radius: 12px;
+    }
+
+    /* Dialog de creación en móvil */
+    .dialog-add-rubrica {
+        width: 92%;
+        max-height: 85dvh;
+        min-width: 0;
+        padding: 0;
+    }
+
+    .dialog-add-rubrica .dialogo-add__contenido {
+        padding: 20px;
+        max-height: calc(85dvh - 32px);
+        overflow-y: auto;
+    }
+
+    /* Modales de proyecto (crear y editar) en móvil.
+       Mantienen el marco interior de seguridad (padding 6px) y el inner
+       descuenta esos 12px de su max-height para no desbordar. */
+    #dialog-add-proyecto,
+    #dialogo-editar-proyecto {
+        width: 92%;
+        max-height: 85dvh;
+        min-width: 0;
+        padding: 6px;
+    }
+
+    #dialog-add-proyecto .dialog-inner,
+    #dialogo-editar-proyecto .dialog-inner {
+        padding: 20px;
+        max-height: calc(85dvh - 44px);
+        overflow-y: auto;
+    }
+
+    /* Botón de creación */
+    .boton {
+        font-size: 1rem;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .opcionespanel {
+        width: 98%;
+        height: 95%;
+    }
+}
+
+/* ============================================================
+   Encabezado de sección responsive
+   ============================================================ */
+
+/* Evita que los botones de acción se colapsen/desborden en tablet/móvil:
+   permite que el encabezado salte de línea en lugar de comprimirse */
+@media (max-width: 768px) {
+    .title-seccion {
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
+    .title-seccion .btn-opcion {
+        flex-shrink: 0;
+    }
+}
+
+/* En pantallas muy pequeñas se quita el texto de los botones de acción y
+   quedan como botones de icono compactos (más limpio con poco espacio) */
+@media (max-width: 480px) {
+    .title-seccion .btn-opcion p {
+        display: none;
+    }
+    .title-seccion .btn-opcion {
+        padding: 0;
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* ============================================================
+   List items responsive (misma adaptación que el título)
+   ============================================================ */
+
+/* Se mantienen en UNA sola fila (sin wrap) para que todos queden igual:
+   el contenido se ajusta (min-width:0 + clamp en la descripción) y las
+   acciones no se encogen ni cambian de alineación entre items */
+@media (max-width: 768px) {
+    .list-item {
+        gap: 10px;
+    }
+    .list-item .btn-mas,
+    .list-item__actions {
+        flex-shrink: 0;
+    }
+}
+
+/* En pantallas muy pequeñas, el botón "Editar" queda solo con icono y se
+   oculta el icono decorativo del item (más limpio con poco espacio) */
+@media (max-width: 480px) {
+    .list-item .btn-mas p {
+        display: none;
+    }
+    .list-item .btn-mas,
+    .list-item__actions {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+    }
+    .list-item__content > .material-symbols-rounded {
+        display: none;
+    }
+}
+
+/* ============================================================
+   Proyectos evaluados — nota y estado (vista Evaluaciones)
+   ============================================================ */
+/* Variante de list-item con fila inferior a ancho completo (resultado) */
+.list-item--evaluado {
+    flex-wrap: wrap;
+}
+
+/* En un list-item evaluado, el bloque de acciones (botón "Detalle") no
+   debe encogerse ni saltar a una fila nueva aunque el texto sea largo:
+   se mantiene en su fila y el texto es el que se trunca. */
+.list-item--evaluado > .gap-row {
+    flex-shrink: 0;
+}
+
+.list-item--evaluado > .gap-row .btn-mas {
+    white-space: nowrap;
+}
+
+/* Fila inferior a ancho completo, estilo "Puntuación total" de
+   rubrica-editar: tira con borde y etiqueta dinámica "Nota parcial:"
+   o "Nota completa:" seguida del valor */
+.proyecto-evaluado__resultado {
+    flex-basis: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 9px 14px;
+    border-radius: 12px;
+    background: var(--font-color-secondary);
+    border: 1.5px solid var(--border);
+}
+
+/* Etiqueta dinámica según el estado, igual que "Puntuación total:" */
+.proyecto-evaluado__resultado::before {
+    content: 'Nota:';
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+}
+
+.proyecto-evaluado__resultado.proyecto-nota--parcial::before {
+    content: 'Nota parcial:';
+}
+
+.proyecto-evaluado__resultado.proyecto-nota--completa::before {
+    content: 'Nota completa:';
+}
+
+/* Matiz sutil por estado en la etiqueta (sin burbujas) */
+.proyecto-evaluado__resultado.proyecto-nota--completa::before {
+    color: var(--verde);
+}
+
+/* Nota completa: borde y fondo ligeramente verdes (mismo matiz suave
+   que el patrón de rubrica-editar para estados "ok") */
+.proyecto-evaluado__resultado.proyecto-nota--completa {
+    border-color: color-mix(in srgb, var(--verde) 45%, var(--border));
+    background: color-mix(in srgb, var(--verde) 8%, var(--font-color-secondary));
+}
+
+.proyecto-evaluado__nota {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-color-secondary);
+    /* Dígitos de ancho fijo: la nota no "tiembla" al refrescar */
+    font-variant-numeric: tabular-nums;
+}
+
+/* Contexto de escala junto al número (verificado: la nota máxima es 10) */
+.proyecto-evaluado__nota::after {
+    content: '/ 10';
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text-color-secondary);
+    opacity: 0.45;
+}
+
+/* Lista explicativa del diálogo de información */
+.info-evaluaciones__lista {
+    margin: 0;
+    padding: 0 0 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    line-height: 1.45;
+    color: var(--texto-color);
+}
+
+.info-evaluaciones__lista li + li {
+    margin-top: 6px;
+}
+
+

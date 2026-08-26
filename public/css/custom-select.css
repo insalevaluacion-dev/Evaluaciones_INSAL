@@ -1,0 +1,252 @@
+/* ==========================================================================
+   Select personalizado con menú desplegable animado
+   Reemplaza visualmente el <select> nativo (que no admite animar su dropdown)
+   sin tocar la lógica existente (seleccion.js sigue usando el <select>).
+   ========================================================================== */
+
+/* Bloquea el scroll del body mientras un menú desplegable está abierto */
+body.custom-select-locked {
+    overflow: hidden;
+}
+
+/* Contenedor del componente. Ancho completo igual que el <select> nativo. */
+.custom-select {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+    font-family: inherit;
+}
+
+/* Botón disparador (replica el estilo visual del <select>) */
+.custom-select__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: var(--font-color-tercero);
+    color: var(--text-color);
+    border: none;
+    border-radius: 25px;
+    padding: 10px 16px;
+    font-family: inherit;
+    font-size: 1.4rem;
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.custom-select__trigger:hover {
+    background: var(--hover-color);
+}
+
+.custom-select__trigger:focus-visible {
+    background: var(--font-color-important);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+}
+
+.custom-select__trigger:active {
+    transform: scale(0.99);
+}
+
+/* Evita que el texto del trigger haga wrap en anchos reducidos */
+.custom-select__trigger-label {
+    white-space: nowrap;
+}
+
+/* Flecha chevron animada (rota al abrir/cerrar) */
+.custom-select__arrow {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 10px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    flex-shrink: 0;
+}
+
+.custom-select.is-open .custom-select__arrow {
+    transform: rotate(225deg) translateY(-2px);
+}
+
+/* Panel desplegable: entra con fade + slide + escala */
+.custom-select__dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 60;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: #ffffff;
+    border-radius: 16px;
+    /* Sombra más fuerte y concentrada para que el menú parezca elevado sobre el resto */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35),
+        0 18px 44px rgba(0, 0, 0, 0.32);
+    max-height: 280px;
+    overflow-y: auto;
+    /* Cerrado: fuera de layout. visibility:hidden NO basta: un elemento
+       invisible aún expande el área scrollable de ancestros con overflow
+       (scroll fantasma en paneles con scroll propio). */
+    display: none;
+}
+
+/* Abrir hacia arriba cuando no hay espacio debajo (evita que salga de pantalla) */
+.custom-select.is-open-up .custom-select__dropdown {
+    top: auto;
+    bottom: calc(100% + 8px);
+    transform-origin: bottom center;
+}
+
+/* Estado abierto: animación en vez de transición porque display:none → block
+   no se puede transicionar; la keyframe conserva el mismo fade+slide+escala. */
+.custom-select.is-open .custom-select__dropdown,
+.custom-select__dropdown.is-open {
+    display: block;
+    visibility: visible;
+    pointer-events: auto;
+    animation: customDropdownIn 0.14s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+
+@keyframes customDropdownIn {
+    from {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Cuando abre hacia arriba, la entrada viene desde abajo. */
+.custom-select.is-open-up.is-open .custom-select__dropdown,
+.custom-select__dropdown.is-open-up.is-open {
+    animation-name: customDropdownInUp;
+    transform-origin: bottom center;
+}
+
+@keyframes customDropdownInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Búsqueda opcional dentro del panel (selects con data-searchable).
+   Se queda fija arriba mientras las opciones hacen scroll. */
+.custom-select__search {
+    position: sticky;
+    top: 0;                       /* pegado al borde del dropdown al hacer scroll */
+    z-index: 2;                   /* queda por encima de las opciones */
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+    margin: 0 0 6px;              /* el margin inferior separa del resto de opciones */
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: var(--texto-color, #0d1e35);
+    background: #ffffff;
+    border: 1.5px solid var(--border, #c5d5ea);
+    border-radius: 10px;
+    outline: none;
+    /* Sombra suave inferior: separa el buscador de la primera opción */
+    box-shadow: 0 5px 10px -8px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.custom-select__search::placeholder {
+    color: var(--texto-color, #0d1e35);
+    opacity: 0.45;
+}
+
+.custom-select__search:focus {
+    border-color: var(--principal-color, #03a2e6);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color, #03a2e6) 25%, transparent);
+}
+
+/* Cada opción entra con un pequeño retardo escalonado */
+.custom-select__option {
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 1.1rem;
+    list-style: none;
+    transition: background 0.12s ease, color 0.15s ease, padding-left 0.15s ease;
+    animation: customOptionIn 0.12s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+    animation-delay: calc(var(--i, 0) * 12ms);
+}
+
+@keyframes customOptionIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.custom-select__option:hover {
+    background: var(--font-color-tercero);
+    color: #000;
+    padding-left: 18px;
+}
+
+.custom-select__option:active {
+    transform: scale(0.98);
+}
+
+.custom-select__option.is-selected {
+    background: var(--font-color-important);
+    color: #000;
+    font-weight: 600;
+}
+
+/* Estado deshabilitado (se sincroniza con el <select> nativo) */
+.custom-select.is-disabled .custom-select__trigger {
+    background: #e0e0e0;
+    color: #666;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* El <select> nativo se oculta visualmente pero conserva su lógica.
+   Se blinda con !important en dimensiones porque otras reglas (p. ej.
+   .campo-nota__input { width: 100% }) tienen mayor especificidad y, al
+   estar en position:absolute, estiraban el select más allá del viewport
+   generando overflow horizontal en el documento. */
+select.custom-select__native {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0 !important;
+    height: 0 !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ── Linear progress de carga mientras el select no recibe sus opciones ── */
+.custom-select__loader {
+    display: none;
+    margin-top: -2px;
+    padding: 8px 4px 2px;
+}
+
+.custom-select.is-loading .custom-select__loader {
+    display: block;
+}

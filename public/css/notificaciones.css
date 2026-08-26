@@ -1,0 +1,136 @@
+#noti-coso {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0; 
+    z-index: 2147483647; 
+    pointer-events: none;
+    align-items: center;
+    /* Reset de estilos por defecto para cuando actúe como popover */
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+}
+
+#noti-coso:popover-open {
+    display: flex;
+    /* Definimos el área de lado a lado para poder centrar con margin auto */
+    inset: 24px 0 auto 0;
+    margin: 0 auto;
+    width: fit-content;
+    /* Anulamos el transform para evitar conflictos con el centrado por margin */
+    transform: none;
+}
+
+.noti {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 14px;
+    min-width: 280px;
+    max-width: 480px;
+    padding: 0 24px;
+    border-radius: 100px; 
+    background-color: #313033;
+    color: #f4eff4;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1), 0 8px 20px rgba(0,0,0,0.15);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    margin-bottom: 0;
+    animation: 
+        noti-entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+        noti-exit 0.4s cubic-bezier(0.4, 0, 1, 1) 2.6s forwards;
+}
+
+.noti-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+/* Variantes de color (M3 Tonal Containers) */
+.noti.bien {
+    background-color: #D3E8D3;
+    color: #002107;
+    border: none;
+}
+
+.noti.bien .noti-icon {
+    color: #002107;
+}
+
+.noti.error {
+    background-color: #FFDAD6;
+    color: #410002;
+    border: none;
+}
+
+.noti.error .noti-icon {
+    color: #410002;
+}
+
+.noti.info {
+    background-color: #D6E3FF;
+    color: #001B3E;
+    border: none;
+}
+
+.noti.info .noti-icon {
+    color: #001B3E;
+}
+
+.noti.download {
+    background-color: #E8F3FF;
+    color: #004687;
+    border: none;
+}
+
+.noti.download .noti-icon {
+    color: #004687;
+}
+
+@keyframes noti-entrance {
+    from { 
+        opacity: 0; 
+        transform: translateY(-20px) scale(0.9);
+        max-height: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1);
+        max-height: 100px; /* Un valor lo suficientemente alto */
+        margin-bottom: 10px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+}
+
+@keyframes noti-exit {
+    from { 
+        opacity: 1; 
+        transform: translateY(0) scale(1);
+        max-height: 100px;
+        margin-bottom: 10px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    to { 
+        opacity: 0; 
+        transform: translateY(-10px) scale(0.8);
+        max-height: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+}

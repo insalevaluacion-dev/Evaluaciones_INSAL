@@ -1,0 +1,15 @@
+{
+  "name": "Software San Luis",
+  "short_name": "INSAL",
+  "start_url": "/menu",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#808080",
+  "icons": [
+    {
+      "src": "/assets/svg/Logo_SV.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

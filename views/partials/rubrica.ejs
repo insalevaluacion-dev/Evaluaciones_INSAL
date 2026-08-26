@@ -1,0 +1,230 @@
+<dialog class="dialog-add-rubrica" id="dialog-add-rubrica" closedby="any">
+    <div class="dialogo-add__contenido">
+        <div class="dialogo-add__cabecera">
+            <button class="cerrarbotonmenuajustes" onclick="toggleDialog()" aria-label="Cerrar">
+                <span class="material-symbols-rounded icon">
+                    close
+                </span>
+            </button>
+            <p class="dialogo-add__titulo">Nueva rúbrica</p>
+        </div>
+        <form id="form-rubrica" novalidate>
+            <div class="campo-nota input-char-wrapper">
+                <label for="rubrica" class="campo-nota__label">Nombre <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <textarea required autocomplete="off" placeholder="Nombre de la rúbrica" class="campo-nota__input campo-nombre__input" name="rubrica" id="rubrica" rows="2" maxlength="80"></textarea>
+                </div>
+                <span class="char-counter" data-for="rubrica">0/80</span>
+            </div>
+            <span class="error-message" id="error-rubrica"></span>
+            <div class="campo-nota input-char-wrapper">
+                <label for="rubrica-descripcion" class="campo-nota__label">Descripción</label>
+                <div class="campo-nota__input-wrap">
+                    <textarea autocomplete="off" placeholder="Describe el propósito de la rúbrica" class="campo-nota__input campo-descripcion__input" name="descripcion" id="rubrica-descripcion" rows="3" required maxlength="160"></textarea>
+                </div>
+                <span class="char-counter" data-for="rubrica-descripcion">0/160</span>
+            </div>
+            <span class="error-message" id="error-rubrica-descripcion"></span>
+            <button type="submit" class="centrar boton gap-btn btn-opcion" data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">add</span>
+                        <p>Añadir</p>
+                    </div>
+                    <!-- Estado enviando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <p>Añadiendo...</p>
+                        <div class="boton-spinner" style="background: var(--color-primario);">
+                            <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <p>¡Hecho!</p>
+                        <span class="material-symbols-rounded">check_circle</span>
+                    </div>
+                </div>
+            </button>
+        </form>
+    </div>
+</dialog>
+<div class="title-seccion">
+    <div class="title-seccion__izq">
+        <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú" data-ripple>
+            <span class="material-symbols-rounded">menu</span>
+        </button>
+        <p class="text-title-seccion">
+            Rubrica
+        </p>
+    </div>
+    <div class="display-flex row gap-btn ">
+        <button type="button" class="centrar boton gap-btn btn-opcion" data-ripple onclick="toggleDialog('dialog-add-rubrica')">
+            <span class="material-symbols-rounded">add</span>
+            <p>Añadir rubrica</p>
+        </button>
+        <button class="centrar boton btn-refresh btn-opcion" data-ripple onclick="loadRubricas(this)">
+            <span class="material-symbols-rounded btn-refresh-icon">
+                refresh
+            </span>
+            <div class="btn-refresh-spinner">
+                <div class="boton-spinner" style="background: var(--color-primario);">
+                    <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                        <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                        <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                            stroke="var(--spinner-arco)" />
+                    </svg>
+                </div>
+            </div>
+        </button>
+    </div>
+</div>
+<!-- Menú contextual flotante: Editar / Eliminar -->
+<div id="menu__list" class="boton-menu ContextMenu" role="menu" aria-hidden="true">
+    <ul class="boton-menu__list">
+        <li>
+            <button type="button" class="boton-menu__item" data-menu="editar" data-ripple role="menuitem">
+                <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+                <span>Editar</span>
+            </button>
+        </li>
+        <li>
+            <button type="button" class="boton-menu__item boton-menu__item--peligro" data-menu="eliminar" data-ripple role="menuitem">
+                <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                <span>Eliminar</span>
+            </button>
+        </li>
+    </ul>
+</div>
+<dialog id="dialogo-eliminar-rubrica" class="app-dialog--xs dialogo-eliminar-rubrica" aria-labelledby="dialogo-eliminar-rubrica-titulo">
+    <form method="dialog" class="dialog-inner">
+        <button type="button" class="dialog-close-btn" data-cancelar-rubrica aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <span class="material-symbols-rounded dialogo-eliminar-rubrica__icono" aria-hidden="true">warning</span>
+        <h2 class="dialogo-eliminar-rubrica-title" id="dialogo-eliminar-rubrica-titulo">¿Eliminar esta rúbrica?</h2>
+        <p class="dialogo-eliminar-rubrica-subtitle">Esta acción no se puede deshacer.</p>
+        <div class="dialogo-eliminar-rubrica-actions">
+            <button type="button" class="boton-cancelar" data-cancelar-rubrica data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="button" class="boton-confirmar" data-confirmar-rubrica data-ripple data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">delete</span>
+                        <span>Eliminar</span>
+                    </div>
+                    <!-- Estado eliminando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Eliminando…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+<!-- Modal para editar el nombre y la descripción de la rúbrica -->
+<dialog id="dialogo-editar-rubrica" class="app-dialog--sm" aria-labelledby="dialogo-editar-rubrica-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-editar-rubrica-form" novalidate>
+        <button type="button" class="dialog-close-btn" id="btn-cerrar-editar-rubrica" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <h2 class="dialogo-editar-rubrica-title" id="dialogo-editar-rubrica-titulo">
+            <span class="material-symbols-rounded dialogo-editar__icono" aria-hidden="true">edit</span>
+            Editar rúbrica
+        </h2>
+        <p class="dialogo-editar-rubrica-subtitle">Modifica el nombre y la descripción de la rúbrica.</p>
+        <div class="dialogo-editar-rubrica-form">
+            <div class="field-group">
+                <label for="editar-nombre">Nombre <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <input type="text" id="editar-nombre" class="campo-nota__input" required
+                        maxlength="100" placeholder="Nombre de la rúbrica">
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="editar-descripcion">Descripción</label>
+                <div class="campo-nota__input-wrap">
+                    <textarea id="editar-descripcion" class="campo-nota__input" rows="3"
+                        maxlength="500" placeholder="Describe el propósito de la rúbrica"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="dialogo-editar-rubrica-actions">
+            <button type="button" class="boton-cancelar" id="btn-cancelar-editar-rubrica" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="submit" class="boton-confirmar" id="btn-guardar-editar-rubrica" data-ripple data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">check</span>
+                        <span>Guardar</span>
+                    </div>
+                    <!-- Estado enviando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Guardando…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+<section id="rubricas__container" class="list-container">
+    <!-- Barra de herramientas: búsqueda + ordenar + filtros -->
+    <div class="list-toolbar">
+        <div class="search-wrapper" onclick="focusSearchBar(this)">
+            <span class="material-symbols-rounded icon" aria-hidden="true">
+                search
+            </span>
+            <input type="text" placeholder="Buscar rúbrica..." aria-label="Buscar rúbrica" role="searchbox" spellcheck="false" autocomplete="off" id="search-rubrica" class="search-input">
+            <button type="button" class="search-clear" aria-label="Limpiar búsqueda" onclick="clearSearch(this)">
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </div>
+
+        <div class="toolbar-opciones">
+            <label class="toolbar-control toolbar-control--sort" aria-label="Ordenar rúbricas">
+                <span class="material-symbols-rounded" aria-hidden="true">swap_vert</span>
+                <span class="toolbar-control__label">Ordenar por:</span>
+                <select id="orden-rubricas" class="toolbar-select" data-sort data-custom data-dropdown-anchor=".toolbar-control--sort">
+                    <option value="id-desc" selected>Más recientes</option>
+                    <option value="id-asc">Más antiguas</option>
+                </select>
+            </label>
+        </div>
+    </div>
+    <!-- Loader: siempre visible por defecto; se oculta al cargar datos -->
+    <div class="section-loader">
+        <div class="progreso-lineal indeterminado">
+            <div class="progreso-indicador"></div>
+        </div>
+    </div>
+    <div class="section-empty" style="display: none;">
+        <div class="empty-content">
+            <span class="material-symbols-rounded empty-icon">
+                checklist
+            </span>
+            <p class="empty-text">Aún no hay rúbricas</p>
+            <p class="empty-subtext">Las rúbricas que crees aparecerán aquí.</p>
+        </div>
+    </div>
+</section>

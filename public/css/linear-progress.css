@@ -1,0 +1,73 @@
+/* ── Linear Progress M3 ── */
+.progreso-lineal {
+    width: 100%;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--progreso-pista);
+    position: relative;
+    overflow: hidden;
+}
+
+.progreso-indicador {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--progreso-arco);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progreso-lineal.indeterminado .progreso-indicador {
+    display: none;
+}
+
+.progreso-lineal.indeterminado::before,
+.progreso-lineal.indeterminado::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--progreso-arco);
+}
+
+@keyframes linea-1 {
+    0% {
+        left: -70%;
+        width: 60%;
+    }
+
+    65% {
+        left: 110%;
+        width: 70%;
+    }
+
+    100% {
+        left: 110%;
+        width: 70%;
+    }
+}
+
+@keyframes linea-2 {
+    0% {
+        left: -90%;
+        width: 45%;
+    }
+
+    45% {
+        left: -90%;
+        width: 45%;
+    }
+
+    100% {
+        left: 110%;
+        width: 60%;
+    }
+}
+
+.progreso-lineal.indeterminado::before {
+    animation: linea-1 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.progreso-lineal.indeterminado::after {
+    animation: linea-2 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    animation-delay: 0.2s;
+}

@@ -1,0 +1,179 @@
+<div class="vista-proyecto-editar">
+    <div class="content_inicio">
+        <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú"
+            data-ripple>
+            <span class="material-symbols-rounded">menu</span>
+        </button>
+        <a href="/menu/proyectos" class="back-link" data-link>
+            <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
+            <p>Atras</p>
+        </a>
+        <p class="text-title-seccion">Editar proyecto</p>
+        <span id="estado-sincronizacion" class="estado-sincronizacion estado-sincronizacion--cargando"
+              role="status" aria-live="polite">
+            <span class="material-symbols-rounded" aria-hidden="true">sync</span>
+            <span class="estado-sincronizacion__texto">Cargando…</span>
+        </span>
+    </div>
+    <section class="contenedor-criterios" data-proyecto-id="<%= id %>">
+    <!-- Encabezado: datos actuales del proyecto -->
+    <section class="container1">
+        <div class="proyecto-header">
+            <span class="material-symbols-rounded proyecto-icon">school</span>
+            <div class="proyecto-info">
+                <span class="proyecto-label">Proyecto</span>
+                <span id="nombre-proyecto">
+                    <div class="proyecto-textos">
+                        <p class="proyecto-titulo" id="detalle-proyecto-nombre">Cargando…</p>
+                        <p class="proyecto-descripcion" id="detalle-proyecto-sub">Consultando proyecto…</p>
+                    </div>
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pestañas: Datos del proyecto / Alumnos -->
+    <div class="proyecto-tabs">
+        <div class="proyecto-tabs__bar" role="tablist" aria-label="Secciones del proyecto">
+            <button type="button" role="tab" id="tab-datos" class="proyecto-tab is-activa"
+                data-tab="datos" aria-controls="panel-datos" aria-selected="true" data-ripple>
+                <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+                <span>Datos del proyecto</span>
+            </button>
+            <button type="button" role="tab" id="tab-alumnos" class="proyecto-tab"
+                data-tab="alumnos" aria-controls="panel-alumnos" aria-selected="false" data-ripple>
+                <span class="material-symbols-rounded" aria-hidden="true">group</span>
+                <span>Alumnos</span>
+                <span id="contador-alumnos" class="proyecto-tab__badge">0</span>
+            </button>
+        </div>
+
+        <div class="proyecto-tabs__content">
+            <!-- Panel: Datos del proyecto -->
+            <section class="proyecto-panel is-activa" data-panel="datos" id="panel-datos" role="tabpanel"
+                aria-labelledby="tab-datos">
+                <div class="proyecto-panel__scroll">
+                    <p class="form-cabecera">
+                        <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+                        <span>Datos del proyecto</span>
+                    </p>
+                    <form id="form-editar-proyecto" class="proyecto-editar__form" novalidate>
+                        <div class="field-group">
+                            <label for="editar-proyecto-nombre">Nombre <span class="requerido">*</span></label>
+                            <input type="text" required autocomplete="off" placeholder="Nombre del proyecto"
+                                class="campo-nota__input" name="nombre" id="editar-proyecto-nombre" maxlength="80">
+                            <span class="char-counter" data-for="editar-proyecto-nombre">0/80</span>
+                        </div>
+                        <div class="field-group">
+                            <label for="editar-proyecto-nivel">Rúbrica (nivel de evaluación) <span class="requerido">*</span></label>
+                            <select id="editar-proyecto-nivel" name="nivel_id" class="campo-nota__input" data-custom
+                                data-searchable required>
+                                <option value="" selected disabled hidden>Cargando rúbricas…</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="editar-proyecto-grado">Grado <span class="requerido">*</span></label>
+                            <select id="editar-proyecto-grado" name="grado_id" class="campo-nota__input" data-custom
+                                data-searchable required>
+                                <option value="" selected disabled hidden>Cargando grados…</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="boton-confirmar" data-submit>
+                                <div class="submit-states">
+                                    <!-- Estado normal -->
+                                    <div class="centrar gap-btn mostrar" data-submit-content>
+                                        <span class="material-symbols-rounded">save</span>
+                                        <span>Guardar cambios</span>
+                                    </div>
+                                    <!-- Estado enviando -->
+                                    <div class="centrar gap-btn quitar" data-loading-content>
+                                        <span class="material-symbols-rounded">hourglass_top</span>
+                                        <span>Guardando…</span>
+                                    </div>
+                                    <!-- Estado éxito -->
+                                    <div class="centrar gap-btn quitar" data-success-content>
+                                        <span class="material-symbols-rounded">check_circle</span>
+                                        <span>¡Hecho!</span>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </form>
+                    <div class="proyecto-editar__peligro">
+                        <button type="button" id="btn-eliminar-proyecto" class="boton-eliminar-proyecto" data-ripple>
+                            <span class="material-symbols-rounded" aria-hidden="true">delete_forever</span>
+                            <span>Eliminar proyecto</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel: Alumnos inscritos en el proyecto -->
+            <section class="proyecto-panel" data-panel="alumnos" id="panel-alumnos" role="tabpanel"
+                aria-labelledby="tab-alumnos">
+                <div class="proyecto-panel__scroll">
+                    <p class="form-cabecera">
+                        <span class="material-symbols-rounded" aria-hidden="true">group</span>
+                        <span>Alumnos</span>
+                    </p>
+                    <div class="alumnos-agregar">
+                        <select id="select-agregar-alumno" class="campo-nota__input" data-custom data-searchable
+                            data-search-placeholder="Buscar por nombre o NIE…" disabled>
+                            <option value="" selected disabled hidden>Cargando alumnos…</option>
+                        </select>
+                        <button type="button" id="btn-agregar-alumno" class="boton-confirmar alumnos-agregar__btn" data-ripple
+                            disabled>
+                            <span class="material-symbols-rounded" aria-hidden="true">person_add</span>
+                            <span>Agregar</span>
+                        </button>
+                    </div>
+                    <div id="alumnos-loader" class="criterios-loader" role="status" aria-label="Cargando alumnos">
+                        <div class="progreso-lineal indeterminado">
+                            <div class="progreso-indicador"></div>
+                        </div>
+                    </div>
+                    <div id="alumnos-lista" class="criterios-lista"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+</div>
+
+<!-- Diálogo de confirmación (reutilizado por confirmarAccion) -->
+<dialog id="dialogo-confirmar" class="app-dialog--xs dialogo-confirmar" aria-labelledby="dialogo-confirmar-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-confirmar-form">
+        <button type="button" class="dialog-close-btn" data-accion="cancelar" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <span class="material-symbols-rounded dialogo-confirmar__icono" aria-hidden="true">warning</span>
+        <h2 class="dialogo-confirmar-title" id="dialogo-confirmar-titulo">¿Confirmar acción?</h2>
+        <p class="dialogo-confirmar-subtitle" id="dialogo-confirmar-mensaje"></p>
+        <div class="dialogo-confirmar-actions">
+            <button type="button" class="boton-cancelar" data-accion="cancelar" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="button" class="boton-confirmar" data-accion="confirmar" data-ripple data-submit>
+                <div class="submit-states">
+                    <!-- Estado normal -->
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">check</span>
+                        <span>Confirmar</span>
+                    </div>
+                    <!-- Estado confirmando -->
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Confirmando…</span>
+                    </div>
+                    <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>

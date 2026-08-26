@@ -1,0 +1,254 @@
+:root{
+    --background-form: black;
+}
+
+body{
+    color: #E4E2E5;
+    background: var(--background-form);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    color-scheme: dark;
+}
+
+.main__container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100dvh;
+    box-sizing: border-box;
+}
+
+.content{
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    gap: 5px;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+.form-registrar{
+    display: flex;
+    max-width: 500px;
+    width: 100%;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.input__text{
+    width: 100%;
+    height: 55px;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: none;
+    background: #1e1f1f;
+    font-family: Poppins;
+    font-size: 1.3rem;
+    color: white;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.logo_empresa{
+    gap: 10px;
+}
+
+.logo_letras{
+    overflow: visible;
+    width: auto;
+    height: 25px;
+}
+
+.G_logo{
+    width: auto;
+    height: 45px;
+}
+
+.title{
+    font-size: 2.25rem;
+    font-weight: 500;
+}
+
+.enviar{
+    font-family: Poppins;
+    font-size: 1.2rem;
+    height: 50px;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    gap: 10px;
+    margin-bottom: 10px;
+    background: #E4E2E5;
+    color: black;
+    flex-direction: row;
+    box-sizing: border-box;
+}
+
+.gap-btn{
+    gap: 10px;
+    flex-direction: row;
+}
+
+.link{
+    gap: 10px;
+    width: 100%;
+}
+
+a{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+@keyframes slideInError {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        max-height: 30px;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideOutError {
+    from {
+        opacity: 1;
+        max-height: 30px;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.error-message{
+    color: #ff6b6b;
+    font-size: 0.95rem;
+    font-family: Poppins;
+    margin: -8px 0 5px 10px;
+    font-weight: 500;
+    width: 100%;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease, max-height 0.3s ease, transform 0.3s ease;
+    transform: translateY(-10px);
+}
+
+.error-message.show{
+    animation: slideInError 0.3s ease forwards;
+    max-height: 30px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.error-message.hide{
+    animation: slideOutError 0.3s ease forwards;
+}
+
+.input__text.error{
+    border: 2px solid #ff6b6b;
+    background: #2a1a1a;
+    transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.hint__correo{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: Poppins;
+    font-size: 0.85rem;
+    font-weight: 400;
+    text-align: center;
+    width: 100%;
+    color: #ffb074;
+    background: rgba(255, 176, 116, 0.08);
+    border: 1px solid rgba(255, 176, 116, 0.25);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 2px 0 10px;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.hint__correo-icono{
+    color: var(--naranja);
+    font-size: 1.25rem;
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
+#mensaje1{
+    display: none;
+}
+
+#botonEnviar.cargando {
+    & > #mensaje1 {
+        display: flex;
+    }
+    & > #mensaje2 {
+        display: none;
+    }
+}
+
+/* Oculta el botón de revelar contraseña del navegador (Chrome, Edge, Safari) */
+.input__text::-webkit-password-reveal-button {
+    display: none !important;
+}
+.input__text[type="password"]::-webkit-password-reveal-button {
+    display: none !important;
+}
+
+/* Contenedor relativo para el input de contraseña */
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* Botón de revelar contraseña */
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e4e2e5;
+    opacity: 0.6;
+    transition: opacity 0.3s ease, color 0.3s ease;
+    z-index: 2;
+}
+
+.password-toggle:hover {
+    opacity: 1;
+    color: #fff;
+}
+
+.password-toggle .material-symbols-rounded {
+    font-size: 1.4rem;
+}

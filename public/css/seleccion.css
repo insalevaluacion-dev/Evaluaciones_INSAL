@@ -1,0 +1,71 @@
+.modal {
+    display: none;
+    position: fixed;
+    width: 100dvw;
+    height: 100dvh;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.modal.active {
+    display: block;
+    opacity: 1;
+}
+
+.modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.7);
+    background-color: white;
+    padding: 20px;
+    width: 95dvw;
+    max-width: 500px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+}
+
+.modal.active .modal-content {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+/* ── Feedback de carga en botones (patrón del botón "Ingresar") ── */
+/* El mensaje con spinner está oculto por defecto y se muestra con .cargando */
+#mensaje-buscar-1 {
+    display: none;
+    gap: 10px;
+}
+
+#mensaje-buscar-2 {
+    gap: 10px;
+}
+
+#buscar-proyectos.cargando > #mensaje-buscar-1 {
+    display: flex;
+}
+
+#buscar-proyectos.cargando > #mensaje-buscar-2 {
+    display: none;
+}
+
+#buscar-proyectos:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Feedback "active" (presionado) para los botones ── */
+.btn {
+    transition: transform 0.1s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:active:not(:disabled) {
+    transform: scale(0.95);
+    background: #aad8f2;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+}

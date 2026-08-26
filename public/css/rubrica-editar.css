@@ -1,0 +1,1376 @@
+/* Encabezado de la vista de edición (fila: botón menú + atrás + título) */
+
+.content_inicio{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.back-link{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: var(--azul);
+    font-family: Poppins, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--azul-lite);
+    background: var(--card);
+    transition: all 0.2s ease;
+}
+
+.back-link .material-symbols-rounded{
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.back-link:hover{
+    background: var(--azul-lite);
+    border-color: var(--azul);
+    transform: scale(1.04);
+    color: var(--azul-dark);
+}
+
+.estado-sincronizacion{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    padding: 5px 0;
+    font-family: Poppins, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.estado-sincronizacion .material-symbols-rounded{
+    font-size: 1.2rem;
+}
+
+.estado-sincronizacion--ok{
+    color: var(--verde);
+}
+
+.estado-sincronizacion--pendiente{
+    color: var(--naranja-drk);
+}
+
+.estado-sincronizacion--cargando{
+    color: var(--text-color);
+    opacity: .65;
+}
+
+/* ── Diálogos de confirmación / eliminación (tamaño xs) ──────────────────── */
+#dialogo-confirmar,
+#dialogo-eliminar-rubrica{
+    width: min(460px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    height: max-content !important;
+    max-height: calc(100dvh - 32px);
+    padding: 0 !important;
+    text-align: center;
+}
+
+#dialogo-confirmar .dialog-inner,
+#dialogo-eliminar-rubrica .dialog-inner{
+    align-items: center;
+    text-align: center;
+    max-height: calc(100dvh - 32px);
+    overflow: hidden;
+}
+
+.dialogo-confirmar__icono{
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    flex: 0 0 52px;
+    line-height: 1;
+    border-radius: 50%;
+    background: var(--naranja-bg);
+    color: var(--naranja-drk);
+    font-size: 1.6rem;
+    font-weight: 500;
+    transform: translateY(-1px);
+}
+
+#dialogo-editar-rubrica{
+    width: min(520px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    height: max-content !important;
+    max-height: calc(100dvh - 32px);
+    padding: 0 !important;
+}
+
+#dialogo-editar-rubrica .dialog-inner{
+    align-items: stretch;
+    text-align: left;
+    max-height: calc(100dvh - 32px);
+}
+
+/* ── Diálogo sm: editar rúbrica ──────────────────────────────────────────── */
+#dialogo-editar-rubrica .dialogo-editar__icono{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    flex: 0 0 52px;
+    line-height: 1;
+    border-radius: 50%;
+    background: var(--azul-lite);
+    color: var(--azul);
+    font-size: 1.6rem;
+    font-weight: 500;
+    transform: none !important;
+    transition: none !important;
+    user-select: none;
+    pointer-events: none;
+}
+
+#dialogo-editar-rubrica .dialog-form{
+    margin-top: 4px;
+}
+
+#dialogo-editar-rubrica .field-group label{
+    font-family: Poppins, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+}
+
+#dialogo-confirmar .dialog-title{
+    margin: 0;
+}
+
+#dialogo-eliminar-rubrica .dialog-title{
+    margin: 0;
+}
+
+#dialogo-confirmar .dialog-subtitle{
+    margin: -8px 0 0;
+}
+
+#dialogo-eliminar-rubrica .dialog-subtitle{
+    margin: -8px 0 0;
+}
+
+#dialogo-confirmar .form-actions{
+    justify-content: center;
+    margin-top: 2px;
+}
+
+#dialogo-eliminar-rubrica .form-actions{
+    justify-content: center;
+    margin-top: 2px;
+}
+
+@media (max-width: 600px){
+    .content_inicio{
+        flex-wrap: wrap;
+    }
+
+    .estado-sincronizacion{
+        flex-basis: 100%;
+        margin-left: 0;
+        padding-top: 0;
+    }
+}
+
+.contenedor-criterios{
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
+}
+
+.container1{
+    border-radius: 20px;
+    width: 100%;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    border-left: 6px solid var(--principal-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    background: white;
+}
+
+.container2{
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    /* Scrollbar moderno (Firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--hover-color) transparent;
+}
+
+/* Scrollbar moderno (WebKit: Chrome, Edge, Safari) */
+.container2::-webkit-scrollbar {
+    width: 8px;
+}
+
+.container2::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.container2::-webkit-scrollbar-thumb {
+    background: var(--hover-color);
+    border-radius: 10px;
+}
+
+.container2::-webkit-scrollbar-thumb:hover {
+    background: var(--text-color);
+}
+
+.criterio{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    border-radius: 20px;
+    background: var(--font-color-secondary);
+    padding: 15px;
+    gap: 9px;
+}
+
+/* ── Criterio ya añadido (resumen antes de guardar) ── */
+.criterio-guardado{
+    background: var(--font-color-secondary);
+}
+
+.criterio-guardado__campo{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--font-color);
+}
+
+.criterio-guardado__campo-info{
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 2px;
+    min-width: 0;
+}
+
+.criterio-guardado__campo-label{
+    font-family: Poppins, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-color);
+    opacity: 0.75;
+}
+
+.criterio-guardado__campo-valor{
+    font-family: Poppins, sans-serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    line-height: 1.3;
+}
+
+.criterio-guardado__editar{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 10px;
+    background: var(--azul-lite);
+    color: var(--azul);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.criterio-guardado__editar .material-symbols-rounded{
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+
+.criterio-guardado__editar:hover{
+    background: var(--azul);
+    color: var(--font-color-secondary);
+    transform: scale(1.05);
+}
+
+.input_text-field{
+    width: 100%;
+    height: auto;
+}
+
+.titulo__criterio{
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    width: 100%;
+    height: auto;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: var(--text-color-secondary);
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+.instrucciones{
+    padding: 7px;
+    width: 100%;
+    height: auto;
+    gap: 10px;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    font-weight: 400;
+    background: var(--font-color-secondary);
+    border-radius: 20px 20px 0px 0px;
+}
+
+.instrucciones span{
+    color: var(--text-color-secondary);
+}
+
+.descripcion{
+    background: var(--font-color);
+    border-left: 5px solid var(--principal-color);
+    width: 100%;
+    height: 0px;
+    overflow: hidden;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    interpolate-size: allow-keywords;
+}
+
+.descripcion.expandir{
+    margin-bottom: 5px;
+    padding: 7px;
+    height: fit-content;
+}
+
+.material-symbols-rounded {
+    transition: all .5s ease;
+}
+
+.material-symbols-rounded.rotar{
+    rotate: -180deg;
+}
+
+.proyecto-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 16px;
+}
+
+.proyecto-icon{
+    font-size: 2.6rem;
+    color: var(--principal-color);
+}
+
+.proyecto-info{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.proyecto-label{
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-color-secondary);
+    opacity: 0.7;
+}
+
+#nombre-proyecto{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-color-secondary);
+    font-size: 1.7rem;
+    font-weight: 600;
+    min-width: 0;
+}
+
+/* ── Estado de carga del encabezado de la rúbrica ──
+   Aún no hay backend: este bloque es un placeholder que ya deja la
+   estructura lista (título + descripción) para que el servidor lo rellene.
+   El spinner se conserva tal cual (clase .boton-spinner, sin tocar). */
+.proyecto-textos{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.proyecto-titulo{
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.proyecto-descripcion{
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: var(--text-color);
+    opacity: 0.7;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Feedback de carga en botones (Regresar / Enviar evaluación) ── */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#boton-regresar > #mensaje1-regresar,
+#boton-enviar > #mensaje1-enviar {
+    display: none;
+}
+
+#boton-regresar.cargando > #mensaje1-regresar,
+#boton-enviar.cargando > #mensaje1-enviar {
+    display: flex;
+}
+
+#boton-regresar.cargando > #mensaje2-regresar,
+#boton-enviar.cargando > #mensaje2-enviar {
+    display: none;
+}
+
+/* ── Feedback active / focus en botones ── */
+#boton-regresar,
+#boton-enviar {
+    transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+/* Estado presionado (solo si no está cargando) */
+#boton-regresar:active:not(:disabled),
+#boton-enviar:active:not(:disabled) {
+    transform: scale(0.96);
+    filter: brightness(0.93);
+}
+
+/* Foco por teclado: anillo visible accesible
+   (inset para que no se recorte con el scroll de .container2) */
+#boton-regresar:focus-visible,
+#boton-enviar:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--principal-color) 55%, transparent);
+}
+
+/* Sin anillo al hacer clic con mouse (solo teclado) */
+#boton-regresar:focus:not(:focus-visible),
+#boton-enviar:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ── Espaciado icono/texto en botones (gap-btn no está cargado aquí) ── */
+#boton-regresar [id^="mensaje"],
+#boton-enviar [id^="mensaje"] {
+    gap: 8px;
+}
+
+/* ── Campo de nota (input nativo) ── */
+.campo-nota{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.campo-nota__label{
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.campo-nota__label .requerido{
+    color: #b3261e;
+}
+
+.campo-nota__input{
+    width: 100%;
+    padding: 12px 16px;
+    font-family: Poppins, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    background: var(--font-color-secondary);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    outline: none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+    /* Desactivar resize en todos los inputs/textarea */
+    resize: none;
+    /* Scroll interno cuando el contenido excede el alto */
+    overflow-y: auto;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+/* Oculta las flechas del input number en Chrome/Safari/Edge */
+.campo-nota__input::-webkit-outer-spin-button,
+.campo-nota__input::-webkit-inner-spin-button{
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.campo-nota__input::placeholder{
+    color: var(--text-color);
+    opacity: .55;
+}
+
+.campo-nota__input:hover{
+    border-color: var(--principal-color);
+}
+
+.campo-nota__input:focus{
+    border-color: var(--principal-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+.campo-nota__supporting{
+    font-size: 0.9rem;
+    line-height: 1.3;
+    color: var(--text-color);
+    opacity: .7;
+    min-height: 1em;
+}
+
+/* Estado de error */
+.campo-nota.error .campo-nota__input{
+    border-color: #b3261e;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #b3261e 15%, transparent);
+}
+
+.campo-nota.error .campo-nota__supporting{
+    color: #b3261e;
+    opacity: 1;
+    font-weight: 500;
+}
+
+/* ── Inputs específicos de nombre y descripción (revertidos desde number) ── */
+.campo-nombre__input{
+    background: var(--card);
+    border: 2px solid var(--border);
+    resize: none;
+    overflow-y: auto;
+}
+
+.campo-nombre__input:focus{
+    border-color: var(--principal-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+.campo-decripcion__input{
+    background: var(--card);
+    border: 2px solid var(--border);
+    min-height: 80px;
+    resize: none;
+    overflow-y: auto;
+}
+
+.campo-decripcion__input:focus{
+    border-color: var(--principal-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+/* ── Formulario de evaluación ── */
+#formulario-evaluacion{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.form-cabecera,
+.form-puntuacion{
+    font-family: Poppins, sans-serif;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    margin: 0;
+}
+
+.form-cabecera{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    color: var(--text-color-secondary);
+    align-self: center;
+}
+
+.form-cabecera .material-symbols-rounded{
+    font-size: 1.4rem;
+    color: var(--principal-color);
+}
+
+.form-cabecera__contador{
+    margin-left: auto;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--azul-lite);
+    color: var(--azul);
+}
+
+.form-puntuacion{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: var(--font-color-secondary);
+    border: 1.5px solid var(--border);
+    width: 100%;
+    align-self: stretch;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.form-puntuacion__valor{
+    color: var(--text-color-secondary);
+}
+
+.form-puntuacion__estado{
+    margin-left: auto;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--azul-lite);
+    color: var(--azul);
+}
+
+/* Total correcto (suma = 100%) */
+.form-puntuacion.es-ok{
+    border-color: var(--verde);
+    background: color-mix(in srgb, var(--verde) 8%, var(--font-color-secondary));
+}
+
+.form-puntuacion.es-ok .form-puntuacion__estado{
+    background: color-mix(in srgb, var(--verde) 15%, transparent);
+    color: var(--verde);
+}
+
+/* Total incorrecto (falta o se pasó) */
+.form-puntuacion.no-ok{
+    border-color: #b3261e;
+    background: color-mix(in srgb, #b3261e 8%, var(--font-color-secondary));
+}
+
+.form-puntuacion.no-ok .form-puntuacion__estado{
+    background: color-mix(in srgb, #b3261e 12%, transparent);
+    color: #b3261e;
+}
+
+.criterio-form__acciones{
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+    overflow: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, max-height 0.2s ease;
+}
+
+.criterio-form__acciones.oculto{
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    max-height: 0;
+}
+
+.boton-confirmar,
+.boton-cancelar{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 120px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-family: Poppins, sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+
+.boton-confirmar{
+    border: none;
+    background: var(--principal-color);
+    color: var(--font-color);
+}
+
+.boton-confirmar:hover{
+    background: #0292d4;
+}
+
+.boton-confirmar:active{
+    transform: scale(0.97);
+}
+
+.boton-cancelar{
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text-color-secondary);
+}
+
+.boton-cancelar:hover{
+    border-color: var(--principal-color);
+    background: color-mix(in srgb, var(--principal-color) 8%, transparent);
+    color: var(--principal-color);
+}
+
+.boton-cancelar:active{
+    transform: scale(0.97);
+}
+
+.boton-confirmar:focus-visible,
+.boton-cancelar:focus-visible{
+    outline: 3px solid color-mix(in srgb, var(--principal-color) 35%, transparent);
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px){
+    .criterio-form__acciones{
+        justify-content: stretch;
+    }
+
+    .boton-confirmar,
+    .boton-cancelar{
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* Guardar deshabilitado cuando la suma ≠ 100% */
+#btn-guardar-criterios:disabled{
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(0.4);
+}
+
+/* ── Feedback visual de estados en botones data-submit ──────────────────
+   Las animaciones (slideOutUp/slideInUp) y las reglas .submit-states
+   están definidas en proyectos.css, pero aquí reforzamos overflow y
+   position para .boton-publicar que usa overflow:hidden en .ripple-container.
+*/
+#btn-guardar-criterios[data-submit]{
+    position: relative !important;
+    overflow: hidden !important;
+    min-height: 50px;
+    min-width: 120px;
+}
+
+#btn-guardar-criterios[data-submit] .submit-states{
+    display: grid;
+    grid-template-areas: "stack";
+    width: 100%;
+}
+
+#btn-guardar-criterios[data-submit] .submit-states > *{
+    grid-area: stack;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-direction: row;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0s 9999s;
+}
+
+#btn-guardar-criterios[data-submit] .submit-states > .mostrar{
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+    position: relative;
+}
+
+/* Animaciones de slide para estados del botón */
+@keyframes slideOutUpEditar{
+    from{opacity:1; transform:translateY(0);}
+    to{opacity:0; transform:translateY(-100%);}
+}
+@keyframes slideInUpEditar{
+    from{opacity:0; transform:translateY(100%);}
+    to{opacity:1; transform:translateY(0);}
+}
+#btn-guardar-criterios[data-submit] .submit-states > .btn-exit{
+    opacity:1;
+    pointer-events:none;
+    animation:slideOutUpEditar 200ms ease-in forwards;
+}
+#btn-guardar-criterios[data-submit] .submit-states > .btn-enter{
+    opacity:1;
+    pointer-events:auto;
+    animation:slideInUpEditar 200ms ease-out forwards;
+}
+
+/* ── Feedback visual del botón de confirmación en #dialogo-confirmar ──
+   El botón de confirmación NO usa createSubmitHandler; en su lugar
+   confirmarAccion() (editar-criterios.js) aplica btn-enter/btn-exit
+   manualmente. Necesita las reglas de animación slideInUp/slideOutUp
+   que proyectos.css define para button[data-submit], pero aquí las
+   reforzamos para asegurar que se apliquen dentro del diálogo. */
+#dialogo-confirmar [data-accion="confirmar"][data-submit]{
+    position: relative;
+    overflow: hidden;
+    min-height: 50px;
+    min-width: 120px;
+}
+#dialogo-eliminar-rubrica [data-confirmar-rubrica][data-submit]{
+    position: relative;
+    overflow: hidden;
+    min-height: 50px;
+    min-width: 120px;
+}
+#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states{
+    display: grid;
+    grid-template-areas: "stack";
+    width: 100%;
+}
+#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > *{
+    grid-area: stack;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-direction: row;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0s 9999s;
+}
+#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > .mostrar{
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+    position: relative;
+}
+#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > .btn-exit{
+    opacity: 1;
+    pointer-events: none;
+    animation: slideOutUp 200ms ease-in forwards;
+}
+#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > .btn-enter{
+    opacity: 1;
+    pointer-events: auto;
+    animation: slideInUp 200ms ease-out forwards;
+}
+
+/* Misma configuración de animación para el botón de eliminar rúbrica */
+#dialogo-eliminar-rubrica [data-confirmar-rubrica][data-submit] .submit-states{
+    display: grid;
+    grid-template-areas: "stack";
+    width: 100%;
+}
+#dialogo-eliminar-rubrica [data-confirmar-rubrica][data-submit] .submit-states > *{
+    grid-area: stack;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-direction: row;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0s 9999s;
+}
+#dialogo-eliminar-rubrica [data-confirmar-rubrica][data-submit] .submit-states > .mostrar{
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+    position: relative;
+}
+#dialogo-eliminar-rubrica [data-confirmar-rubrica][data-submit] .submit-states > .btn-exit{
+    opacity: 1;
+    pointer-events: none;
+    animation: slideOutUp 200ms ease-in forwards;
+}
+#dialogo-eliminar-rubrica [data-confirmar-rubrica][data-submit] .submit-states > .btn-enter{
+    opacity: 1;
+    pointer-events: auto;
+    animation: slideInUp 200ms ease-out forwards;
+}
+
+/* Layout de botones de acción (Añadir / Publicar) */
+.botones-accion{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    z-index: 20;
+}
+
+/* Botón Añadir (con icono) */
+.boton-anadir{
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 17px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--font-color-secondary);
+    color: var(--text-color-secondary);
+    font-family: Poppins, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+
+.boton-anadir:hover{
+    border-color: var(--principal-color);
+    color: var(--principal-color);
+}
+
+.boton-anadir:active{
+    transform: scale(0.97);
+}
+
+.boton-anadir .material-symbols-rounded{
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+
+.boton-anadir p{
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: inherit;
+}
+
+/* Botón Publicar (check_circle) */
+.boton-publicar{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    border: none;
+    background: var(--principal-color);
+    color: var(--font-color);
+    font-family: Poppins, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    overflow: hidden;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: background-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
+}
+
+.boton-publicar:hover{
+    background: #0292d4;
+}
+
+.boton-publicar:active{
+    transform: scale(0.97);
+}
+
+.boton-publicar:disabled{
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.boton-publicar span.material-symbols-rounded{
+    font-size: 1.4rem;
+}
+
+.boton-publicar p{
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: inherit;
+}
+
+/* ── Lista de criterios guardados ── */
+.criterios-lista{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+/* ── Loader lineal mientras se cargan los criterios ── */
+.criterios-loader{
+    display: block;
+    padding: 6px 2px;
+    width: 100%;
+}
+
+/* ── Animación de entrada de cada tarjeta de criterio ── */
+@keyframes criterioEntrada {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.criterio-entrada{
+    animation: criterioEntrada 280ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .criterio-entrada{
+        animation: none;
+    }
+}
+
+.criterios-vacio{
+    padding: 22px;
+    text-align: center;
+    color: var(--text-color);
+    opacity: .7;
+    font-family: Poppins, sans-serif;
+    font-size: 1rem;
+    background: var(--font-color-secondary);
+    border-radius: 14px;
+    border: 1.5px dashed var(--border);
+}
+
+/* Pie de la tarjeta de criterio guardado */
+.criterio-guardado__footer{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.criterio-guardado__estado{
+    font-family: Poppins, sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.3;
+    padding: 4px 0;
+    color: var(--naranja-drk);
+}
+
+.criterio-guardado__eliminar{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 10px;
+    background: color-mix(in srgb, #b3261e 10%, transparent);
+    color: #b3261e;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.criterio-guardado__eliminar .material-symbols-rounded{
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+
+.criterio-guardado__eliminar:hover{
+    background: #b3261e;
+    color: #fff;
+    transform: scale(1.05);
+}
+
+/* ── Edición en línea de un campo del criterio ── */
+.criterio-editar__input{
+    width: 100%;
+    resize: none;
+    padding: 8px 12px;
+    font-family: Poppins, sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    background: var(--font-color-secondary);
+    border: 2px solid var(--principal-color);
+    border-radius: 10px;
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 20%, transparent);
+}
+
+.criterio-guardado__campo[data-editando="true"]{
+    align-items: flex-start;
+}
+
+.criterio-editar__acciones{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-top: 28px;
+}
+
+.criterio-editar__guardar,
+.criterio-editar__cancelar{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.criterio-editar__guardar{
+    background: var(--verde);
+    color: #fff;
+}
+
+.criterio-editar__guardar:hover{
+    background-color: color-mix(in srgb, var(--verde) 85%, #000);
+}
+
+.criterio-editar__guardar:active{
+    background-color: color-mix(in srgb, var(--verde) 70%, #000);
+    transform: scale(0.94);
+}
+
+.criterio-editar__cancelar{
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--text-color-secondary);
+}
+
+.criterio-editar__cancelar:hover{
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.criterio-editar__cancelar:active{
+    background: rgba(0, 0, 0, 0.24);
+    transform: scale(0.94);
+}
+
+.criterio-editar__guardar .material-symbols-rounded,
+.criterio-editar__cancelar .material-symbols-rounded{
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* ── Formulario de criterio (alias de .criterio para claridad) ── */
+.criterio-form{
+    background: var(--font-color-secondary);
+}
+
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Menú contextual flotante de la rúbrica (Editar / Eliminar)
+   Se abre desde el botón de tres puntos de la cabecera.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Botón de acciones (tres puntos) en la cabecera */
+.proyecto-acciones{
+    margin-left: auto;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 12px;
+    background: var(--azul-lite);
+    color: var(--azul);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.proyecto-acciones:hover{
+    background: var(--azul);
+    color: var(--font-color);
+    transform: scale(1.05);
+}
+
+.proyecto-acciones .material-symbols-rounded{
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+/* Hacer que la info ocupe el espacio restante y el botón quede a la derecha */
+.proyecto-info{
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Contenedor del menú contextual */
+#menu__rubrica{
+    position: fixed;
+    z-index: 1100;
+    top: 0;
+    right: 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.95);
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0.15s ease-out;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh-lg);
+    padding: 6px 0;
+    min-width: 180px;
+}
+
+#menu__rubrica.show{
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+#menu__rubrica .boton-menu__list{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#menu__rubrica .boton-menu__item{
+    border: none;
+    background: none;
+    width: 100%;
+    color: var(--txt);
+    font-family: Poppins, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 10px 16px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s ease;
+}
+
+#menu__rubrica .boton-menu__item .material-symbols-rounded{
+    font-size: 1.15rem;
+    font-weight: 500;
+}
+
+#menu__rubrica .boton-menu__item:hover{
+    background: var(--azul-lite);
+    color: var(--azul);
+}
+
+#menu__rubrica .boton-menu__item:active{
+    transform: scale(0.98);
+    background: color-mix(in srgb, var(--azul) 8%, transparent);
+}
+
+/* Opción destructiva */
+#menu__rubrica .boton-menu__item--peligro{
+    color: #b3261e;
+}
+
+#menu__rubrica .boton-menu__item--peligro:hover{
+    background: color-mix(in srgb, #b3261e 12%, transparent);
+    color: #b3261e;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Mensajes de error de campos — patrón login (solo campos vacíos)
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes errorIn {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        max-height: 30px;
+        transform: translateY(0);
+    }
+}
+
+@keyframes errorOut {
+    from {
+        opacity: 1;
+        max-height: 30px;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.error-message{
+    color: #ff6b6b;
+    font-family: Poppins, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    width: 100%;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, max-height 0.3s ease, transform 0.3s ease;
+}
+
+.error-message.show{
+    animation: errorIn 0.3s ease forwards;
+    max-height: 30px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.error-message.hide{
+    animation: errorOut 0.3s ease forwards;
+}
+
+.input__text.error,
+.campo-nota__input.error{
+    border: 2px solid #ff6b6b !important;
+    transition: border-color 0.3s ease;
+}
+

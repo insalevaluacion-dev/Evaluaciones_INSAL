@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumen de Evaluación</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/resumen.css">
+    <link rel="stylesheet" href="/css/circular-progress.css">
+    <link rel="stylesheet" href="/css/notificaciones.css">
+    <script type="module">
+        import 'https://esm.run/@material/web/all.js'
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+    <script src="/js/descripcion.js" defer></script>
+    <script src="/js/resumen.js" defer></script>
+    <script type="module" src="/js/notificaciones.js"></script>
+</head>
+
+<body>
+    <main class="main_document">
+        <div class="resumen-header">
+            <span class="material-symbols-rounded resumen-header__icon">summarize</span>
+            <div class="resumen-header__info">
+                <span class="resumen-header__label">Evaluación</span>
+                <h3 class="resumen-header__title">Resumen de Evaluación</h3>
+            </div>
+        </div>
+        <button type="button" class="btn centrar" id="boton-regresar" onclick="volverEvaluacion()">
+            <div class="centrar gap-btn" id="mensaje1-regresar">
+                <p>Regresando...</p>
+                <div class="boton-spinner" style="background: var(--font-color-important);">
+                    <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                        <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                        <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                            stroke="var(--spinner-arco)" />
+                    </svg>
+                </div>
+            </div>
+            <div class="centrar gap-btn" id="mensaje2-regresar">
+                <span class="material-symbols-rounded">
+                    arrow_back
+                </span>
+                Regresar a la pagina de evaluacion
+            </div>
+        </button>
+
+        <div id="resumen-criterios">
+            <ul id="lista-criterios">
+                <div class="centrar gap-btn gap-row" id="mensaje-cargando">
+                    <p>Cargando resumen...</p>
+                    <div class="boton-spinner">
+                        <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                            <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                            <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                                stroke="var(--spinner-arco)" />
+                        </svg>
+                    </div>
+                </div>
+            </ul>
+        </div>
+        <button type="button" class="btn centrar calificar" id="boton-calificar" onclick="mostrarNotaFinal()">
+            <div class="centrar gap-btn" id="mensaje1-calificar">
+                <p>Calculando...</p>
+                <div class="boton-spinner" style="background: var(--font-color-important);">
+                    <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                        <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                        <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                            stroke="var(--spinner-arco)" />
+                    </svg>
+                </div>
+            </div>
+            <div class="centrar gap-btn" id="mensaje2-calificar">
+                Calificar
+                <span class="material-symbols-rounded">
+                    stylus_note
+                </span>
+            </div>
+        </button>
+
+        <div id="modal-nota-final" class="modal">
+            <div class="modal-content">
+                <button type="button" class="modal-close" onclick="cerrarModalNotaFinal()" aria-label="Cerrar">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+                <h2>Nota Final</h2>
+                <p id="nota-final"></p>
+                <button type="button" class="btn centrar calificar" id="boton-confirmar" onclick="confirmarEvaluacion()">
+                    <div class="centrar gap-btn" id="mensaje1-confirmar">
+                        <p>Confirmando...</p>
+                        <div class="boton-spinner" style="background: var(--font-color-important);">
+                            <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                                    stroke="var(--spinner-arco)" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="centrar gap-btn" id="mensaje2-confirmar">
+                        <span class="material-symbols-rounded">check_circle</span>
+                        Confirmar
+                    </div>
+                </button>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

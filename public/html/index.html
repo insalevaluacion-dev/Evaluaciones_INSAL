@@ -1,0 +1,112 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="../css/default-rules.css">
+    <script type="module" src="../js/index.js" defer></script>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/index.css">
+    <link rel="stylesheet" href="../css/mobile-menu.css">
+    <link rel="shortcut icon" href="../assets/img/Logo_SV.svg" type="image/x-icon">
+    <link rel="manifest" href="manifest.webmanifest">
+    <script type="module" src="../js/notificaciones.js"></script>
+    <link rel="stylesheet" href="../css/notificaciones.css">
+    <link rel="stylesheet" href="../css/circular-progress.css">
+    <link rel="stylesheet" href="../css/ripple.css">
+    <link rel="stylesheet" href="../css/dialog.css">
+    <script type="module" src="../js/ripple.js" defer></script>
+    <script type="module">
+        import 'https://esm.run/@material/web/all.js'
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body>
+    <dialog id="dialog-1" closeby="any">
+        <button onclick="toggleDialog()">Cerrar</button>
+        <h1>Hola mundo abre modal</h1>
+    </dialog>
+    <div id="infoCard" class="info-card menu_contextual">
+        <button class="menu-close-btn" onclick="closeAll()" aria-label="Cerrar" data-ripple>
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <div class="info_user centrar">
+            <div class="user_profile img-card">
+                <img src="/assets/img/profile.jpg" class="img_profile img-card">
+            </div>
+            <div class="centrar">
+                <h3 class="title centrar">¡Hola Vought America!</h3>
+            </div>
+            <p class="user-email">
+                <%= user.email %>
+            </p>
+            <div class="btn-accion centrar" onclick="" data-ripple>
+                <span class="material-symbols-rounded">
+                    logout
+                </span>
+                <p>Ir al Inicio</p>
+            </div>
+            <div class="btn-accion centrar" onclick="toggleDialog('dialog-1')" data-ripple>
+                <span class="material-symbols-rounded">
+                    settings
+                </span>
+                <p>Configuración</p>
+            </div>
+            <div class="logout-btn centrar" onclick="CerrarSesion()" data-ripple>
+                <span class="material-symbols-rounded">
+                    logout
+                </span>
+                <p>Cerrar sesión</p>
+            </div>
+        </div>
+    </div>
+    <section class="htmlcontent">
+        <aside id="aside" class="aside close">
+            <div class="opcion background-none display-flex row no-flex-wrap ellipsis" id="usuario_perfil" onclick="openMenu(event, 'infoCard')" data-ripple>
+                <img src="../assets/img/INSAL.jpg" class="foto_perfil">
+                <p class="texto color-black ellipsis">SAN LUIS</p>
+            </div>
+            <div class="opcion" onclick="abrirAside()" data-ripple>
+                <span class="material-symbols-rounded icon" id="menu_open">
+                    menu_open
+                </span>
+            </div>
+            <div id="opcion" class="opcion" data-ripple>
+                <span class="material-symbols-rounded icon">
+                    home
+                </span>
+                <p class="texto">Inicio</p>
+            </div>
+            <div id="opcion" class="opcion" data-ripple>
+                <span class="material-symbols-rounded icon">
+                    quiz
+                </span>
+                <p class="texto">Evaluaciones</p>
+            </div>
+            <div class="opcion" data-ripple>
+                <span class="material-symbols-rounded icon">
+                    school
+                </span>
+                <p class="texto">Proyectos</p>
+            </div>
+            <div id="opcion" class="opcion" data-ripple>
+                <span class="material-symbols-rounded icon">
+                    toc
+                </span>
+                <p class="texto">Criterios</p>
+            </div>
+            <div class="opcion" data-ripple>
+                <span class="material-symbols-rounded icon">
+                    delete
+                </span>
+                <p class="texto">Papelera</p>
+            </div>
+        </aside>
+        <div id="aside-overlay" class="mobile-only"></div>
+        <main id="main__container" class="main__container">
+        </main>
+    </section>
+</body>
+</html>

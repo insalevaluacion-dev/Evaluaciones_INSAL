@@ -1,0 +1,331 @@
+/* ── Dialog ──────────────────────────────────────────────────────────────── */
+dialog {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0;
+    color: var(--txt);
+    box-shadow: var(--sh-lg);
+}
+
+dialog[open]::backdrop {
+    /* Sin backdrop-filter: en Chromium, el blur sobre ::backdrop fuerza una
+       capa de composición que hace que el contenido del <dialog> se renderice
+       ligeramente borroso. Con un overlay sólido un poco más oscuro se logra
+       el mismo contraste sin ese artefacto. */
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: backdropFadeIn 0.19s ease-out;
+}
+
+.app-dialog--sm {
+    width: min(520px, calc(100vw - 32px));
+}
+
+.app-dialog--xs {
+    width: min(460px, calc(100vw - 32px));
+}
+
+dialog[open] {
+    animation: growIn 0.2s ease-out;
+}
+
+dialog::backdrop {
+    animation: backdropFadeIn 0.19s ease-out;
+}
+
+dialog.closing {
+    animation: shrinkOut 0.19s ease-in forwards;
+}
+
+dialog.closing::backdrop {
+    animation: backdropFadeOut 0.19s ease-in forwards;
+}
+
+.dialog-inner {
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.dialogo-editar__icono {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    transform: none !important;
+    transition: none !important;
+    user-select: none;
+    pointer-events: none;
+}
+
+.dialog-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--txt);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    align-self: flex-start;
+}
+
+.dialog-subtitle {
+    font-size: 0.9rem;
+    color: var(--soft);
+    margin-top: -10px;
+}
+
+.dialog-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--txt);
+    transition: background 0.18s, color 0.18s;
+    z-index: 10;
+}
+
+.dialog-close-btn .material-symbols-rounded {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog-close-btn:hover {
+    background: var(--bg2);
+    color: var(--azul);
+}
+
+.dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+@keyframes growIn {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.92);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes shrinkOut {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.92);
+    }
+}
+
+@keyframes backdropFadeIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes backdropFadeOut {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* ── Diálogo Eliminar Rúbrica ─────────────────────────────────────────────── */
+
+.dialogo-eliminar-rubrica .dialog-inner {
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.dialogo-eliminar-rubrica__icono {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    flex: 0 0 52px;
+    line-height: 1;
+    border-radius: 50%;
+    background: var(--naranja-bg);
+    color: var(--naranja-drk);
+    transform: none !important;
+    transition: none !important;
+    user-select: none;
+    pointer-events: none;
+    font-size: 2rem;
+}
+
+.dialogo-eliminar-rubrica-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--txt);
+    margin: 0;
+    text-align: center;
+}
+
+.dialogo-eliminar-rubrica-subtitle {
+    font-size: 0.9rem;
+    color: var(--soft);
+    margin: 0;
+    text-align: center;
+}
+
+.dialogo-eliminar-rubrica-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+/* ── Diálogo Confirmar ─────────────────────────────────────────────────────── */
+
+.dialogo-confirmar .dialog-inner {
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.dialogo-confirmar__icono {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    flex: 0 0 52px;
+    line-height: 1;
+    border-radius: 50%;
+    background: var(--naranja-bg);
+    color: var(--naranja-drk);
+    transform: none !important;
+    transition: none !important;
+    user-select: none;
+    pointer-events: none;
+    font-size: 2rem;
+}
+
+.dialogo-confirmar-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--txt);
+    margin: 0;
+    text-align: center;
+}
+
+.dialogo-confirmar-subtitle {
+    font-size: 0.9rem;
+    color: var(--soft);
+    margin: 0;
+    text-align: center;
+}
+
+.dialogo-confirmar-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+/* ── Diálogo Editar Rúbrica ───────────────────────────────────────────────── */
+
+.dialogo-editar-rubrica .dialog-inner {
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.dialogo-editar__icono {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    transform: none !important;
+    transition: none !important;
+    user-select: none;
+    pointer-events: none;
+}
+
+.dialogo-editar-rubrica-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--txt);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    align-self: flex-start;
+}
+
+.dialogo-editar-rubrica-subtitle {
+    font-size: 0.9rem;
+    color: var(--soft);
+    margin-top: -10px;
+}
+
+.dialogo-editar-rubrica-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dialogo-editar-rubrica-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}

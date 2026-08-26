@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de proyecto</title>
+    <link rel="stylesheet" href="/css/evaluacion.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/circular-progress.css">
+    <link rel="stylesheet" href="/css/notificaciones.css">
+    <script type="module">
+        import 'https://esm.run/@material/web/all.js'
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+    <script src="/js/descripcion.js" defer></script>
+    <script src="/js/evaluacion.js" defer></script>
+    <script type="module" src="/js/notificaciones.js"></script>
+    <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
+</head>
+
+<body>
+    <main class="main_document">
+        <section class="container1">
+            <div class="proyecto-header">
+                <span class="material-symbols-rounded proyecto-icon">folder_open</span>
+                <div class="proyecto-info">
+                    <span class="proyecto-label">Nombre del proyecto</span>
+                    <span id="nombre-proyecto">
+                        <md-circular-progress indeterminate></md-circular-progress>
+                        Cargando...
+                    </span>
+                </div>
+            </div>
+        </section>
+        <section class="container2">
+            <form id="formulario-evaluacion">
+                <button type="button" class="btn centrar" id="boton-regresar" onclick="limpiarSeleccion()">
+                    <div class="centrar gap-btn" id="mensaje1-regresar">
+                        <p>Regresando...</p>
+                        <div class="boton-spinner" style="background: var(--font-color-important);">
+                            <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="centrar gap-btn" id="mensaje2-regresar">
+                        <span class="material-symbols-rounded">
+                            arrow_back
+                        </span>
+                        Regresar a la pagina de evaluacion de proyecto
+                    </div>
+                </button>
+                <div class="instrucciones">
+                    <p><span>Objetivo: </span>Que los estudiantes expresen a través de la explicación,
+                        conceptualización, demostración y aplicación en su formación para la vida, las competencias
+                        adquiridas en las dimensiones académicas, humanas, sociales y emprendedoras; alcanzadas durante
+                        el año lectivo.</p>
+                </div>
+            </form>
+        </section>
+    </main>
+    <div id="modal-asistencia" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-asistencia-titulo">
+        <div class="modal-content">
+            <button type="button" class="modal-close" onclick="cerrarModalAsistencia()" aria-label="Cerrar">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+            <h2 id="modal-asistencia-titulo">Asistencia</h2>
+            <p class="modal-subtitulo">Selecciona solo a los alumnos presentes.</p>
+
+            <form id="formulario-asistencia" novalidate>
+                <ul id="lista-estudiantes"></ul>
+                <button type="button" class="btn centrar" id="boton-guardar-asistencia" onclick="guardarAsistencia()">
+                    <div class="centrar gap-btn" id="mensaje1-guardar-asistencia">
+                        <p>Guardando...</p>
+                        <div class="boton-spinner" style="background: var(--font-color-important);">
+                            <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="centrar gap-btn" id="mensaje2-guardar-asistencia">
+                        <span class="material-symbols-rounded">save</span>
+                        Guardar asistencia
+                    </div>
+                </button>
+                <button type="button" class="btn centrar" onclick="cerrarModalAsistencia()">
+                    <span class="material-symbols-rounded">close</span>
+                    Cerrar
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

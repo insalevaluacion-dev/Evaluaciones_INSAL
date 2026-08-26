@@ -1,0 +1,40 @@
+<div class="content_inicio">
+    <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú"
+        data-ripple>
+        <span class="material-symbols-rounded">menu</span>
+    </button>
+    <a href="/menu/evaluaciones" class="back-link" data-link>
+        <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
+        <p>Atras</p>
+    </a>
+    <p class="text-title-seccion">Detalle de evaluación</p>
+</div>
+<section class="contenedor-criterios" data-proyecto-id="<%= id %>">
+    <section class="container1">
+        <div class="proyecto-header">
+            <span class="material-symbols-rounded proyecto-icon">school</span>
+            <div class="proyecto-info">
+                <span class="proyecto-label">Proyecto</span>
+                <span id="nombre-proyecto">
+                    <div class="proyecto-textos">
+                        <p class="proyecto-titulo" id="detalle-proyecto-nombre">Cargando…</p>
+                        <p class="proyecto-descripcion" id="detalle-proyecto-sub">Consultando evaluaciones…</p>
+                    </div>
+                </span>
+            </div>
+        </div>
+    </section>
+    <section class="container2">
+        <p class="form-cabecera">
+            <span class="material-symbols-rounded" aria-hidden="true">fact_check</span>
+            <span>Evaluaciones registradas</span>
+            <span id="contador-evaluaciones" class="form-cabecera__contador">0</span>
+        </p>
+        <div id="evaluaciones-loader" class="criterios-loader" role="status" aria-label="Cargando evaluaciones">
+            <div class="progreso-lineal indeterminado">
+                <div class="progreso-indicador"></div>
+            </div>
+        </div>
+        <div id="evaluaciones-lista" class="criterios-lista"></div>
+    </section>
+</section>

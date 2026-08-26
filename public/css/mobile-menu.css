@@ -1,0 +1,250 @@
+/* ==========================================================================
+   BOTTOM SHEET MÓVIL — Material 3
+   Refactorizado para bottom-sheet-menu.js (v2 - fix transiciones en emulación)
+   ========================================================================== */
+
+@media screen and (max-width: 768px) {
+
+    /* ── Variables locales del componente ── */
+    .menu_contextual {
+        --bs-handle-color: rgba(0, 0, 0, 0.2);
+        --bs-backdrop-bg: rgba(0, 0, 0, 0.35);
+        --bs-bg: var(--bg, #edf2f9);
+        --bs-text: var(--texto-color, #0d1e35);
+        --bs-border: var(--border, #c5d5ea);
+        --bs-secondary-text: var(--secundario-texto-color, #5a6d85);
+        --bs-radius: 28px;
+        --bs-transition-move: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+        --bs-transition-fade: opacity 0.25s ease;
+        --bs-transition-panel: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                               opacity 0.2s ease,
+                               visibility 0.2s ease;
+        --bs-transition-height: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Overlay / Backdrop ── */
+    .menu-backdrop {
+        position: fixed;
+        inset: 0;
+        background: var(--bs-backdrop-bg);
+        z-index: 998;
+        opacity: 0;
+        pointer-events: none;
+        -webkit-backdrop-filter: blur(0px);
+                backdrop-filter: blur(0px);
+        transition: opacity 0.25s ease, backdrop-filter 0.25s ease;
+    }
+
+    .menu-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
+        -webkit-backdrop-filter: blur(2px);
+                backdrop-filter: blur(2px);
+    }
+
+    /* ── Contenedor principal (bottom sheet) ── */
+    .menu_contextual {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        width: 100% !important;
+        /* Fallback para navegadores sin soporte dvh */
+        max-height: 85vh;
+        max-height: 85dvh;
+        border-radius: var(--bs-radius) var(--bs-radius) 0 0 !important;
+        background: var(--bs-bg) !important;
+        border: none !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        z-index: 999 !important;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+
+        opacity: 0;
+        transform: translateY(100%);
+        pointer-events: none;
+        transition: var(--bs-transition-move), var(--bs-transition-fade);
+        overflow: hidden;
+        flex-shrink: 0;
+        overscroll-behavior: contain;
+    }
+
+    .menu_contextual.show {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    /* Handle / Indicador de arrastre Material 3 */
+    .menu_contextual::before {
+        content: '';
+        display: block;
+        width: 32px;
+        height: 4px;
+        background: var(--bs-handle-color);
+        border-radius: 2px;
+        margin: 12px auto 8px;
+        flex-shrink: 0;
+    }
+
+    /* ── Header ── */
+    .menu_contextual .menu-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--bs-border);
+        flex-shrink: 0;
+        background: var(--bs-bg);
+        min-height: 44px;
+        contain: layout;
+    }
+
+    .menu_contextual .menu-back-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        display: none;              /* JS controla inline cuando es visible */
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border-radius: 50%;
+        color: var(--bs-secondary-text);
+        font-size: 20px;
+        transition: background-color 0.15s ease;
+        outline: none;
+    }
+
+    .menu_contextual .menu-back-btn:focus-visible {
+        box-shadow: 0 0 0 2px var(--bs-bg), 0 0 0 4px var(--bs-secondary-text);
+    }
+
+    .menu_contextual .menu-back-btn:active {
+        background: rgba(0, 0, 0, 0.08);
+    }
+
+    .menu_contextual .menu-breadcrumb {
+        flex: 1;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--bs-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    /* ── Área de contenido ── */
+    .menu_contextual .menu-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 0;
+        contain: layout;
+    }
+
+    /* Transición de altura controlada por JS (_runHeightTransition) */
+    .menu_contextual .menu-content.bs-height-animating {
+        transition: var(--bs-transition-height);
+        overflow: hidden;
+    }
+
+    /* ── Paneles de navegación ──
+     *
+     *  Estados gestionados por BottomSheetMenu:
+     *   • Inactivo (base)      : fuera de vista, no interactivo
+     *   • .show-mobile          : panel activo, visible y con scroll
+     *   • .bs-out-left          : panel saliendo hacia la izquierda
+     */
+    .menu_contextual .menu-content > [data-bs-panel] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        /* Inactivo: completamente recortado y aislado */
+        height: 0;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0 16px;
+        transform: translateX(105%);
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+        will-change: transform, opacity;
+        transition: var(--bs-transition-panel);
+    }
+
+    /* Evita que los hijos colapsen en flex durante animaciones */
+    .menu_contextual .menu-content > [data-bs-panel] > * {
+        flex-shrink: 0;
+    }
+
+    /* Panel activo: entra en el flujo, es el único scrollable */
+    .menu_contextual .menu-content > [data-bs-panel].show-mobile {
+        position: relative;
+        height: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 12px 16px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+    }
+
+    /* Scrollbar estilizada (WebKit) */
+    .menu_contextual .menu-content > [data-bs-panel].show-mobile::-webkit-scrollbar {
+        width: 4px;
+    }
+    .menu_contextual .menu-content > [data-bs-panel].show-mobile::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .menu_contextual .menu-content > [data-bs-panel].show-mobile::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 2px;
+    }
+
+    /* Panel saliendo: visible temporalmente para la animación */
+    .menu_contextual .menu-content > [data-bs-panel].bs-out-left {
+        height: auto;
+        padding: 12px 16px;
+        overflow: visible;
+        transform: translateX(-105%);
+        opacity: 0;
+        pointer-events: none;
+        visibility: visible;
+    }
+
+    /* ── Accesibilidad: reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+        .menu-backdrop,
+        .menu_contextual,
+        .menu_contextual .menu-back-btn,
+        .menu_contextual .menu-content.bs-height-animating,
+        .menu_contextual .menu-content > [data-bs-panel] {
+            transition-duration: 0.01ms !important;
+            transition-timing-function: linear !important;
+        }
+
+        .menu_contextual .menu-content > [data-bs-panel] {
+            will-change: auto;
+        }
+    }
+}

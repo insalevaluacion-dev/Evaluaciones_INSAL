@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicia sesión</title>
+    <link rel="stylesheet" href="/css/notificaciones.css" />
+    <link rel="stylesheet" href="/css/circular-progress.css">
+    <link rel="stylesheet" href="/css/ripple.css">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/assets/svg/Logo_SV.svg" type="image/png" />
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/login.css">
+    <link rel="stylesheet" href="/css/default-rules.css">
+    <script type="module" src="/js/ripple.js" defer></script>
+    <script type="module" src="/js/login.js" defer></script>
+    <script type="module">
+        import 'https://esm.run/@material/web/all.js'
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+</head>
+
+<body>
+    <main class="main__container">
+        <section class="content">
+            <div class="centrar logo_empresa">
+                <img src="/assets/svg/Logo_SV.svg" class="G_logo">
+                <p>INSTITUTO NACIONAL SAN LUIS</p>
+            </div>
+            <h1 class="title">Ingresar</h1>
+            <form class="form-registrar" id="form-registrar" novalidate>
+                <label for="nombre">Nombre</label>
+                <input placeholder="Nombre" class="input__text" type="text" name="nombre" id="nombre"
+                    autocomplete="name">
+                <span class="error-message" id="error-nombre"></span>
+                <label for="contraseña">Contraseña</label>
+                <div class="password-wrapper">
+                    <input placeholder="Contraseña" class="input__text" type="password" name="contraseña" id="contraseña" />
+                    <button type="button" class="password-toggle" id="toggle-contraseña" aria-label="Mostrar contraseña">
+                        <span class="material-symbols-rounded">visibility_off</span>
+                    </button>
+                </div>
+                <span class="error-message" id="error-contraseña"></span>
+                <button type="submit" class="centrar enviar" id="botonEnviar" data-ripple>
+                    <div class="centrar gap-btn" id="mensaje1">
+                        <p>Iniciando...</p>
+                        <div class="boton-spinner" style="background: var(--color-primario);">
+                            <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                                    stroke="var(--spinner-arco)" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="centrar gap-btn" id="mensaje2">
+                        <p>
+                            Ingresar
+                        </p>
+                        <span class="material-symbols-rounded">
+                            login
+                        </span>
+                    </div>
+                </button>
+                <div class="centrar link">
+                    <p>
+                        ¿Eres evaluador invitado?
+                    </p>
+                    <a href="/registrarse">
+                        Registrarte como evaluador
+                        <span class="material-symbols-rounded">
+                            arrow_forward
+                        </span>
+                    </a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

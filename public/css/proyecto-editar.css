@@ -1,0 +1,670 @@
+/* ══════════════════════════════════════════════════════════════
+   Vista: Editar proyecto (/menu/proyectos/:id)
+   Formulario de datos del proyecto + gestión de alumnos
+   ══════════════════════════════════════════════════════════════ */
+
+/* Contenedor raíz de la vista (wrapper del SPA): se estira dentro de
+   #main__container y constriñe a .contenedor-criterios para que el
+   scroll ocurra siempre dentro de los paneles, no en el documento. */
+.vista-proyecto-editar {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* ── Formulario de datos del proyecto ─────────────────────────── */
+.proyecto-editar__form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 4px;
+}
+
+.proyecto-editar__form .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.proyecto-editar__form .field-group label {
+    font-family: Poppins, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.proyecto-editar__form .requerido {
+    color: #e04040;
+}
+
+.proyecto-editar__form .campo-nota__input {
+    background: var(--font-color-secondary);
+    color: var(--texto-color);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    font-family: Poppins, sans-serif;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.proyecto-editar__form .campo-nota__input::placeholder {
+    color: var(--texto-color);
+    opacity: 0.5;
+}
+
+.proyecto-editar__form .campo-nota__input:hover {
+    border-color: var(--principal-color);
+}
+
+.proyecto-editar__form .campo-nota__input:focus {
+    border-color: var(--principal-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+.proyecto-editar__form .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+/* ── Zona de peligro (eliminar proyecto) ─────────────────────── */
+.proyecto-editar__peligro {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1.5px dashed color-mix(in srgb, #e04040 35%, var(--border));
+    display: flex;
+    justify-content: flex-end;
+}
+
+.boton-eliminar-proyecto {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 46px;
+    padding: 5px 18px;
+    border-radius: 12px;
+    border: 1.5px solid color-mix(in srgb, #e04040 55%, transparent);
+    background: transparent;
+    color: #e04040;
+    font-family: Poppins, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.boton-eliminar-proyecto:hover {
+    background: #e04040;
+    color: #ffffff;
+}
+
+.boton-eliminar-proyecto:active {
+    transform: scale(0.97);
+}
+
+.boton-eliminar-proyecto:focus-visible {
+    outline: 3px solid color-mix(in srgb, #e04040 35%, transparent);
+    outline-offset: 2px;
+}
+
+/* ── Agregar alumno ───────────────────────────────────────────── */
+.alumnos-agregar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.alumnos-agregar > .custom-select,
+.alumnos-agregar > select {
+    flex: 1;
+    min-width: 0;
+}
+
+.alumnos-agregar .campo-nota__input {
+    background: var(--font-color-secondary);
+    color: var(--texto-color);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    font-family: Poppins, sans-serif;
+    outline: none;
+}
+
+.alumnos-agregar__btn {
+    height: 46px;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.alumnos-agregar__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ── Lista de alumnos inscritos ───────────────────────────────── */
+.alumno-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--font-color-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.alumno-item:hover {
+    border-color: color-mix(in srgb, var(--principal-color) 45%, var(--border));
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+.alumno-item__icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--principal-color) 12%, transparent);
+    color: var(--principal-color);
+    font-size: 1.5rem;
+}
+
+.alumno-item__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.alumno-item__nombre {
+    font-family: Poppins, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.alumno-item__nie {
+    font-family: Poppins, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-color);
+    opacity: 0.7;
+}
+
+/* ── Insignia de asistencia ───────────────────────────────────── */
+.alumno-item__asistencia {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: Poppins, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.alumno-item__asistencia .material-symbols-rounded {
+    font-size: 1rem;
+}
+
+.alumno-item__asistencia.is-presente {
+    background: color-mix(in srgb, #2e9e5b 14%, transparent);
+    color: #2e9e5b;
+}
+
+.alumno-item__asistencia.is-pendiente {
+    background: color-mix(in srgb, #f0a030 16%, transparent);
+    color: #f0a030;
+}
+
+/* ── Botón quitar alumno ──────────────────────────────────────── */
+.alumno-item__quitar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: #e04040;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.alumno-item__quitar .material-symbols-rounded {
+    font-size: 1.3rem;
+}
+
+.alumno-item__quitar:hover {
+    background: color-mix(in srgb, #e04040 14%, transparent);
+}
+
+.alumno-item__quitar:active {
+    transform: scale(0.92);
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .alumnos-agregar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .alumnos-agregar__btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .alumno-item__asistencia {
+        display: none; /* en móvil se prioriza el nombre y la acción */
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .alumno-item.evaluacion-entrada {
+        animation: none;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Pestañas al estilo Classroom (datos del proyecto / alumnos)
+   ══════════════════════════════════════════════════════════════ */
+
+.proyecto-tabs {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--font-color-secondary);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+/* ── Barra de pestañas ───────────────────────────────────────── */
+.proyecto-tabs__bar {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    padding: 0 10px;
+    border-bottom: 1.5px solid var(--border);
+    background: var(--font-color-secondary);
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+}
+
+.proyecto-tabs__bar::-webkit-scrollbar {
+    display: none;
+}
+
+.proyecto-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 54px;
+    padding: 0 20px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: var(--text-color);
+    font-family: Poppins, sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.proyecto-tab .material-symbols-rounded {
+    font-size: 1.25rem;
+    color: var(--text-color);
+    opacity: 0.75;
+    transition: color 0.18s ease;
+}
+
+.proyecto-tab:hover {
+    background: color-mix(in srgb, var(--principal-color) 7%, transparent);
+    color: var(--principal-color);
+}
+
+.proyecto-tab:hover .material-symbols-rounded {
+    color: var(--principal-color);
+    opacity: 1;
+}
+
+.proyecto-tab.is-activa {
+    color: var(--principal-color);
+    border-bottom-color: var(--principal-color);
+    font-weight: 600;
+}
+
+.proyecto-tab.is-activa .material-symbols-rounded {
+    color: var(--principal-color);
+    opacity: 1;
+}
+
+.proyecto-tab:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--principal-color) 30%, transparent);
+    outline-offset: -3px;
+}
+
+/* ── Insignia de contador en la pestaña ──────────────────────── */
+.proyecto-tab__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--principal-color) 14%, transparent);
+    color: var(--principal-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.proyecto-tab.is-activa .proyecto-tab__badge {
+    background: var(--principal-color);
+    color: #ffffff;
+}
+
+/* ── Contenido de pestañas ───────────────────────────────────── */
+.proyecto-tabs__content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* constriñe a los paneles hijos para que el scroll funcione */
+}
+
+.proyecto-panel {
+    display: none;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.proyecto-panel.is-activa {
+    display: flex;
+}
+
+.proyecto-panel__scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable; /* reserva el hueco de la barra: sin salto al cambiar de pestaña */
+    padding: 18px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hover-color) transparent;
+}
+
+.proyecto-panel__scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.proyecto-panel__scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.proyecto-panel__scroll::-webkit-scrollbar-thumb {
+    background: var(--hover-color);
+    border-radius: 10px;
+}
+
+.proyecto-panel__scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--text-color);
+}
+
+/* ── Responsive de las pestañas ──────────────────────────────── */
+@media (max-width: 640px) {
+    .proyecto-tab {
+        flex: 1;
+        padding: 0 14px;
+        font-size: 0.85rem;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .proyecto-tab .material-symbols-rounded {
+        font-size: 1.15rem;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Refinamiento UI/UX — vista editar proyecto
+   ══════════════════════════════════════════════════════════════ */
+
+/* La cabecera de cada panel (icono + título) se alinea a la IZQUIERDA,
+   en línea con el contenido del formulario, en lugar de centrada.
+   El selector se ancla a data-proyecto-id para no afectar a otras vistas
+   que también usan .form-cabecera (p. ej. editar rúbrica). */
+.contenedor-criterios[data-proyecto-id] .proyecto-tabs .form-cabecera {
+    justify-content: flex-start;
+    align-self: stretch;
+    text-align: left;
+}
+
+/* El icono de la cabecera queda a la izquierda y no se encoge. */
+.contenedor-criterios[data-proyecto-id] .proyecto-tabs .form-cabecera .material-symbols-rounded {
+    flex-shrink: 0;
+}
+
+/* Coherencia visual: el título de la cabecera usa el acento principal
+   (como la pestaña activa y el icono) en vez de negro puro. */
+.contenedor-criterios[data-proyecto-id] .proyecto-tabs .form-cabecera span:last-child {
+    color: var(--text-color-secondary);
+}
+
+/* ── Botones de acción alineados y consistentes ──────────────── */
+/* El botón "Guardar" ocupa su lugar a la derecha, con el mismo alto
+   que el botón de peligro, para no generar saltos visuales. */
+.contenedor-criterios[data-proyecto-id] .boton-confirmar {
+    min-width: 148px;
+}
+
+/* Botón "Eliminar proyecto": fondo suave de peligro en hover para mejor
+   affordance, manteniendo el alto del botón de guardado. */
+.contenedor-criterios[data-proyecto-id] .boton-eliminar-proyecto {
+    height: 50px;
+}
+
+/* ── Encabezado del proyecto (container1) ────────────────────── */
+/* El texto descriptivo no se desborda y el icono se mantiene alineado. */
+.contenedor-criterios[data-proyecto-id] .proyecto-icon {
+    flex-shrink: 0;
+    align-self: center;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Coherencia de color de la cabecera (solo en esta vista)
+   ══════════════════════════════════════════════════════════════
+   El resto del dashboard usa --azul (oscuro) para el enlace "Atras",
+   pero esta vista usa --principal-color (cian) como acento en botones,
+   pestañas e iconos. Se unifica el acento aquí, escopado con
+   .vista-proyecto-editar para no alterar otras vistas. */
+
+/* Enlace "Atras" al mismo acento cian que el resto de la vista. */
+.vista-proyecto-editar .back-link {
+    color: var(--principal-color);
+    border-color: color-mix(in srgb, var(--principal-color) 25%, var(--border));
+    background: var(--font-color-secondary);
+}
+
+.vista-proyecto-editar .back-link:hover {
+    color: #ffffff;
+    background: var(--principal-color);
+    border-color: var(--principal-color);
+}
+
+/* El título "Editar proyecto" se separa del botón "Atras" y respira.
+   (El peso/fuente queda igual que el .text-title-seccion original.) */
+.vista-proyecto-editar .content_inicio .text-title-seccion {
+    margin-left: 6px;
+}
+
+/* ── Responsive: apilar la cabecera sin desbordar ────────────── */
+@media (max-width: 640px) {
+    .vista-proyecto-editar .content_inicio {
+        flex-wrap: wrap;
+    }
+
+    .vista-proyecto-editar .content_inicio .text-title-seccion {
+        flex-basis: 100%;
+        margin-left: 0;
+        margin-top: 2px;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Layout de la fila "Agregar alumno" (el select conserva su look)
+   ══════════════════════════════════════════════════════════════
+   El custom-select mantiene el estilo por defecto del componente
+   (igual que en seleccion.ejs: fondo azul claro, radio 25px, 1.4rem).
+   Aquí solo se ajusta la alineación: el botón calza con el alto del
+   trigger y el margin global del componente no infla la fila. */
+
+.vista-proyecto-editar .alumnos-agregar > .custom-select {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0; /* el margin 20px global es para selects apilados */
+}
+
+.vista-proyecto-editar .alumnos-agregar__btn {
+    height: 53px; /* coincide con el alto del trigger por defecto */
+    flex-shrink: 0;
+}
+
+/* ── Icono del alumno centrado ───────────────────────────────── */
+/* El glyph de Material Symbols hereda display de otras reglas; se
+   fuerza flex + line-height 1 para centrarlo en su caja 42x42. */
+.vista-proyecto-editar .alumno-item__icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* ── Insignia de asistencia más explícita ────────────────────── */
+.vista-proyecto-editar .alumno-item__asistencia {
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Tarjeta de alumno con estado de asistencia (estilo evaluaciones)
+   ══════════════════════════════════════════════════════════════
+   Reutiliza el patrón de .list-item--evaluado + la fila inferior
+   .proyecto-evaluado__resultado, pero en lugar de una nota muestra
+   si la asistencia está marcada o pendiente. */
+
+.vista-proyecto-editar .alumno-item.list-item--evaluado {
+    padding: 16px 18px;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Icono de alumno acorde al estilo de tarjeta de evaluación */
+.vista-proyecto-editar .alumno-item .alumno-item__icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    color: var(--principal-color);
+    background: color-mix(in srgb, var(--principal-color) 12%, transparent);
+}
+
+/* El botón "quitar" mantiene su estilo dentro del bloque de acciones */
+.vista-proyecto-editar .alumno-item .gap-row .alumno-item__quitar {
+    width: 40px;
+    height: 40px;
+}
+
+/* Fila inferior de estado: misma tira que "Nota parcial:" de evaluaciones */
+.vista-proyecto-editar .alumno-asistencia__resultado {
+    flex-basis: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--font-color-secondary);
+    font-family: Poppins, sans-serif;
+}
+
+/* La clase base .proyecto-evaluado__resultado añade "Nota:" como etiqueta
+   (::before). Aquí no aplica: el estado se muestra con icono + texto. */
+.vista-proyecto-editar .alumno-asistencia__resultado::before {
+    content: none;
+}
+
+/* Icono del estado (check / reloj) */
+.vista-proyecto-editar .alumno-asistencia__resultado .alumno-asistencia__icono {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+/* Texto del estado */
+.vista-proyecto-editar .alumno-asistencia__estado {
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+/* ── Estado: asistencia marcada (verde) ── */
+.vista-proyecto-editar .alumno-asistencia__resultado.is-marcada {
+    border-color: color-mix(in srgb, #2e9e5b 45%, var(--border));
+    background: color-mix(in srgb, #2e9e5b 8%, var(--font-color-secondary));
+}
+
+.vista-proyecto-editar .alumno-asistencia__resultado.is-marcada .alumno-asistencia__icono,
+.vista-proyecto-editar .alumno-asistencia__resultado.is-marcada .alumno-asistencia__estado {
+    color: #2e9e5b;
+}
+
+/* ── Estado: asistencia pendiente (ámbar) ── */
+.vista-proyecto-editar .alumno-asistencia__resultado.is-pendiente {
+    border-color: color-mix(in srgb, #f0a030 45%, var(--border));
+    background: color-mix(in srgb, #f0a030 8%, var(--font-color-secondary));
+}
+
+.vista-proyecto-editar .alumno-asistencia__resultado.is-pendiente .alumno-asistencia__icono,
+.vista-proyecto-editar .alumno-asistencia__resultado.is-pendiente .alumno-asistencia__estado {
+    color: #f0a030;
+}
+
+/* Responsive: el estado a ancho completo */
+@media (max-width: 640px) {
+    .vista-proyecto-editar .alumno-item.list-item--evaluado .gap-row {
+        margin-left: auto;
+    }
+}

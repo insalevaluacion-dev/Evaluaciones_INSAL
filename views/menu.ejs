@@ -1,0 +1,125 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/css/rubrica-editar.css">
+    <link rel="stylesheet" href="/css/default-rules.css">
+    <script type="module" src="/js/menu.js" defer></script>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/menu.css">
+    <link rel="stylesheet" href="/css/proyectos.css">
+    <link rel="stylesheet" href="/css/evaluacion-detalle.css">
+    <link rel="stylesheet" href="/css/proyecto-editar.css">
+    <link rel="stylesheet" href="/css/custom-select.css">
+    <script src="/js/custom-select.js" defer></script>
+    <link rel="shortcut icon" href="/assets/img/Logo_SV.svg" type="image/x-icon">
+    <link rel="manifest" href="manifest.webmanifest">
+    <script type="module" src="/js/notificaciones.js"></script>
+    <link rel="stylesheet" href="/css/notificaciones.css">
+    <link rel="stylesheet" href="/css/circular-progress.css">
+    <link rel="stylesheet" href="/css/dialog.css">
+    <link rel="stylesheet" href="/css/ripple.css">
+    <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
+    <script type="module" src="/js/proyectos.js" defer></script>
+    <script type="module" src="/js/criterios-rubrica.js" defer></script>
+    <script type="module" src="/js/proyectos-evaluados.js" defer></script>
+    <script type="module" src="/js/editar-criterios.js" defer></script>
+    <script type="module" src="/js/evaluacion-detalle.js" defer></script>
+    <script type="module" src="/js/proyecto-editar.js" defer></script>
+    <script type="module" src="/js/router.js"></script>
+    <script type="module" src="/js/searchList.js" defer></script>
+    <script type="module" src="/js/ripple.js" defer></script>
+    <script type="module">
+        import 'https://esm.run/@material/web/all.js'
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+<body>
+    <div id="infoCard" class="info-card menu_contextual">
+        <button class="menu-close-btn" onclick="closeAll()" aria-label="Cerrar" data-ripple>
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <div class="info_user centrar">
+            <div class="user_profile img-card">
+                <span class="material-symbols-rounded perfil-card-icon" aria-hidden="true">account_circle</span>
+            </div>
+            <h3 class="title"><%= maestro.nombre %></h3>
+            <span class="perfil-card-rol">
+                <span class="material-symbols-rounded rol-icon" aria-hidden="true">badge</span>
+                <%= maestro.rolNombre %>
+            </span>
+            <div class="btn-accion centrar" onclick="navigateTo('/menu/inicio')" data-ripple>
+                <span class="material-symbols-rounded">
+                    logout
+                </span>
+                <p>Ir al Inicio</p>
+            </div>
+            <div class="btn-accion centrar" onclick="toggleDialog('dialog-1')" data-ripple>
+                <span class="material-symbols-rounded">
+                    settings
+                </span>
+                <p>Configuración</p>
+            </div>
+            <div class="logout-btn centrar" onclick="CerrarSesion()" data-ripple>
+                <span class="material-symbols-rounded">
+                    logout
+                </span>
+                <p>Cerrar sesión</p>
+            </div>
+        </div>
+    </div>
+    <section class="htmlcontent">
+        <aside id="aside" class="aside close">
+            <div class="opcion background-none display-flex row no-flex-wrap ellipsis" id="usuario_perfil" onclick="openMenu(event, 'infoCard')" data-ripple>
+                <span class="material-symbols-rounded perfil-icon">account_circle</span>
+                <div class="perfil-info ellipsis">
+                    <p class="texto ellipsis"><%= maestro.nombre %></p>
+                    <span class="perfil-rol"><%= maestro.rolNombre %></span>
+                </div>
+                <span class="material-symbols-rounded perfil-chevron" aria-hidden="true">expand_more</span>
+            </div>
+            <div class="opcion" onclick="abrirAside()" data-ripple>
+                <span class="material-symbols-rounded icon" id="menu_open">
+                    menu_open
+                </span>
+            </div>
+            <a id="opcion" class="opcion" data-ripple href="/menu/inicio" data-link>
+                <span class="material-symbols-rounded icon">
+                    home
+                </span>
+                <p class="texto">Inicio</p>
+            </a>
+            <a class="opcion" data-ripple href="/menu/proyectos" data-link>
+                <span class="material-symbols-rounded icon">
+                    school
+                </span>
+                <p class="texto">Proyectos</p>
+            </a>
+            <a id="opcion" class="opcion" data-ripple href="/menu/evaluaciones" data-link>
+                <span class="material-symbols-rounded icon">
+                    quiz
+                </span>
+                <p class="texto">Evaluaciones</p>
+            </a>
+            <a class="opcion" data-ripple href="/menu/rubrica" data-link>
+                <span class="material-symbols-rounded icon">
+                    checklist
+                </span>
+                <p class="texto">Rubricas</p>
+            </a>
+            <a class="opcion" data-ripple href="/menu/papelera" data-link>
+                <span class="material-symbols-rounded icon">
+                    delete
+                </span>
+                <p class="texto">Papelera</p>
+            </a>
+        </aside>
+        <div id="aside-overlay" class="mobile-only"></div>
+        <main id="main__container" class="main__container">
+        </main>
+    </section>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selección de Proyecto</title>
+    <link rel="stylesheet" href="/css/seleccion.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/selector.css">
+    <link rel="stylesheet" href="/css/custom-select.css">
+    <link rel="stylesheet" href="/css/circular-progress.css">
+    <link rel="stylesheet" href="/css/linear-progress.css">
+    <link rel="stylesheet" href="/css/notificaciones.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+    <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
+    <script src="/js/custom-select.js" defer></script>
+    <script src="/js/seleccion.js" defer></script>
+    <script src="/js/notificaciones.js" defer></script>
+</head>
+
+<body>
+    <section class="content">
+        <main class="principal">
+            <form id="formulario-filtros" class="form">
+                <p class="principal__element--text">
+                    <span class="material-symbols-rounded principal__element--icon">manage_search</span>
+                    Busque el proyecto a evaluar:
+                </p>
+                <label for="evento">Evento:</label>
+                <select id="evento" data-custom required>
+                    <option value="" hidden>Seleccione un evento</option>
+                    <option value="1|Expo de Logros">Expo de Logros</option>
+                    <option value="2|1|Expotecnia - Primer año">Expotecnia - Primer año</option>
+                    <option value="3|2|Expotecnia - Segundo año">Expotecnia - Segundo año</option>
+                    <option value="4|3|Expotecnia - Tercer año">Expotecnia - Tercer año</option>
+                </select>
+                <label for="año" id="label-año" style="display: none;">Año:</label>
+                <select id="año" data-custom required style="display: none;">
+                    <option value="" hidden>Seleccione un año</option>
+                </select>
+                <label for="nombre">Grado:</label>
+                <select id="nombre" data-custom required disabled>
+                    <option value="" hidden>Seleccione un grado</option>
+                </select>
+                <label for="seccion">Sección:</label>
+                <select id="seccion" data-custom required disabled>
+                    <option value="" hidden>Seleccione una sección</option>
+                </select>
+                <button type="button" id="buscar-proyectos" class="btn centrar" disabled>
+                    <div class="centrar" id="mensaje-buscar-1">
+                        <div class="boton-spinner" style="background: var(--color-primario);">
+                            <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
+                            </svg>
+                        </div>
+                        <p>Buscando...</p>
+                    </div>
+                    <div class="centrar" id="mensaje-buscar-2">
+                        <span class="material-symbols-rounded">
+                            search
+                        </span>
+                        Buscar proyectos
+                    </div>
+                </button>
+            </form>
+        </main>
+
+        <div id="modal-proyectos" style="display: none;" class="modal">
+            <div class="modal-content">
+                <div id="contenedor-proyectos"></div>
+                <button onclick="cerrarModalProyectos()" id="boton-cerrar" class="btn centrar">
+                    <span class="material-symbols-rounded">
+                        close
+                    </span>
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </section>
+</body>
+</html>
