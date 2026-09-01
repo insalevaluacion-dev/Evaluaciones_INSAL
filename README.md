@@ -2,6 +2,10 @@
 
 Plataforma web para la gestión y evaluación de proyectos académicos del Instituto Nacional San Luis (INSAL).
 
+<p align="center">
+  <img src="public/assets/svg/Logo_SV.svg" alt="Logo SV" width="120"/>
+</p>
+
 ## Tabla de contenidos
 
 - [Descripción general](#descripción-general)
@@ -32,10 +36,10 @@ La plataforma separa dos flujos de trabajo principales, cada uno con su propio p
 
 ## Roles y flujos de trabajo
 
-| Rol | Acceso | Funcionalidad principal |
-| --- | ------ | ----------------------- |
-| Director / Administrador | `/menu` | Gestión de maestros, orientadores, proyectos, criterios y rúbricas |
-| Evaluador (invitado o registrado) | `/registrarse` a `/seleccion` | Registro, selección de proyecto y evaluación de estudiantes |
+| Rol                               | Acceso                        | Funcionalidad principal                                            |
+| --------------------------------- | ----------------------------- | ------------------------------------------------------------------ |
+| Director / Administrador          | `/menu`                       | Gestión de maestros, orientadores, proyectos, criterios y rúbricas |
+| Evaluador (invitado o registrado) | `/registrarse` a `/seleccion` | Registro, selección de proyecto y evaluación de estudiantes        |
 
 ### Control de acceso por rol
 
@@ -65,32 +69,32 @@ La plataforma separa dos flujos de trabajo principales, cada uno con su propio p
 
 ## Stack tecnológico
 
-| Capa | Tecnología |
-| ---- | ---------- |
-| Backend | Node.js + Express 5 |
-| Base de datos | PostgreSQL (esquemas `principal` y `evaluaciones`) |
-| Motor de plantillas | EJS (Embedded JavaScript) |
-| Frontend | HTML5, CSS3, JavaScript (ES6, módulos) |
-| Autenticación | Sesiones (`express-session`) + `bcrypt` para el hashing de contraseñas |
-| UI | [Material Web](https://github.com/material-components/material-web) (componentes `@material/web`) |
-| Desarrollo | Nodemon (recarga automática) |
+| Capa                | Tecnología                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| Backend             | Node.js + Express 5                                                                               |
+| Base de datos       | PostgreSQL (esquemas `principal` y `evaluaciones`)                                                |
+| Motor de plantillas | EJS (Embedded JavaScript)                                                                         |
+| Frontend            | HTML5, CSS3, JavaScript (ES6, módulos)                                                            |
+| Autenticación       | Sesiones (`express-session`) + `bcrypt` para el hashing de contraseñas                            |
+| UI                  | [Material Web](https://github.com/material-components/material-web) (componentes `@material/web`) |
+| Desarrollo          | Nodemon (recarga automática)                                                                      |
 
 ### Dependencias
 
 Las dependencias están definidas en `package.json`:
 
-| Paquete | Versión |
-| ------- | ------- |
-| `bcrypt` | `^6.0.0` |
-| `ejs` | `^6.0.1` |
-| `express` | `^5.2.1` |
+| Paquete           | Versión   |
+| ----------------- | --------- |
+| `bcrypt`          | `^6.0.0`  |
+| `ejs`             | `^6.0.1`  |
+| `express`         | `^5.2.1`  |
 | `express-session` | `^1.19.0` |
-| `pg` | `^8.22.0` |
+| `pg`              | `^8.22.0` |
 
 Dependencias de desarrollo:
 
-| Paquete | Versión |
-| ------- | ------- |
+| Paquete   | Versión   |
+| --------- | --------- |
 | `nodemon` | `^3.1.14` |
 
 ## Requisitos previos
@@ -163,94 +167,94 @@ Al iniciar, la aplicación se conecta a PostgreSQL y, si no existe ningún maest
 
 ### Vistas principales y páginas
 
-| Método | Ruta | Descripción |
-| ------ | ---- | ----------- |
-| `GET` | `/login` | Página de inicio de sesión para docentes |
-| `GET` | `/registrarse` | Registro como evaluador invitado |
-| `GET` | `/dashboard` | Página del evaluador |
-| `GET` | `/seleccion` | Selección de nivel y proyecto |
-| `GET` | `/evaluacion` | Formulario de evaluación de proyecto |
-| `GET` | `/resumen` | Resumen de la evaluación del proyecto |
-| `GET` | `/menu{/*splat}` | Dashboard administrativo (SPA) |
+| Método | Ruta             | Descripción                              |
+| ------ | ---------------- | ---------------------------------------- |
+| `GET`  | `/login`         | Página de inicio de sesión para docentes |
+| `GET`  | `/registrarse`   | Registro como evaluador invitado         |
+| `GET`  | `/dashboard`     | Página del evaluador                     |
+| `GET`  | `/seleccion`     | Selección de nivel y proyecto            |
+| `GET`  | `/evaluacion`    | Formulario de evaluación de proyecto     |
+| `GET`  | `/resumen`       | Resumen de la evaluación del proyecto    |
+| `GET`  | `/menu{/*splat}` | Dashboard administrativo (SPA)           |
 
 ### Vistas parciales del SPA (dashboard)
 
-| Método | Ruta | Descripción |
-| ------ | ---- | ----------- |
-| `GET` | `/menu/inicio/html` | Vista de inicio del panel |
-| `GET` | `/menu/evaluaciones/html` | Vista de evaluaciones |
-| `GET` | `/menu/evaluaciones/:id/html` | Detalle de una evaluación |
-| `GET` | `/menu/proyectos/html` | Vista de proyectos |
-| `GET` | `/menu/proyectos/:id/html` | Vista de edición de proyecto |
-| `GET` | `/menu/papelera/html` | Vista de papelera |
-| `GET` | `/menu/rubrica/html` | Vista de criterios y rúbricas |
-| `GET` | `/menu/rubrica/:id/html` | Vista de edición de rúbrica |
+| Método | Ruta                          | Descripción                   |
+| ------ | ----------------------------- | ----------------------------- |
+| `GET`  | `/menu/inicio/html`           | Vista de inicio del panel     |
+| `GET`  | `/menu/evaluaciones/html`     | Vista de evaluaciones         |
+| `GET`  | `/menu/evaluaciones/:id/html` | Detalle de una evaluación     |
+| `GET`  | `/menu/proyectos/html`        | Vista de proyectos            |
+| `GET`  | `/menu/proyectos/:id/html`    | Vista de edición de proyecto  |
+| `GET`  | `/menu/papelera/html`         | Vista de papelera             |
+| `GET`  | `/menu/rubrica/html`          | Vista de criterios y rúbricas |
+| `GET`  | `/menu/rubrica/:id/html`      | Vista de edición de rúbrica   |
 
 ### Autenticación
 
-| Método | Ruta | Descripción |
-| ------ | ---- | ----------- |
-| `POST` | `/auth/login` | Autenticación de maestro |
-| `POST` | `/auth/logout` | Cierre de sesión |
-| `GET` | `/auth/me` | Obtener usuario autenticado |
-| `GET` | `/admin/mi-perfil` | Obtener el perfil del maestro autenticado |
-| `PUT` | `/admin/mi-perfil` | Actualizar nombre, email o contraseña del perfil |
+| Método | Ruta               | Descripción                                      |
+| ------ | ------------------ | ------------------------------------------------ |
+| `POST` | `/auth/login`      | Autenticación de maestro                         |
+| `POST` | `/auth/logout`     | Cierre de sesión                                 |
+| `GET`  | `/auth/me`         | Obtener usuario autenticado                      |
+| `GET`  | `/admin/mi-perfil` | Obtener el perfil del maestro autenticado        |
+| `PUT`  | `/admin/mi-perfil` | Actualizar nombre, email o contraseña del perfil |
 
 ### Flujo del evaluador
 
-| Método | Ruta | Descripción |
-| ------ | ---- | ----------- |
-| `POST` | `/enviarEvaluador` | Registrar evaluador invitado |
-| `POST` | `/guardar-nivel` | Guardar el nivel seleccionado |
-| `GET` | `/obtener-nivel` | Obtener el nivel seleccionado en sesión |
-| `GET` | `/grados/anos/:numNivel` | Años escolares por nivel |
-| `GET` | `/grados/nombres/:numNivel/:ano` | Bachilleratos por nivel y año |
-| `GET` | `/grados/secciones/:numNivel/:ano/:bachId` | Secciones disponibles |
-| `GET` | `/proyectos/:numNivel/:ano/:bachId/:seccion` | Proyectos del grado (con menos de 3 evaluaciones) |
-| `POST` | `/guardar-proyecto` | Seleccionar proyecto para evaluar |
-| `GET` | `/obtener-evaluador` | Obtener datos del evaluador en sesión |
-| `GET` | `/criterios` | Criterios del nivel seleccionado |
-| `GET` | `/estudiantes/:proyectoId` | Estudiantes pendientes de asistencia |
-| `POST` | `/guardar-asistencia` | Registrar asistencia |
-| `POST` | `/guardar-evaluacion` | Guardar puntuaciones y calcular la nota |
+| Método | Ruta                                         | Descripción                                       |
+| ------ | -------------------------------------------- | ------------------------------------------------- |
+| `POST` | `/enviarEvaluador`                           | Registrar evaluador invitado                      |
+| `POST` | `/guardar-nivel`                             | Guardar el nivel seleccionado                     |
+| `GET`  | `/obtener-nivel`                             | Obtener el nivel seleccionado en sesión           |
+| `GET`  | `/grados/anos/:numNivel`                     | Años escolares por nivel                          |
+| `GET`  | `/grados/nombres/:numNivel/:ano`             | Bachilleratos por nivel y año                     |
+| `GET`  | `/grados/secciones/:numNivel/:ano/:bachId`   | Secciones disponibles                             |
+| `GET`  | `/proyectos/:numNivel/:ano/:bachId/:seccion` | Proyectos del grado (con menos de 3 evaluaciones) |
+| `POST` | `/guardar-proyecto`                          | Seleccionar proyecto para evaluar                 |
+| `GET`  | `/obtener-evaluador`                         | Obtener datos del evaluador en sesión             |
+| `GET`  | `/criterios`                                 | Criterios del nivel seleccionado                  |
+| `GET`  | `/estudiantes/:proyectoId`                   | Estudiantes pendientes de asistencia              |
+| `POST` | `/guardar-asistencia`                        | Registrar asistencia                              |
+| `POST` | `/guardar-evaluacion`                        | Guardar puntuaciones y calcular la nota           |
 
 ### Administración (Director / Administrador)
 
-| Método | Ruta | Descripción |
-| ------ | ---- | ----------- |
-| `GET` | `/admin/grados` | Lista de grados (filtrada por rol) |
-| `GET` | `/admin/grados/:gradoId/estudiantes` | Estudiantes de un grado |
-| `GET` | `/admin/grados/:gradoId/proyectos` | Proyectos de un grado con conteos |
-| `GET` | `/admin/evaluaciones/proyectos` | Proyectos evaluados (nota final y parciales) |
-| `GET` | `/admin/evaluaciones/proyectos/:proyectoId/evaluaciones` | Detalle de evaluaciones de un proyecto |
-| `GET` | `/admin/evaluaciones/grado/:gradoId` | Reporte de evaluaciones por grado |
-| `POST` | `/admin/proyectos` | Crear proyecto |
-| `GET` | `/admin/proyectos` | Listar proyectos |
-| `GET` | `/admin/proyectos/:id` | Obtener proyecto por ID |
-| `PUT` | `/admin/proyectos/:id` | Actualizar proyecto |
-| `DELETE` | `/admin/proyectos/:id` | Eliminar proyecto (y datos relacionados) |
-| `GET` | `/admin/proyectos/:proyectoId/estudiantes` | Estudiantes asignados al proyecto |
-| `POST` | `/admin/proyectos/:proyectoId/estudiantes` | Asignar estudiantes al proyecto |
-| `DELETE` | `/admin/proyectos/:proyectoId/estudiantes/:estudianteId` | Remover estudiante del proyecto |
-| `GET` | `/admin/maestros` | Listar maestros (solo director) |
-| `POST` | `/admin/maestros` | Crear maestro (solo director) |
-| `PUT` | `/admin/maestros/:id` | Actualizar maestro (solo director) |
-| `DELETE` | `/admin/maestros/:id` | Desactivar maestro (solo director) |
-| `GET` | `/admin/orientadores` | Listar orientadores activos |
-| `POST` | `/admin/orientadores` | Asignar orientador a un grado (solo director) |
-| `DELETE` | `/admin/orientadores/:id` | Desactivar orientador (solo director) |
-| `GET` | `/admin/niveles-evaluacion` | Listar niveles de evaluación |
-| `POST` | `/admin/niveles-evaluacion` | Crear nivel de evaluación |
-| `PUT` | `/admin/niveles-evaluacion/:id` | Actualizar nivel de evaluación |
-| `DELETE` | `/admin/niveles-evaluacion/:id` | Eliminar nivel de evaluación |
-| `GET` | `/admin/niveles/:id` | Obtener una rúbrica por ID |
-| `GET` | `/admin/niveles/:id/criterios` | Listar criterios de una rúbrica |
-| `POST` | `/admin/niveles/:id/criterios` | Crear criterio dentro de una rúbrica |
-| `PUT` | `/admin/criterios/:id` | Editar un criterio |
-| `DELETE` | `/admin/criterios/:id` | Eliminar un criterio |
-| `GET` | `/admin/roles` | Catálogo de roles |
-| `GET` | `/admin/bachilleratos` | Catálogo de bachilleratos |
-| `GET` | `/admin/turnos` | Catálogo de turnos |
+| Método   | Ruta                                                     | Descripción                                   |
+| -------- | -------------------------------------------------------- | --------------------------------------------- |
+| `GET`    | `/admin/grados`                                          | Lista de grados (filtrada por rol)            |
+| `GET`    | `/admin/grados/:gradoId/estudiantes`                     | Estudiantes de un grado                       |
+| `GET`    | `/admin/grados/:gradoId/proyectos`                       | Proyectos de un grado con conteos             |
+| `GET`    | `/admin/evaluaciones/proyectos`                          | Proyectos evaluados (nota final y parciales)  |
+| `GET`    | `/admin/evaluaciones/proyectos/:proyectoId/evaluaciones` | Detalle de evaluaciones de un proyecto        |
+| `GET`    | `/admin/evaluaciones/grado/:gradoId`                     | Reporte de evaluaciones por grado             |
+| `POST`   | `/admin/proyectos`                                       | Crear proyecto                                |
+| `GET`    | `/admin/proyectos`                                       | Listar proyectos                              |
+| `GET`    | `/admin/proyectos/:id`                                   | Obtener proyecto por ID                       |
+| `PUT`    | `/admin/proyectos/:id`                                   | Actualizar proyecto                           |
+| `DELETE` | `/admin/proyectos/:id`                                   | Eliminar proyecto (y datos relacionados)      |
+| `GET`    | `/admin/proyectos/:proyectoId/estudiantes`               | Estudiantes asignados al proyecto             |
+| `POST`   | `/admin/proyectos/:proyectoId/estudiantes`               | Asignar estudiantes al proyecto               |
+| `DELETE` | `/admin/proyectos/:proyectoId/estudiantes/:estudianteId` | Remover estudiante del proyecto               |
+| `GET`    | `/admin/maestros`                                        | Listar maestros (solo director)               |
+| `POST`   | `/admin/maestros`                                        | Crear maestro (solo director)                 |
+| `PUT`    | `/admin/maestros/:id`                                    | Actualizar maestro (solo director)            |
+| `DELETE` | `/admin/maestros/:id`                                    | Desactivar maestro (solo director)            |
+| `GET`    | `/admin/orientadores`                                    | Listar orientadores activos                   |
+| `POST`   | `/admin/orientadores`                                    | Asignar orientador a un grado (solo director) |
+| `DELETE` | `/admin/orientadores/:id`                                | Desactivar orientador (solo director)         |
+| `GET`    | `/admin/niveles-evaluacion`                              | Listar niveles de evaluación                  |
+| `POST`   | `/admin/niveles-evaluacion`                              | Crear nivel de evaluación                     |
+| `PUT`    | `/admin/niveles-evaluacion/:id`                          | Actualizar nivel de evaluación                |
+| `DELETE` | `/admin/niveles-evaluacion/:id`                          | Eliminar nivel de evaluación                  |
+| `GET`    | `/admin/niveles/:id`                                     | Obtener una rúbrica por ID                    |
+| `GET`    | `/admin/niveles/:id/criterios`                           | Listar criterios de una rúbrica               |
+| `POST`   | `/admin/niveles/:id/criterios`                           | Crear criterio dentro de una rúbrica          |
+| `PUT`    | `/admin/criterios/:id`                                   | Editar un criterio                            |
+| `DELETE` | `/admin/criterios/:id`                                   | Eliminar un criterio                          |
+| `GET`    | `/admin/roles`                                           | Catálogo de roles                             |
+| `GET`    | `/admin/bachilleratos`                                   | Catálogo de bachilleratos                     |
+| `GET`    | `/admin/turnos`                                          | Catálogo de turnos                            |
 
 Cualquier ruta no definida es manejada por una ruta comodín (`GET /{*splat}`) que redirige al panel si hay sesión activa o a `/login` en caso contrario.
 
@@ -260,25 +264,25 @@ La base de datos se organiza en dos esquemas PostgreSQL.
 
 ### Esquema `principal`
 
-| Tabla | Descripción |
-| ----- | ----------- |
-| `maestros` | Usuarios del sistema (directores, administradores, orientadores) |
-| `roles` | Tipos de rol (Director, Administrador, Orientador) |
-| `grados` | Grados escolares (combinación de nivel, bachillerato, sección, turno y año) |
-| `estudiantes` | Alumnos registrados |
-| `orientadores` | Relación maestro-grado con año escolar |
+| Tabla          | Descripción                                                                 |
+| -------------- | --------------------------------------------------------------------------- |
+| `maestros`     | Usuarios del sistema (directores, administradores, orientadores)            |
+| `roles`        | Tipos de rol (Director, Administrador, Orientador)                          |
+| `grados`       | Grados escolares (combinación de nivel, bachillerato, sección, turno y año) |
+| `estudiantes`  | Alumnos registrados                                                         |
+| `orientadores` | Relación maestro-grado con año escolar                                      |
 
 ### Esquema `evaluaciones`
 
-| Tabla | Descripción |
-| ----- | ----------- |
-| `proyectos` | Proyectos académicos a evaluar |
-| `niveles` | Niveles / rúbricas de evaluación |
-| `criterios` | Criterios con ponderación por nivel |
-| `evaluadores` | Evaluadores invitados |
-| `estudiantes` | Tabla intermedia: estudiantes asignados a proyectos |
-| `evaluaciones` | Registro de evaluaciones (nota final) |
-| `evaluacion_criterios` | Detalle de puntuaciones por criterio |
+| Tabla                  | Descripción                                         |
+| ---------------------- | --------------------------------------------------- |
+| `proyectos`            | Proyectos académicos a evaluar                      |
+| `niveles`              | Niveles / rúbricas de evaluación                    |
+| `criterios`            | Criterios con ponderación por nivel                 |
+| `evaluadores`          | Evaluadores invitados                               |
+| `estudiantes`          | Tabla intermedia: estudiantes asignados a proyectos |
+| `evaluaciones`         | Registro de evaluaciones (nota final)               |
+| `evaluacion_criterios` | Detalle de puntuaciones por criterio                |
 
 ### Cálculo de notas
 
@@ -312,8 +316,8 @@ El panel de administración (`/menu`) es una **Single Page Application** que car
 
 ## Credenciales por defecto
 
-| Usuario | Contraseña | Rol |
-| ------- | ---------- | --- |
+| Usuario    | Contraseña  | Rol                   |
+| ---------- | ----------- | --------------------- |
 | `Director` | `1NS4L2026` | Director (rol_id = 1) |
 
 > El usuario `Director` se crea automáticamente al inicializar la aplicación si no existe ningún maestro registrado en la base de datos.
@@ -409,10 +413,10 @@ Consulta el archivo [TO-DO.md](./TO-DO.md) para la lista completa de tareas pend
 
 ## Contribución
 
-1. Haz un *fork* del repositorio.
+1. Haz un _fork_ del repositorio.
 2. Crea una rama para tu cambio (`git checkout -b feature/mi-cambio`).
 3. Realiza los cambios y comprueba que la aplicación funciona correctamente.
-4. Envía una *pull request* describiendo el cambio y su alcance.
+4. Envía una _pull request_ describiendo el cambio y su alcance.
 
 ## Licencia
 
