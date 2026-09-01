@@ -11,27 +11,31 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/menu.css">
     <link rel="stylesheet" href="/css/proyectos.css">
+    <link rel="stylesheet" href="/css/inicio.css">
     <link rel="stylesheet" href="/css/evaluacion-detalle.css">
     <link rel="stylesheet" href="/css/proyecto-editar.css">
     <link rel="stylesheet" href="/css/custom-select.css">
     <script src="/js/custom-select.js" defer></script>
-    <link rel="shortcut icon" href="/assets/img/Logo_SV.svg" type="image/x-icon">
     <link rel="manifest" href="manifest.webmanifest">
     <script type="module" src="/js/notificaciones.js"></script>
     <link rel="stylesheet" href="/css/notificaciones.css">
     <link rel="stylesheet" href="/css/circular-progress.css">
     <link rel="stylesheet" href="/css/dialog.css">
+    <link rel="stylesheet" href="/css/configuracion.css">
     <link rel="stylesheet" href="/css/ripple.css">
     <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
     <script type="module" src="/js/proyectos.js" defer></script>
+    <script type="module" src="/js/inicio.js" defer></script>
     <script type="module" src="/js/criterios-rubrica.js" defer></script>
     <script type="module" src="/js/proyectos-evaluados.js" defer></script>
+    <script type="module" src="/js/exportar-grado.js" defer></script>
     <script type="module" src="/js/editar-criterios.js" defer></script>
     <script type="module" src="/js/evaluacion-detalle.js" defer></script>
     <script type="module" src="/js/proyecto-editar.js" defer></script>
     <script type="module" src="/js/router.js"></script>
     <script type="module" src="/js/searchList.js" defer></script>
     <script type="module" src="/js/ripple.js" defer></script>
+    <script type="module" src="/js/configuracion.js" defer></script>
     <script type="module">
         import 'https://esm.run/@material/web/all.js'
     </script>
@@ -47,8 +51,7 @@
                 <span class="material-symbols-rounded perfil-card-icon" aria-hidden="true">account_circle</span>
             </div>
             <h3 class="title"><%= maestro.nombre %></h3>
-            <span class="perfil-card-rol">
-                <span class="material-symbols-rounded rol-icon" aria-hidden="true">badge</span>
+            <span class="perfil-card-rol perfil-card-rol--<%= String(maestro.rolNombre || '').toLowerCase().replace(/\s+/g, '-') %>">
                 <%= maestro.rolNombre %>
             </span>
             <div class="btn-accion centrar" onclick="navigateTo('/menu/inicio')" data-ripple>
@@ -57,7 +60,7 @@
                 </span>
                 <p>Ir al Inicio</p>
             </div>
-            <div class="btn-accion centrar" onclick="toggleDialog('dialog-1')" data-ripple>
+            <div class="btn-accion centrar" data-config-abrir role="button" tabindex="0" data-ripple>
                 <span class="material-symbols-rounded">
                     settings
                 </span>
@@ -110,16 +113,115 @@
                 </span>
                 <p class="texto">Rubricas</p>
             </a>
-            <a class="opcion" data-ripple href="/menu/papelera" data-link>
+            <a class="opcion" data-ripple href="/menu/papelera" data-link style="display: none;">
                 <span class="material-symbols-rounded icon">
-                    delete
+                    logo_dev
                 </span>
-                <p class="texto">Papelera</p>
+                <p class="texto">Placeholder</p>
             </a>
         </aside>
         <div id="aside-overlay" class="mobile-only"></div>
         <main id="main__container" class="main__container">
         </main>
     </section>
+
+    <!-- ══════════ Diálogo de Configuración ══════════ -->
+    <dialog id="dialog-1" class="app-dialog--lg dialog-configuracion">
+        <div class="dialog-inner">
+            <!-- Cabecera: título + botón cerrar en la misma fila (la X nunca
+                 solapa con las pestañas del nav) -->
+            <header class="dialog-configuracion__cabecera">
+                <h2 class="dialog-configuracion__titulo">Ajustes</h2>
+                <button type="button" class="dialog-close-btn" id="config-btn-cerrar" aria-label="Cerrar configuración" data-ripple>
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </header>
+
+            <!-- Nav de pestañas -->
+            <nav class="dialog-configuracion__nav" aria-label="Secciones de configuración">
+                <button type="button" class="dialog-configuracion__tab active" data-tab="cuenta" data-ripple>
+                    <span class="material-symbols-rounded">account_circle</span>
+                    <span>Cuenta</span>
+                </button>
+                <button type="button" class="dialog-configuracion__tab" data-tab="informacion" data-ripple>
+                    <span class="material-symbols-rounded">info</span>
+                    <span>Información</span>
+                </button>
+            </nav>
+
+            <!-- Contenido -->
+            <div class="dialog-configuracion__contenido">
+
+                <!-- ── Cuenta ── -->
+                <section class="dialog-configuracion__panel active" data-panel="cuenta">
+                    <div class="config-cuenta__cabecera">
+                        <div class="config-cuenta__avatar">
+                            <span class="material-symbols-rounded">account_circle</span>
+                        </div>
+                        <p class="config-cuenta__nombre" id="config-nombre-display"><%= maestro.nombre %></p>
+                    </div>
+
+                    <div class="config-fila">
+                        <span class="config-fila__label">Rol</span>
+                        <span class="config-fila__valor" id="config-rol"><%= maestro.rolNombre || 'Sin rol' %></span>
+                    </div>
+
+                    <div class="config-fila">
+                        <span class="config-fila__label">Correo</span>
+                        <span class="config-fila__valor vacio" id="config-email">Sin correo registrado</span>
+                    </div>
+
+                    <div class="config-fila config-fila--nombre">
+                        <div class="config-fila__linea">
+                            <span class="config-fila__label">Nombre de usuario</span>
+                            <input type="text" class="config-fila__input" id="config-input-nombre"
+                                   value="<%= maestro.nombre %>" maxlength="255" disabled
+                                   autocomplete="off" aria-label="Nombre de usuario">
+                            <button type="button" class="config-fila__editar" id="config-btn-editar-nombre" data-ripple>
+                                <span class="material-symbols-rounded">edit</span>
+                                <p>Editar</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="config-cerrar-sesion" id="config-btn-cerrar-sesion" data-ripple>
+                        <span class="material-symbols-rounded">logout</span>
+                        Cerrar sesión
+                    </button>
+                </section>
+
+                <!-- ── Información ── -->
+                <section class="dialog-configuracion__panel" data-panel="informacion">
+                    <div class="config-info__logo">
+                        <img src="/assets/svg/Logo_SV.svg" alt="Logo INSAL">
+                        <div class="config-info__logo-texto">
+                            <strong>INSAL · Evaluaciones</strong>
+                            <span>Sistema de gestión y evaluación de proyectos estudiantiles</span>
+                        </div>
+                    </div>
+
+                    <div class="config-info__lista">
+                        <div class="config-info__fila">
+                            <span><span class="material-symbols-rounded">tag</span>Versión</span>
+                            <span>1.0.0</span>
+                        </div>
+                        <div class="config-info__fila">
+                            <span><span class="material-symbols-rounded">database</span>Base de datos</span>
+                            <span>PostgreSQL</span>
+                        </div>
+                        <div class="config-info__fila">
+                            <span><span class="material-symbols-rounded">code</span>Tecnologías</span>
+                            <span>Express · EJS · PWA</span>
+                        </div>
+                        <div class="config-info__fila">
+                            <span><span class="material-symbols-rounded">school</span>Institución</span>
+                            <span>INSAL</span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </dialog>
 </body>
 </html>

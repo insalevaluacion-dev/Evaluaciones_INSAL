@@ -6,6 +6,12 @@ dialog {
     padding: 0;
     color: var(--txt);
     box-shadow: var(--sh-lg);
+    /* El contenido se recorta a las esquinas redondeadas; el scroll vive en
+       .dialog-inner (que respeta el radio), así el scrollbar nunca sobresale
+       del diálogo. */
+    max-height: calc(100dvh - 48px);
+    overflow: hidden;
+    overscroll-behavior: contain;
 }
 
 dialog[open]::backdrop {
@@ -23,6 +29,16 @@ dialog[open]::backdrop {
 
 .app-dialog--xs {
     width: min(460px, calc(100vw - 32px));
+}
+
+/* Diálogo grande (configuración con nav lateral + contenido) */
+.app-dialog--lg {
+    width: min(760px, calc(100vw - 32px));
+    /* main.css define `dialog { max-width: min(560px, 95vw) }` (legacy del
+       panel de ajustes) y recorta este diálogo a 560px, aplastando la
+       columna de contenido del grid (nav 220px + panel). Se anula con el
+       mismo tope que width para que el diálogo alcance su ancho real. */
+    max-width: min(760px, calc(100vw - 32px));
 }
 
 dialog[open] {
@@ -46,6 +62,32 @@ dialog.closing::backdrop {
     display: flex;
     flex-direction: column;
     gap: 18px;
+    /* Scroll interno con las esquinas redondeadas del diálogo: el contenido
+       nunca se sale por los bordes y el scrollbar queda dentro de la caja. */
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: inherit;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hover-color) transparent;
+}
+
+/* Scrollbar moderno dentro del diálogo (Chromium) */
+.dialog-inner::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dialog-inner::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dialog-inner::-webkit-scrollbar-thumb {
+    background: var(--hover-color);
+    border-radius: 10px;
+}
+
+.dialog-inner::-webkit-scrollbar-thumb:hover {
+    background: var(--text-color);
 }
 
 .dialogo-editar__icono {
@@ -60,7 +102,7 @@ dialog.closing::backdrop {
 }
 
 .dialog-title {
-    font-size: 1.4rem;
+    font-size: var(--fs-2xl);
     font-weight: 600;
     color: var(--txt);
     display: inline-flex;
@@ -70,7 +112,7 @@ dialog.closing::backdrop {
 }
 
 .dialog-subtitle {
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     color: var(--soft);
     margin-top: -10px;
 }
@@ -201,11 +243,11 @@ dialog.closing::backdrop {
     transition: none !important;
     user-select: none;
     pointer-events: none;
-    font-size: 2rem;
+    font-size: var(--fs-4xl);
 }
 
 .dialogo-eliminar-rubrica-title {
-    font-size: 1.4rem;
+    font-size: var(--fs-2xl);
     font-weight: 600;
     color: var(--txt);
     margin: 0;
@@ -213,7 +255,7 @@ dialog.closing::backdrop {
 }
 
 .dialogo-eliminar-rubrica-subtitle {
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     color: var(--soft);
     margin: 0;
     text-align: center;
@@ -255,11 +297,11 @@ dialog.closing::backdrop {
     transition: none !important;
     user-select: none;
     pointer-events: none;
-    font-size: 2rem;
+    font-size: var(--fs-4xl);
 }
 
 .dialogo-confirmar-title {
-    font-size: 1.4rem;
+    font-size: var(--fs-2xl);
     font-weight: 600;
     color: var(--txt);
     margin: 0;
@@ -267,7 +309,7 @@ dialog.closing::backdrop {
 }
 
 .dialogo-confirmar-subtitle {
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     color: var(--soft);
     margin: 0;
     text-align: center;
@@ -302,7 +344,7 @@ dialog.closing::backdrop {
 }
 
 .dialogo-editar-rubrica-title {
-    font-size: 1.4rem;
+    font-size: var(--fs-2xl);
     font-weight: 600;
     color: var(--txt);
     display: inline-flex;
@@ -312,7 +354,7 @@ dialog.closing::backdrop {
 }
 
 .dialogo-editar-rubrica-subtitle {
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     color: var(--soft);
     margin-top: -10px;
 }
@@ -328,4 +370,112 @@ dialog.closing::backdrop {
     justify-content: flex-end;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADAPTACIÓN MÓVIL / PANTALLAS PEQUEÑAS
+   Los anchos de las variantes ya son fluidos (min(520px, 100vw - 32px)) y el
+   centrado por transform de main.css funciona en cualquier viewport, así que
+   aquí solo se compacta la geometría: padding, tipografía, botones con área
+   táctil y campos en 2 columnas que colapsan a 1.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+    /* ── Sistema estándar (.dialog-inner) ───────────────────────────────── */
+    .dialog-inner {
+        padding: 20px 16px 16px;
+        gap: 14px;
+    }
+
+    /* Título y subtítulo más compactos */
+    .dialog-title,
+    .dialogo-editar-rubrica-title,
+    .dialogo-confirmar-title,
+    .dialogo-eliminar-rubrica-title {
+        font-size: var(--fs-xl);
+        gap: 10px;
+    }
+
+    .dialog-subtitle,
+    .dialogo-editar-rubrica-subtitle,
+    .dialogo-confirmar-subtitle,
+    .dialogo-eliminar-rubrica-subtitle {
+        font-size: var(--fs-xs);
+        margin-top: -8px;
+    }
+
+    /* Cuerpo del diálogo: la base era fs-lg (18.4px), algo grande para móvil */
+    dialog {
+        font-size: var(--fs-md);
+    }
+
+    /* Botón de cierre: área táctil cómoda (44px) sin invadir el título */
+    .dialog-close-btn {
+        top: 6px;
+        right: 6px;
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Acciones: botones a ancho completo y con altura táctil (48px).
+       column-reverse deja la acción primaria (confirmar) abajo, cerca del
+       pulgar, y la secundaria (cancelar) encima. width: 100% es necesario
+       porque algunos .dialog-inner (confirmaciones) usan align-items:center,
+       que deja el contenedor de acciones a fit-content. */
+    .form-actions,
+    .dialogo-editar-rubrica-actions,
+    .dialogo-confirmar-actions,
+    .dialogo-eliminar-rubrica-actions {
+        width: 100%;
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .form-actions .boton-cancelar,
+    .form-actions .boton-confirmar,
+    .dialogo-editar-rubrica-actions .boton-cancelar,
+    .dialogo-editar-rubrica-actions .boton-confirmar,
+    .dialogo-confirmar-actions .boton-cancelar,
+    .dialogo-confirmar-actions .boton-confirmar,
+    .dialogo-eliminar-rubrica-actions .boton-cancelar,
+    .dialogo-eliminar-rubrica-actions .boton-confirmar {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+    }
+
+    /* Campos en 2 columnas colapsan a 1 en pantallas estrechas */
+    .field-row {
+        grid-template-columns: 1fr;
+    }
+
+    /* ── Variantes centradas (confirmaciones/eliminar) ──────────────────── */
+    .dialogo-confirmar .dialog-inner,
+    .dialogo-eliminar-rubrica .dialog-inner {
+        padding: 24px 20px 20px;
+    }
+
+    /* ── Modal "Nueva rúbrica" (dialog-add-rubrica) ─────────────────────── */
+    .dialog-add-rubrica .dialogo-add__contenido {
+        padding: 20px 16px;
+    }
+
+    /* ── Modales de proyecto (crear/editar): conservan el marco de 6px ──── */
+    #dialog-add-proyecto .dialog-inner,
+    #dialogo-editar-proyecto .dialog-inner {
+        padding: 20px 16px 16px;
+    }
+}
+
+/* Pantallas muy estrechas: se recupera algo de espacio lateral */
+@media (max-width: 360px) {
+    .dialog-inner {
+        padding: 16px 12px 14px;
+    }
+
+    #dialog-add-proyecto .dialog-inner,
+    #dialogo-editar-proyecto .dialog-inner {
+        padding: 16px 12px 14px;
+    }
 }

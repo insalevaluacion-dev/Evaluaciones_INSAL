@@ -34,11 +34,17 @@
         </div>
     </section>
     <section class="container2">
-        <p class="form-cabecera">
-            <span class="material-symbols-rounded" aria-hidden="true">format_list_bulleted</span>
-            <span>Criterios de evaluación</span>
-            <span id="contador-criterios" class="form-cabecera__contador">0</span>
-        </p>
+        <div class="criterios-toolbar">
+            <p class="form-cabecera">
+                <span class="material-symbols-rounded" aria-hidden="true">format_list_bulleted</span>
+                <span>Criterios de evaluación</span>
+                <span id="contador-criterios" class="form-cabecera__contador">0</span>
+            </p>
+            <button type="button" class="btn-añadir-criterio" id="btn-abrir-criterio" data-ripple>
+                <span class="material-symbols-rounded" aria-hidden="true">add</span>
+                <span>Añadir criterio</span>
+            </button>
+        </div>
         <div id="criterios-loader" class="criterios-loader" role="status" aria-label="Cargando criterios">
             <div class="progreso-lineal indeterminado">
                 <div class="progreso-indicador"></div>
@@ -46,54 +52,6 @@
         </div>
         <div id="criterios-lista" class="criterios-lista"></div>
 
-        <p class="form-cabecera">
-            <span class="material-symbols-rounded" aria-hidden="true">add_circle</span>
-            <span>Añadir criterio</span>
-        </p>
-        <div class="criterio criterio-form" id="form-criterio" novalidate>
-            <div class="campo-nombre">
-                <label for="criterio-nombre" class="campo-nota__label">
-                    Nombre <span class="requerido">*</span>
-                </label>
-                <div class="campo-nota__input-wrap">
-                    <input type="text" id="criterio-nombre" name="nombre" required
-                        placeholder="Nombre del criterio" class="campo-nota__input campo-nombre__input">
-                </div>
-            </div>
-            <span class="error-message" id="error-criterio-nombre"></span>
-            <div class="campo-decripcion">
-                <label for="criterio-descripcion" class="campo-nota__label">
-                    Descripción
-                </label>
-                <div class="campo-nota__input-wrap">
-                    <textarea id="criterio-descripcion" name="descripcion" rows="3"
-                        placeholder="Descripción del criterio"
-                        class="campo-nota__input campo-decripcion__input"></textarea>
-                </div>
-            </div>
-            <span class="error-message" id="error-criterio-descripcion"></span>
-            <div class="campo-nota">
-                <label for="criterio-porcentaje" class="campo-nota__label">
-                    Ponderación (%) <span class="requerido">*</span>
-                </label>
-                <div class="campo-nota__input-wrap">
-                    <input type="number" id="criterio-porcentaje" name="porcentaje" min="1" max="100" step="1" required
-                        inputmode="numeric" placeholder="20" class="campo-nota__input">
-                </div>
-                <p class="campo-nota__supporting">Peso del criterio entre 1 y 100. La suma debe ser 100%.</p>
-                <span class="error-message" id="error-criterio-porcentaje"></span>
-            </div>
-            <div class="criterio-form__acciones oculto">
-                <button type="button" class="boton-confirmar" id="btn-confirmar-criterio" data-ripple>
-                    <span class="material-symbols-rounded" aria-hidden="true">check</span>
-                    <span>Confirmar</span>
-                </button>
-                <button type="button" class="boton-cancelar" id="btn-cancelar-criterio" data-ripple>
-                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
-                    <span>Cancelar</span>
-                </button>
-            </div>
-        </div>
         <p class="form-puntuacion" id="form-puntuacion-card">
             <span class="form-puntuacion__label">Puntuación total:</span>
             <span id="puntuacion-total" class="form-puntuacion__valor">0%</span>
@@ -196,6 +154,66 @@
                         <span>¡Hecho!</span>
                     </div>
                 </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal para añadir un criterio a la rúbrica -->
+<dialog id="dialogo-criterio" class="app-dialog--sm" aria-labelledby="dialogo-criterio-titulo">
+    <form method="dialog" class="dialog-inner dialogo-criterio" id="form-criterio" novalidate>
+        <button type="button" class="dialog-close-btn" id="btn-cerrar-criterio" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <h2 class="dialogo-editar-rubrica-title" id="dialogo-criterio-titulo">
+            <span class="material-symbols-rounded dialogo-editar__icono" aria-hidden="true">add_circle</span>
+            Añadir criterio
+        </h2>
+        <p class="dialogo-editar-rubrica-subtitle">
+            Define el nombre, la descripción y la ponderación del nuevo criterio.
+        </p>
+        <div class="dialogo-editar-rubrica-form">
+            <div class="campo-nombre">
+                <label for="criterio-nombre" class="campo-nota__label">
+                    Nombre <span class="requerido">*</span>
+                </label>
+                <div class="campo-nota__input-wrap">
+                    <input type="text" id="criterio-nombre" name="nombre" required
+                        placeholder="Nombre del criterio" class="campo-nota__input campo-nombre__input">
+                </div>
+                <span class="error-message" id="error-criterio-nombre"></span>
+            </div>
+            <div class="campo-decripcion">
+                <label for="criterio-descripcion" class="campo-nota__label">
+                    Descripción
+                </label>
+                <div class="campo-nota__input-wrap">
+                    <textarea id="criterio-descripcion" name="descripcion" rows="3"
+                        placeholder="Descripción del criterio"
+                        class="campo-nota__input campo-decripcion__input"></textarea>
+                </div>
+                <span class="error-message" id="error-criterio-descripcion"></span>
+            </div>
+            <div class="campo-nota">
+                <label for="criterio-porcentaje" class="campo-nota__label">
+                    Ponderación (%) <span class="requerido">*</span>
+                </label>
+                <div class="campo-nota__input-wrap">
+                    <input type="number" id="criterio-porcentaje" name="porcentaje" min="1" max="100" step="1" required
+                        inputmode="numeric" placeholder="20" class="campo-nota__input">
+                </div>
+                <p class="campo-nota__supporting">Peso del criterio entre 1 y 100. La suma debe ser 100%.</p>
+                <span class="error-message" id="error-criterio-porcentaje"></span>
+            </div>
+        </div>
+        <div class="dialogo-editar-rubrica-actions">
+            <button type="button" class="boton-cancelar" id="btn-cancelar-criterio" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="button" class="boton-confirmar" id="btn-confirmar-criterio" data-ripple>
+                <span class="material-symbols-rounded">check</span>
+                <span>Confirmar</span>
             </button>
         </div>
     </form>

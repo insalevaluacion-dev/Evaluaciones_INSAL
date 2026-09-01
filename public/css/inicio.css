@@ -1,0 +1,386 @@
+/* ═══════════════════════════════════════════════════════════════
+   VISTA: Inicio (dashboard)
+   Depende de tokens y componentes de main.css / proyectos.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ------------------------------------------------------------
+   Contenedor con scroll (patrón .table__container de menu.css).
+   #main__container es un flex column de altura fija con overflow
+   hidden: sin este wrapper, las secciones se encogen (flex-shrink)
+   y el contenido se recorta sin poder hacer scroll.
+------------------------------------------------------------ */
+.inicio-scroll {
+    flex: 1;
+    min-height: 0; /* Crucial para que el scroll funcione en contenedores flex */
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    padding: 4px 4px 16px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.05);
+}
+
+.inicio-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.inicio-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+}
+
+.inicio-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* ------------------------------------------------------------
+   Banner de bienvenida
+------------------------------------------------------------ */
+.inicio-bienvenida {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px;
+    margin-bottom: 16px;
+    background: linear-gradient(120deg, var(--azul) 0%, var(--azul-med) 100%);
+    border-radius: var(--radius-md);
+    box-shadow: var(--sh);
+    color: #ffffff;
+    overflow: hidden;
+    position: relative;
+}
+
+.inicio-bienvenida__saludo {
+    font-size: var(--fs-3xl);
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.inicio-bienvenida__sub {
+    font-size: var(--fs-sm);
+    opacity: 0.85;
+    margin: 4px 0 0;
+}
+
+.inicio-bienvenida__icono {
+    font-size: 44px !important;
+    flex-shrink: 0;
+    opacity: 0.9;
+    animation: floatIcon 3s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------
+   Tarjetas de estadísticas
+------------------------------------------------------------ */
+.inicio-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh-sm);
+    min-width: 0;
+}
+
+.stat-card__icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    flex-shrink: 0;
+
+    .material-symbols-rounded {
+        font-size: var(--fs-2xl);
+    }
+}
+
+.stat-card__icono--azul {
+    background: var(--azul-lite);
+    color: var(--azul);
+}
+
+.stat-card__icono--verde {
+    background: color-mix(in srgb, var(--verde) 12%, transparent);
+    color: var(--verde);
+}
+
+.stat-card__icono--naranja {
+    background: var(--naranja-bg);
+    color: var(--naranja-drk);
+}
+
+.stat-card__icono--dorado {
+    background: color-mix(in srgb, var(--dorado) 14%, transparent);
+    color: var(--dorado);
+}
+
+.stat-card__info {
+    min-width: 0;
+}
+
+.stat-card__valor {
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    color: var(--texto-color);
+    margin: 0;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-card__etiqueta {
+    font-size: var(--fs-xs);
+    color: var(--secundario-texto-color);
+    margin: 2px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------
+   Accesos rápidos
+------------------------------------------------------------ */
+.inicio-acciones {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.accion-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh-sm);
+    text-decoration: none;
+    color: var(--texto-color);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
+}
+
+.accion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sh);
+    border-color: var(--azul-med);
+}
+
+.accion-card__icono {
+    color: var(--azul);
+    background: var(--azul-lite);
+    border-radius: 10px;
+    padding: 8px;
+    font-size: var(--fs-2xl) !important;
+    flex-shrink: 0;
+}
+
+.accion-card__texto {
+    flex: 1;
+    min-width: 0;
+}
+
+.accion-card__titulo {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    margin: 0;
+}
+
+.accion-card__desc {
+    font-size: var(--fs-xs);
+    color: var(--secundario-texto-color);
+    margin: 2px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.accion-card__flecha {
+    color: var(--secundario-texto-color);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.accion-card:hover .accion-card__flecha {
+    transform: translateX(3px);
+    color: var(--azul-med);
+}
+
+/* ------------------------------------------------------------
+   Últimas evaluaciones
+------------------------------------------------------------ */
+.inicio-recientes {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh-sm);
+    padding: 16px;
+}
+
+.inicio-recientes__cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.inicio-recientes__titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    color: var(--texto-color);
+    margin: 0;
+
+    .material-symbols-rounded {
+        color: var(--azul-med);
+        font-size: var(--fs-2xl);
+    }
+}
+
+/* El botón refresh hereda .btn-opcion; aquí solo se compacta */
+.inicio-recientes .btn-refresh {
+    width: 40px;
+    height: 40px;
+}
+
+.inicio-recientes__loader {
+    margin-bottom: 12px;
+}
+
+.inicio-recientes__vacio {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 30px 16px;
+    text-align: center;
+}
+
+.inicio-recientes__vacio-icono {
+    font-size: 48px !important;
+    color: var(--secundario-texto-color);
+    opacity: 0.6;
+    animation: floatIcon 3s ease-in-out infinite;
+}
+
+.inicio-recientes__vacio-texto {
+    font-size: var(--fs-md);
+    font-weight: 500;
+    color: var(--secundario-texto-color);
+    margin: 0;
+}
+
+.inicio-recientes__vacio-sub {
+    font-size: var(--fs-xs);
+    color: var(--secundario-texto-color);
+    opacity: 0.7;
+    margin: 0;
+}
+
+.inicio-recientes__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Item de evaluación reciente (reutiliza .list-item de proyectos.css) */
+.inicio-item {
+    margin-bottom: 8px;
+}
+
+.inicio-item:last-child {
+    margin-bottom: 0;
+}
+
+.inicio-item__meta {
+    font-size: var(--fs-xs);
+    color: var(--secundario-texto-color);
+    opacity: 0.85;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Nota con color según rango */
+.inicio-item__nota {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    padding: 6px 12px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.inicio-item__nota.nota--alta {
+    color: var(--verde);
+    background: color-mix(in srgb, var(--verde) 12%, transparent);
+}
+
+.inicio-item__nota.nota--media {
+    color: var(--naranja-drk);
+    background: var(--naranja-bg);
+}
+
+.inicio-item__nota.nota--baja {
+    color: var(--rojo);
+    background: color-mix(in srgb, var(--rojo) 10%, transparent);
+}
+
+/* ------------------------------------------------------------
+   Responsive
+------------------------------------------------------------ */
+@media (max-width: 899px) {
+    .inicio-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .inicio-acciones {
+        grid-template-columns: 1fr;
+    }
+
+    .inicio-bienvenida__saludo {
+        font-size: var(--fs-2xl);
+    }
+}
+
+@media (max-width: 480px) {
+    .inicio-bienvenida {
+        padding: 18px;
+    }
+
+    .inicio-bienvenida__icono {
+        display: none;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .stat-card__icono {
+        width: 38px;
+        height: 38px;
+    }
+
+    .stat-card__valor {
+        font-size: var(--fs-xl);
+    }
+}
+

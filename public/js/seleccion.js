@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const selectEvento = document.getElementById('evento');
+    const selectTipo = document.getElementById('tipo-evaluacion');
     const selectAño = document.getElementById('año');
     const labelAño = document.getElementById('label-año');
     const selectNombre = document.getElementById('nombre');
@@ -7,18 +7,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const botonBuscar = document.getElementById('buscar-proyectos');
     const modalProyectos = document.getElementById('modal-proyectos');
     const contenedorProyectos = document.getElementById('contenedor-proyectos');
-    const nombresMap = {
-        'General': 'G',
-        'Desarrollo de Software': 'DS',
-        'Diseño Gráfico': 'DG',
-        'Atención Primaria en Salud': 'APS',
-        'Sistemas Eléctricos': 'SE',
-        'Logística y Aduanas': 'LyA',
-        'Administrativo Contable': 'AC'
-    };
 
-    selectEvento.addEventListener('change', async () => {
-        const [numNivel, año, nombreEvento] = selectEvento.value.split('|') || [];
+    // El value del tipo de evaluación es el nivel_id de evaluaciones.niveles
+    // (cada nivel es a la vez evento y su rúbrica, relación 1:1).
+    const nivelSeleccionado = () => selectTipo.value;
+
+    selectTipo.addEventListener('change', async () => {
+        const numNivel = nivelSeleccionado();
         selectAño.disabled = true;
         selectNombre.disabled = true;
         selectSeccion.disabled = true;
@@ -26,8 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectNombre.innerHTML = '<option value="" hidden>Seleccione un grado</option>';
         selectSeccion.innerHTML = '<option value="" hidden>Seleccione una sección</option>';
         botonBuscar.disabled = true;
-        labelAño.style.display = 'none';
-        selectAño.style.display = 'none';
 
         if (!numNivel) return;
 
@@ -39,55 +32,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         const nivelData = await respuestaNivel.json();
         console.log('Respuesta /guardar-nivel:', nivelData);
 
-        if (numNivel === '1') {
-            labelAño.style.display = 'block';
-            selectAño.style.display = 'block';
-            // Mostrar linear progress mientras se cargan los años
-            customSelectSetLoading('año', true);
-            try {
-                const respuestaAños = await fetch(`/grados/anos/${numNivel}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
+        // El selector de año (año de estudio: 1er/2do/3er año) es siempre
+        // visible e independiente: se llena con los años que tienen
+        // proyectos para el nivel elegido. Con un solo año se auto-selecciona
+        // (pero sigue visible) para ahorrar un clic.
+        customSelectSetLoading('año', true);
+        try {
+            const respuestaAños = await fetch(`/grados/anos/${numNivel}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const añosData = await respuestaAños.json();
+            console.log('Respuesta /grados/anos:', añosData);
+            const años = añosData.años || [];
+
+            if (años.length > 0) {
+                // años: [{ id, nombre }] con id = niveles_estudios_id
+                años.forEach(({ id, nombre }) => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = nombre;
+                    selectAño.appendChild(option);
                 });
-                const añosData = await respuestaAños.json();
-                console.log('Respuesta /grados/anos:', añosData);
-                if (añosData.años?.length > 0) {
-                    añosData.años.forEach(año => {
-                        const option = document.createElement('option');
-                        option.value = año;
-                        option.textContent = año;
-                        selectAño.appendChild(option);
-                    });
-                    selectAño.disabled = false;
+                selectAño.disabled = false;
+                if (años.length === 1) {
+                    selectAño.value = años[0].id;
+                    cargarNombres(numNivel, años[0].id);
                 }
-            } finally {
-                customSelectSetLoading('año', false);
+            } else {
+                // Sin proyectos para este nivel: avisar y no avanzar
+                mostrarNotificacion('No hay proyectos disponibles para este tipo de evaluación.', 'info');
             }
-        } else {
-            // Para niveles de Expotecnia, obtener el año escolar real disponible
-            // (el segmento "año" de la opción puede no coincidir con el de la BD)
-            try {
-                const respuestaAños2 = await fetch(`/grados/anos/${numNivel}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const añosData2 = await respuestaAños2.json();
-                const añoReal = añosData2.años?.[0] || año;
-                // Asegurar que el select de año tenga el valor real como opción
-                selectAño.innerHTML = `<option value="${añoReal}">${añoReal}</option>`;
-                selectAño.value = añoReal;
-                cargarNombres(numNivel, añoReal);
-            } catch (err) {
-                console.error('Error al cargar años:', err);
-                selectAño.innerHTML = `<option value="${año}">${año}</option>`;
-                selectAño.value = año;
-                cargarNombres(numNivel, año);
-            }
+        } catch (err) {
+            console.error('Error al cargar años:', err);
+            mostrarNotificacion('Ocurrió un error al cargar los años. Por favor, inténtelo de nuevo.', 'error');
+        } finally {
+            customSelectSetLoading('año', false);
         }
     });
 
     selectAño.addEventListener('change', async () => {
-        const numNivel = selectEvento.value.split('|')[0];
+        const numNivel = nivelSeleccionado();
         const año = selectAño.value;
         selectNombre.disabled = true;
         selectSeccion.disabled = true;
@@ -125,9 +110,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     selectNombre.addEventListener('change', async () => {
-        const [numNivel] = selectEvento.value.split('|');
-        const año = selectAño.value || selectEvento.value.split('|')[1];
-        const nombre = nombresMap[selectNombre.value] || selectNombre.value;
+        const numNivel = nivelSeleccionado();
+        const año = selectAño.value;
+        const nombre = selectNombre.value;
         selectSeccion.disabled = true;
         selectSeccion.innerHTML = '<option value="" hidden>Seleccione una sección</option>';
         botonBuscar.disabled = true;
@@ -158,17 +143,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     selectSeccion.addEventListener('change', () => {
-        const [numNivel] = selectEvento.value.split('|');
-        const año = selectAño.value || selectEvento.value.split('|')[1];
-        if (numNivel && año && selectNombre.value && selectSeccion.value) {
+        if (nivelSeleccionado() && selectAño.value && selectNombre.value && selectSeccion.value) {
             botonBuscar.disabled = false;
         }
     });
 
     botonBuscar.addEventListener('click', async () => {
-        const [numNivel] = selectEvento.value.split('|');
-        const año = selectAño.value || selectEvento.value.split('|')[1];
-        const nombre = nombresMap[selectNombre.value] || selectNombre.value;
+        const numNivel = nivelSeleccionado();
+        const año = selectAño.value;
+        const nombre = selectNombre.value;
         const seccion = selectSeccion.value;
 
         // Mostrar feedback de carga en el botón

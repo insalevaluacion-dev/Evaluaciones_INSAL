@@ -1,0 +1,484 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   Diálogo de Configuración (dialog-1 · views/menu.ejs)
+   Layout: nav de pestañas (Cuenta / Apariencia / Información) + panel.
+   Paleta del proyecto: --card, --border, --txt, --soft, --azul, --azul-lite.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.dialog-configuracion {
+    /* Anula el `dialog { min-width: 780px; width: 55%; height: 75% }` de
+       main.css (estilo del legacy .opcionespanel que se filtra al selector
+       base `dialog`). */
+    min-width: auto;
+    height: fit-content;
+    max-height: min(640px, calc(100dvh - 48px));
+}
+
+.dialog-configuracion .dialog-inner {
+    padding: 10px;
+    gap: 10px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    /* Fila 1: cabecera (abarca ambas columnas); fila 2: nav + contenido.
+       Sin la colocación explícita de la cabecera, el auto-placement
+       mandaba el contenido a una fila implícita y el nav (que recibía
+       el 1fr) colapsaba. */
+    grid-template-rows: auto 1fr;
+    /* Altura estable: el nav manda; el panel hace scroll si el contenido
+       excede. Evita que el diálogo "salte" al cambiar de pestaña. */
+    height: min(560px, calc(100dvh - 48px));
+    max-height: calc(100dvh - 48px);
+    overflow: hidden;
+}
+
+.dialog-configuracion__cabecera {
+    grid-column: 1 / -1;
+}
+
+/* ── Cabecera: título "Ajustes" + botón X en la misma fila ────────────────
+   La X vive aquí como flex item (ya no flota absoluta sobre el diálogo):
+   nunca solapa con las pestañas del nav ni con el contenido, en ningún
+   ancho. `static` anula el position:absolute de dialog.css y el
+   relative !important de .ripple-container; con static, los offsets
+   (top/right) de dialog.css se ignoran solos. */
+.dialog-configuracion__cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dialog-configuracion__titulo {
+    font-size: var(--fs-xl);
+    /* Peso normal: los h2 heredan bold de una regla global y se ve muy
+       grueso para un título de diálogo. */
+    font-weight: 400;
+    color: var(--txt);
+    line-height: 1.2;
+}
+
+.dialog-configuracion__cabecera .dialog-close-btn {
+    position: static !important;
+    flex-shrink: 0;
+}
+
+/* ── Nav lateral de pestañas ─────────────────────────────────────────────── */
+.dialog-configuracion__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 2px;
+    overflow-y: auto;
+}
+
+/* Píldoras con el mismo lenguaje que `.opcion` del aside del dashboard:
+   borde muy redondeado (25px), fondo azul claro, texto azul prioridad. */
+.dialog-configuracion__tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 20px;
+    border: none;
+    border-radius: 25px;
+    background: var(--font-color-important);
+    color: var(--text-color-prioritary);
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+}
+
+.dialog-configuracion__tab .material-symbols-rounded {
+    font-size: var(--fs-xl);
+    color: inherit;
+    pointer-events: none;
+}
+
+/* Hover: azul medio-suave con texto oscuro, se distingue del active. */
+.dialog-configuracion__tab:hover {
+    background: #7ee5f7;
+    color: var(--text-color-prioritary);
+}
+
+/* Pestaña activa: píldora azul profunda con texto blanco, igual que
+   .opcion.active del aside. */
+.dialog-configuracion__tab.active {
+    background: var(--azul-dark);
+    color: #ffffff;
+}
+
+.dialog-configuracion__tab.active .material-symbols-rounded {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+}
+
+/* ── Contenido de pestañas ─────────────────────────────────────────────────
+   Tarjeta "main content" igual que #main__container del dashboard:
+   con margen (gap+padding del inner) y border-radius. */
+.dialog-configuracion__contenido {
+    position: relative;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 24px 26px;
+    background: var(--font-color-tercero);
+    border-radius: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.dialog-configuracion__contenido::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dialog-configuracion__contenido::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+.dialog-configuracion__panel {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    animation: configPanelEntra 0.18s ease-out both;
+}
+
+.dialog-configuracion__panel.active {
+    display: flex;
+}
+
+@keyframes configPanelEntra {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Panel Cuenta: cabecera con avatar ───────────────────────────────────── */
+.config-cuenta__cabecera {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 2px;
+}
+
+.config-cuenta__avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--azul-lite);
+    border: 1px solid color-mix(in srgb, var(--azul) 22%, transparent);
+    color: var(--azul);
+    flex-shrink: 0;
+}
+
+.config-cuenta__avatar .material-symbols-rounded {
+    font-size: 3.4rem;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.config-cuenta__nombre {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--txt);
+    text-align: center;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/* ── Filas de datos (Correo / Nombre de usuario) ───────────────────────────
+   Mismo lenguaje visual que .evaluacion-detalle__dato: tarjeta blanca,
+   borde suave, etiqueta en la izquierda y valor a la derecha. */
+.config-fila {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 13px 16px;
+    background: var(--font-color-secondary);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-radius: 12px;
+}
+
+.config-fila__label {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    /* Permite encoger (y envolver a 2 líneas) cuando la fila no tiene
+       espacio: label + botón Editar son ~273px fijos y en anchos pequeños
+       aplastaban el input a 22px desbordando la fila. */
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.config-fila__valor {
+    /* flex-basis auto: si el texto no cabe junto a la etiqueta, la fila
+       envuelve y el valor baja ENTERO a una línea propia (en vez de
+       partirse en dos dentro del espacio restante). */
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    /* Mismo color que .config-fila__input:disabled (--soft): Rol, Correo y
+       Nombre son datos de solo lectura y deben verse idénticos. */
+    color: var(--soft);
+    text-align: right;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+/* Valor vacío → placeholder en itálica */
+.config-fila__valor.vacio {
+    font-style: italic;
+    opacity: 0.75;
+}
+
+.config-fila__input {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-sm);
+    color: var(--txt);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.config-fila__input:disabled {
+    background: transparent;
+    border-color: transparent;
+    color: var(--soft);
+    /* Mantiene el layout idéntico entre estado vista y edición */
+    -webkit-text-fill-color: var(--soft);
+    opacity: 1;
+}
+
+.config-fila__input:focus {
+    border-color: var(--azul-med);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--azul-med) 18%, transparent);
+}
+
+/* Fila Nombre de usuario: el botón Editar vive dentro de la línea para
+   poder reagruparse según el ancho.
+   - Desktop: línea 1 = label + input; línea 2 = botón a la derecha (el
+     input con basis 160px no deja sitio y el botón envuelve).
+   - Móvil: línea 1 = label solo; línea 2 = input + botón a la par. */
+.config-fila--nombre {
+    flex-wrap: wrap;
+}
+
+.config-fila__linea {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    min-width: 0;
+}
+
+.config-fila--nombre .config-fila__input {
+    /* basis 160px: en desktop label(147)+input+botón(98) no caben en una
+       línea → el botón envuelve abajo; en móvil el input envuelve y
+       comparte línea con el botón (160+16+98 ≈ 274px caben en ~283px). */
+    flex: 1 1 160px;
+    min-width: 0;
+}
+
+.config-fila--nombre .config-fila__editar {
+    margin-left: auto;
+}
+
+/* Botón Editar/Guardar de la fila nombre */
+.config-fila__editar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border: 1px solid color-mix(in srgb, var(--azul) 26%, transparent);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--azul);
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.config-fila__editar:hover {
+    background: var(--azul);
+    color: #ffffff;
+}
+
+.config-fila__editar:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* ── Cerrar sesión (dentro de Cuenta) ────────────────────────────────────── */
+.config-cerrar-sesion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--rojo) 30%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--rojo) 6%, var(--card));
+    color: var(--rojo);
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.config-cerrar-sesion:hover {
+    background: var(--rojo);
+    color: #ffffff;
+}
+
+.config-cerrar-sesion .material-symbols-rounded {
+    font-size: var(--fs-lg);
+    pointer-events: none;
+}
+
+/* ── Panel Información ───────────────────────────────────────────────────── */
+.config-info__logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.config-info__logo img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    /* Sin caja blanca: el SVG es gris claro y sobre fondo blanco se pierde.
+       brightness(0) lo vuelve negro sólido. */
+    filter: brightness(0);
+}
+
+.config-info__logo-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.config-info__logo-texto strong {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--txt);
+}
+
+.config-info__logo-texto span {
+    font-size: var(--fs-xs);
+    color: var(--soft);
+}
+
+.config-info__lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Filas del panel Información con el mismo lenguaje visual que .config-fila:
+   tarjeta blanca, borde suave, etiqueta izq · valor der. */
+.config-info__fila {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 13px 16px;
+    background: var(--font-color-secondary);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-radius: 12px;
+}
+
+.config-info__fila span:first-child {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.config-info__fila span:first-child .material-symbols-rounded {
+    font-size: var(--fs-lg);
+    color: var(--azul);
+    pointer-events: none;
+}
+
+.config-info__fila span:last-child {
+    /* flex-basis auto: si el valor no cabe junto a la etiqueta (ej.
+       "Express · EJS · PWA" en móvil), envuelve a una línea propia
+       completa en vez de partirse en dos. */
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color);
+    text-align: right;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+/* ── Móvil: nav arriba en horizontal, contenido debajo ───────────────────── */
+@media screen and (max-width: 640px) {
+    .dialog-configuracion .dialog-inner {
+        grid-template-columns: 1fr;
+        /* 3 hijos apilados: cabecera, nav y contenido (el 1fr es del
+           contenido; sin la fila auto extra el nav colapsaba). */
+        grid-template-rows: auto auto 1fr;
+        height: min(560px, calc(100dvh - 32px));
+    }
+
+    .dialog-configuracion__nav {
+        flex-direction: row;
+        gap: 6px;
+        padding: 4px 2px;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .dialog-configuracion__tab {
+        width: auto;
+        flex: 1 0 auto;
+        justify-content: center;
+        padding: 9px 16px;
+        white-space: nowrap;
+    }
+
+    .dialog-configuracion__contenido {
+        padding: 18px 16px;
+    }
+
+    /* Fila Nombre de usuario en móvil: el input baja a la 2ª línea y debe
+       quedar A LA PAR del botón Editar. Con basis 160px no cabían juntos
+       en pantallas angostas (160+16+98=274px > ~256px disponibles) y el
+       botón saltaba a una 3ª línea; con 120px caben (120+16+98=234px) y
+       el input crece hasta llenar el resto (flex-grow). */
+    .config-fila--nombre .config-fila__input {
+        flex-basis: 120px;
+    }
+}

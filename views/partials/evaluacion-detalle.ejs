@@ -8,9 +8,14 @@
         <p>Atras</p>
     </a>
     <p class="text-title-seccion">Detalle de evaluación</p>
+    <button type="button" class="btn-descargar-evaluacion" id="btn-descargar-evaluacion" aria-haspopup="dialog"
+        aria-label="Descargar" data-ripple>
+        <span class="material-symbols-rounded" aria-hidden="true">download</span>
+        <span>Descargar</span>
+    </button>
 </div>
 <section class="contenedor-criterios" data-proyecto-id="<%= id %>">
-    <section class="container1">
+    <section class="container1 container1--detalle-evaluacion">
         <div class="proyecto-header">
             <span class="material-symbols-rounded proyecto-icon">school</span>
             <div class="proyecto-info">
@@ -21,6 +26,9 @@
                         <p class="proyecto-descripcion" id="detalle-proyecto-sub">Consultando evaluaciones…</p>
                     </div>
                 </span>
+            </div>
+            <div id="detalle-proyecto-nota" class="detalle-proyecto__nota" hidden>
+                <span class="detalle-proyecto__nota-valor">—</span>
             </div>
         </div>
     </section>
@@ -38,3 +46,31 @@
         <div id="evaluaciones-lista" class="criterios-lista"></div>
     </section>
 </section>
+<dialog id="dialogo-descargar-evaluacion" class="app-dialog--xs" aria-labelledby="dialogo-descargar-titulo">
+    <form method="dialog" class="dialog-inner dialogo-descargar">
+        <button type="button" class="dialog-close-btn" id="btn-cerrar-descargar" aria-label="Cerrar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <h2 class="dialog-title" id="dialogo-descargar-titulo">
+            <span class="material-symbols-rounded dialogo-editar__icono" aria-hidden="true">download</span>
+            Opciones de descarga
+        </h2>
+        <p class="dialog-subtitle">Elige el formato para exportar las evaluaciones de este proyecto.</p>
+        <div class="dialogo-descargar__opciones">
+            <button type="button" class="dialogo-descargar__opcion" id="btn-descargar-excel" data-ripple>
+                <span class="material-symbols-rounded" aria-hidden="true">table_view</span>
+                <span class="dialogo-descargar__opcion-texto">
+                    <span class="dialogo-descargar__opcion-titulo">Microsoft Excel (.xlsx)</span>
+                    <small>Evaluaciones y desglose de criterios</small>
+                </span>
+            </button>
+            <button type="button" class="dialogo-descargar__opcion" id="btn-descargar-pdf" data-ripple>
+                <span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>
+                <span class="dialogo-descargar__opcion-texto">
+                    <span class="dialogo-descargar__opcion-titulo">Documento PDF (.pdf)</span>
+                    <small>Reporte completo descargable</small>
+                </span>
+            </button>
+        </div>
+    </form>
+</dialog>

@@ -683,8 +683,8 @@ async function poblarSelectsProyecto() {
         const [niveles, grados] = await Promise.all([obtenerNiveles(), obtenerGrados()]);
 
         // Rúbricas (niveles) para crear y editar
-        poblarOpcionesSelect('proyecto-nivel', niveles.map((n) => n.nombre), 'Selecciona una rúbrica');
-        poblarOpcionesSelect('editar-nivel', niveles.map((n) => n.nombre), 'Selecciona una rúbrica');
+        poblarOpcionesSelect('proyecto-nivel', niveles.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
+        poblarOpcionesSelect('editar-nivel', niveles.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
 
         // Cascadas Grado → Especialidad → Sección (crear y editar)
         configurarCascadeGrado('proyecto', grados);
@@ -791,7 +791,7 @@ function initProyectoFormHandler() {
             }
 
             if (!nivel_id || !grado_id) {
-                mostrarNotificacion('Selecciona la rúbrica (nivel) y el grado del proyecto', 'error');
+                mostrarNotificacion('Selecciona el tipo de evaluación y el grado del proyecto', 'error');
                 throw new Error('Campos vacíos');
             }
 
@@ -851,7 +851,7 @@ function validarSelectsProyecto() {
     const nivelId = document.getElementById('proyecto-nivel-id');
     const gradoId = document.getElementById('proyecto-grado-id');
     if (nivelId && !nivelId.value) {
-        mostrarNotificacion('Selecciona una rúbrica válida para el proyecto', 'error');
+        mostrarNotificacion('Selecciona un tipo de evaluación válido para el proyecto', 'error');
         return false;
     }
     if (gradoId && !gradoId.value) {

@@ -15,12 +15,19 @@ window.CerrarSesion = CerrarSesion;
 const aside = document.getElementById("aside");
 
 function abrirAside() {
-    aside.classList.toggle('close')
+    const vaACerrar = !aside.classList.contains('close');
+    aside.classList.toggle('close');
+    // Al cerrar el drawer, cierra también los menús contextuales: si
+    // quedaran abiertos se quedarían flotando fuera de contexto.
+    if (vaACerrar && typeof window.closeAll === 'function') window.closeAll();
 }
 
 window.abrirAside = abrirAside;
 
 function posicionarInfoCard(menu, trigger) {
+    // En móvil el menú contextual es fullscreen (CSS, <=600px): no se
+    // posiciona, así no quedan left/top inline que lo descolquen.
+    if (window.innerWidth <= 600) return;
     const triggerRect = trigger.getBoundingClientRect();
     const gap = 10;
     const isMobile = window.innerWidth <= 600;
@@ -40,7 +47,20 @@ function cerrarMenuContextual(menu) {
 
     menu.classList.remove('show');
     menu.classList.add('closing');
-    menu.addEventListener('animationend', () => {
+    // Timeout de seguridad: si animationend no se dispara (pestaña oculta
+    // con animaciones congeladas), .closing se quedaría para siempre y con
+    // fill:both la tarjeta quedaría invisible aunque tuviera .show.
+    const fallback = setTimeout(() => menu.classList.remove('closing'), 500);
+    // ⚠️ Solo cuenta el animationend DE LA PROPIA tarjeta (e.target === menu).
+    // Los eventos animationend de hijos (p. ej. el ripple de la botonera X,
+    // o de cualquier botón data-ripple dentro del menú) BURBUJEAN hasta la
+    // tarjeta. Sin este guard, ese evento de hijo se tomaba como el fin del
+    // cierre: .closing se quitaba a los pocos ms y la animación de salida
+    // se cortaba a medio camino (la tarjeta "saltaba" y parecía no cerrarse
+    // bien / reabrirse).
+    menu.addEventListener('animationend', (e) => {
+        if (e.target !== menu) return;
+        clearTimeout(fallback);
         menu.classList.remove('closing');
     }, { once: true });
 }
@@ -115,17 +135,16 @@ function cerrarAsideAutomaticamente() {
 // Ejecutar inmediatamente para sincronizar el estado sin esperas
 cerrarAsideAutomaticamente();
 
-window.addEventListener('resize', cerrarAsideAutomaticamente);
-
-// Al redimensionar a escritorio, restaurar estructura original de menús
-// Al redimensionar a móvil, reinicializar bottom sheet al abrir el siguiente menú
-window.addEventListener('resize', () => {
-    if (window.innerWidth > 768 && typeof teardownBottomSheet === 'function') {
-        document.querySelectorAll('.menu_contextual').forEach(m => {
-            teardownBottomSheet(m);
-        });
+// Al navegar dentro del SPA se cierra el menú lateral en móvil
+// (el contenido cambió; evita que el drawer quede abierto sobre la nueva vista).
+document.addEventListener('contentUpdated', () => {
+    if (window.innerWidth <= 768) {
+        aside.classList.add('close');
+        if (typeof window.closeAll === 'function') window.closeAll();
     }
 });
+
+window.addEventListener('resize', cerrarAsideAutomaticamente);
 
 // Cerrar el aside al hacer click fuera del contenedor (solo en móvil)
 document.addEventListener('click', (event) => {
@@ -138,8 +157,14 @@ document.addEventListener('click', (event) => {
         const isClickInsideDialog = event.target && typeof event.target.closest === 'function'
             ? event.target.closest('dialog')
             : null;
+        // ¿El clic es dentro de un menú contextual (info-card)? Con el menú
+        // fullscreen de móvil cubre al aside: interactuar con él NO debe
+        // cerrar el drawer que queda detrás.
+        const isClickInsideMenuContextual = event.target && typeof event.target.closest === 'function'
+            ? event.target.closest('.menu_contextual')
+            : null;
 
-        if (!isClickInsideAside && !isClickOnToggleButton && !isClickInsideDialog) {
+        if (!isClickInsideAside && !isClickOnToggleButton && !isClickInsideDialog && !isClickInsideMenuContextual) {
             aside.classList.add('close');
         }
     }

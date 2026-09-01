@@ -89,7 +89,7 @@
     justify-content: center;
     width: 56px;
     height: 56px;
-    font-size: 2rem;
+    font-size: var(--fs-4xl);
     line-height: 1;
     color: var(--text-color-prioritary);
     background: var(--font-color-important);
@@ -104,7 +104,7 @@
 }
 
 .resumen-header__label{
-    font-size: 0.8rem;
+    font-size: var(--fs-xs);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -114,14 +114,14 @@
 
 .resumen-header__title{
     margin: 0;
-    font-size: 1.6rem;
+    font-size: var(--fs-3xl);
     font-weight: 600;
     color: var(--text-color-secondary);
     line-height: 1.2;
 }
 
 .calificar{
-    font-size: 1.75rem !important;
+    font-size: var(--fs-3xl) !important;
     margin-bottom: 10px;
 }
 
@@ -134,7 +134,7 @@
     gap: 10px;
     margin-bottom: 10px;
     color: var(--text-color-secondary);
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
     font-weight: 400;
 }
 
@@ -161,7 +161,7 @@ li{
 
 .puntuacion{
     color: var(--text-color-secondary);
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
     font-weight: 400;
     background: var(--font-color-important);
     border-radius: 20px;
@@ -172,7 +172,7 @@ li{
 
 #nota-final{
     color: var(--text-color-secondary);
-    font-size: 2.11rem;
+    font-size: var(--fs-4xl);
     font-weight: 400;
 }
 
@@ -195,7 +195,7 @@ li{
 }
 
 #boton-regresar {
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     padding: 8px 16px;
     transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
 }
@@ -260,7 +260,7 @@ li{
     background: var(--font-color);
     color: var(--text-color-secondary);
     cursor: pointer;
-    font-size: 1.4rem;
+    font-size: var(--fs-xl);
     transition: transform .12s ease, background .2s ease, box-shadow .2s ease;
 }
 
@@ -313,4 +313,39 @@ li{
 #boton-calificar [id^="mensaje"],
 #boton-confirmar [id^="mensaje"] {
     gap: 8px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 520px) {
+    .main_document {
+        padding: 12px 10px;
+        gap: 16px;
+    }
+
+    .resumen-header__title {
+        font-size: var(--fs-2xl);
+    }
+
+    .resumen-header .resumen-header__icon {
+        width: 48px;
+        height: 48px;
+        font-size: var(--fs-3xl);
+    }
+
+    .calificar {
+        font-size: var(--fs-xl) !important;
+    }
+
+    #boton-regresar {
+        font-size: var(--fs-xs);
+    }
+
+    #resumen-criterios li {
+        padding: 10px 12px;
+    }
+
+    .modal-content {
+        width: 94dvw;
+        padding: 16px;
+    }
 }

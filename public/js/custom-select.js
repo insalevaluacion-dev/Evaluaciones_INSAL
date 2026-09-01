@@ -103,6 +103,12 @@
         // fijo en la parte superior del panel que filtra las opciones en vivo.
         let searchInput = null;
         if (select.hasAttribute('data-searchable')) {
+            // El input va dentro de un wrapper blanco "edge-to-edge": al hacer
+            // scroll de las opciones, el wrapper (sticky, pegado al borde real
+            // del panel) las tapa para que no se asomen por los huecos que
+            // quedan alrededor del input.
+            const searchWrap = document.createElement('div');
+            searchWrap.className = 'custom-select__search-wrap';
             searchInput = document.createElement('input');
             searchInput.type = 'text';
             searchInput.className = 'custom-select__search';
@@ -111,7 +117,8 @@
             searchInput.setAttribute('aria-label', 'Buscar opciones');
             searchInput.setAttribute('autocomplete', 'off');
             searchInput.addEventListener('input', applyFilter);
-            dropdown.appendChild(searchInput);
+            searchWrap.appendChild(searchInput);
+            dropdown.appendChild(searchWrap);
         }
 
         // Filtra las opciones visibles según el texto del buscador.
@@ -176,11 +183,17 @@
         function openDropdown() {
             if (select.disabled) return;
             buildOptions();
+            // Sin opciones seleccionables (solo el placeholder oculto) no hay
+            // nada que elegir: no abrir el panel (evita un panel vacío flotando).
+            if (!dropdown.querySelector('.custom-select__option')) return;
             if (searchInput) {
                 searchInput.value = '';
                 applyFilter();
             }
             positionDropdown();
+            // Receta transitions.dev: limpiar .is-closing antes de abrir
+            container.classList.remove('is-closing');
+            dropdown.classList.remove('is-closing');
             container.classList.add('is-open');
             dropdown.classList.add('is-open');
             lockBodyScroll();
@@ -191,11 +204,23 @@
         }
 
         function closeDropdown() {
-            if (container.classList.contains('is-open')) {
-                unlockBodyScroll();
-            }
+            if (!container.classList.contains('is-open')) return;
+            unlockBodyScroll();
             container.classList.remove('is-open');
             dropdown.classList.remove('is-open');
+            // Receta transitions.dev: mantener el panel visible durante la
+            // animación de cierre (scale 0.99 + fade) y retirar .is-closing
+            // al terminar para que vuelva a su estado de reposo.
+            container.classList.add('is-closing');
+            dropdown.classList.add('is-closing');
+            const closeMs = parseFloat(
+                getComputedStyle(document.documentElement)
+                    .getPropertyValue('--dropdown-close-dur'),
+            ) || 150;
+            setTimeout(() => {
+                container.classList.remove('is-closing');
+                dropdown.classList.remove('is-closing');
+            }, closeMs);
         }
 
         // Suma los offsets (offsetTop/offsetLeft) de un elemento y todos sus
@@ -304,6 +329,12 @@
         function syncDisabled() {
             container.classList.toggle('is-disabled', select.disabled);
             trigger.disabled = select.disabled;
+            // Si el select se deshabilita con el menú abierto (p. ej. al cambiar
+            // el filtro padre se vacían las opciones), cerrarlo: un panel vacío
+            // y deshabilitado no debe quedar flotando sobre la página.
+            if (select.disabled && container.classList.contains('is-open')) {
+                closeDropdown();
+            }
         }
 
         function syncVisibility() {
@@ -369,6 +400,12 @@
             buildOptions();
             syncDisabled();
             syncVisibility();
+            // Si el menú quedó abierto pero se quedó sin opciones que mostrar
+            // (p. ej. el filtro padre se reinició), cerrarlo también.
+            if (container.classList.contains('is-open') &&
+                !dropdown.querySelector('.custom-select__option')) {
+                closeDropdown();
+            }
         });
         observer.observe(select, {
             attributes: true,

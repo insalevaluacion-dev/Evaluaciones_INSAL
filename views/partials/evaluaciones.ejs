@@ -12,6 +12,10 @@
             <span class="material-symbols-rounded">info</span>
             <p>¿Cómo se calcula?</p>
         </button>
+        <button type="button" class="centrar boton gap-btn btn-opcion" id="btn-descargar-grado" data-ripple aria-label="Descargar reporte por grado">
+            <span class="material-symbols-rounded">download</span>
+            <p>Descargar</p>
+        </button>
         <button class="centrar boton btn-refresh btn-opcion" data-ripple onclick="loadProyectosEvaluados(this)">
             <span class="material-symbols-rounded btn-refresh-icon">
                 refresh
@@ -98,6 +102,42 @@
             <button type="button" class="boton-cancelar" id="btn-cerrar-info-evaluaciones-inferior" data-ripple>
                 <span class="material-symbols-rounded">close</span>
                 <span>Entendido</span>
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Diálogo: descargar reporte por grado -->
+<dialog id="dialogo-descargar-grado" class="app-dialog--sm" aria-labelledby="dialogo-descargar-grado-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-descargar-grado-form" onsubmit="return false">
+        <button type="button" class="dialog-close-btn" id="btn-cancelar-grado" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <h2 class="dialog-title" id="dialogo-descargar-grado-titulo">
+            <span class="material-symbols-rounded dialogo-editar__icono" aria-hidden="true">download</span>
+            Descargar reporte por grado
+        </h2>
+        <p class="dialog-subtitle">Elige el grado y el formato. Se descarga el reporte final de todos los proyectos de ese grado.</p>
+        <div class="dialog-form">
+            <div class="field-group">
+                <label for="grado-select-descargar">Grado</label>
+                <select id="grado-select-descargar" class="grado-select-descargar" data-custom required>
+                    <option value="" hidden>Selecciona un grado…</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="boton-cancelar" id="btn-cancelar-grado-inferior" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Cancelar</span>
+            </button>
+            <button type="button" class="boton-confirmar" id="btn-descargar-grado-pdf" data-ripple>
+                <span class="material-symbols-rounded">picture_as_pdf</span>
+                <span>PDF</span>
+            </button>
+            <button type="button" class="boton-confirmar" id="btn-descargar-grado-excel" data-ripple>
+                <span class="material-symbols-rounded">table_view</span>
+                <span>Excel</span>
             </button>
         </div>
     </form>

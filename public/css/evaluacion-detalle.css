@@ -3,7 +3,74 @@
    Tarjetas de evaluaciones registradas + desglose de criterios
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Tarjeta de una evaluación ── */
+/* ── Badge de nota del proyecto (container1) ──────────────────
+   Mismo lenguaje visual que el campo de nota de la lista de
+   evaluaciones (.proyecto-evaluado__resultado): el estado parcial
+   NO tiene matiz de color (label negro, borde/fondo por defecto);
+   solo el completo usa verde. */
+.detalle-proyecto__nota {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--font-color-secondary);
+    font-family: Poppins, sans-serif;
+}
+
+/* Etiqueta dinámica vía ::before, igual que .proyecto-evaluado__resultado */
+.detalle-proyecto__nota::before {
+    content: 'Nota:';
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text-color-secondary);
+}
+
+/* Parcial: solo cambia el texto, sin matiz de color (como en la lista) */
+.detalle-proyecto__nota.is-parcial::before {
+    content: 'Nota parcial:';
+}
+
+/* Completa: texto + borde + fondo verdes (como en la lista) */
+.detalle-proyecto__nota.is-completa::before {
+    content: 'Nota completa:';
+    color: #2e9e5b;
+}
+
+.detalle-proyecto__nota.is-completa {
+    border-color: color-mix(in srgb, #2e9e5b 45%, var(--border));
+    background: color-mix(in srgb, #2e9e5b 8%, var(--font-color-secondary));
+}
+
+/* Valor, igual que .proyecto-evaluado__nota */
+.detalle-proyecto__nota-valor {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-color-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Escala junto al número, igual que el ::after de la lista */
+.detalle-proyecto__nota-valor::after {
+    content: '/ 10';
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text-color-secondary);
+    opacity: 0.45;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Tarjeta de una evaluación (patrón de pestañas)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor ── */
 .evaluacion-detalle__card {
     display: flex;
     flex-direction: column;
@@ -12,7 +79,7 @@
     border: 1.5px solid var(--border);
     border-radius: 14px;
     overflow: hidden;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .evaluacion-detalle__card:hover {
@@ -20,13 +87,13 @@
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
 }
 
-/* ── Fila resumen (clic para expandir) ── */
-.evaluacion-detalle__resumen {
+/* ── Cabecera: botón que colapsa/expandir la tarjeta ── */
+.evaluacion-detalle__head {
     display: flex;
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 14px;
+    padding: 14px 16px;
     border: none;
     background: transparent;
     text-align: left;
@@ -36,12 +103,46 @@
     -webkit-appearance: none;
 }
 
-.evaluacion-detalle__resumen:focus-visible {
+.evaluacion-detalle__head:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--principal-color) 35%, transparent);
     outline-offset: -3px;
+    border-radius: 12px;
 }
 
-/* ── Icono del evaluador ── */
+/* Chevron indicador de colapso */
+.evaluacion-detalle__chevron {
+    flex-shrink: 0;
+    font-size: var(--fs-xl);
+    color: var(--text-color);
+    opacity: 0.55;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease;
+}
+
+.evaluacion-detalle__card.is-colapsado .evaluacion-detalle__chevron {
+    transform: rotate(-90deg);
+}
+
+.evaluacion-detalle__head:hover .evaluacion-detalle__chevron {
+    opacity: 0.9;
+}
+
+/* ── Cuerpo colapsable (pestañas + paneles) ── */
+.evaluacion-detalle__cuerpo {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.evaluacion-detalle__card.is-colapsado .evaluacion-detalle__cuerpo {
+    grid-template-rows: 0fr;
+}
+
+.evaluacion-detalle__cuerpo-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Icono del evaluador */
 .evaluacion-detalle__num {
     display: flex;
     align-items: center;
@@ -55,20 +156,28 @@
 }
 
 .evaluacion-detalle__num .material-symbols-rounded {
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
 }
 
-/* ── Bloque de información ── */
-.evaluacion-detalle__info {
+/* Bloque de identidad (etiqueta + nombre) */
+.evaluacion-detalle__identidad {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
 }
 
-.evaluacion-detalle__evaluador {
-    font-size: 1.02rem;
+.evaluacion-detalle__etiqueta {
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--principal-color);
+}
+
+.evaluacion-detalle__nombre {
+    font-size: var(--fs-md);
     font-weight: 600;
     color: var(--text-color-secondary);
     line-height: 1.3;
@@ -77,129 +186,558 @@
     text-overflow: ellipsis;
 }
 
-.evaluacion-detalle__grupo {
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--principal-color);
-}
-
-.evaluacion-detalle__meta {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.82rem;
-    color: var(--text-color);
-    opacity: 0.85;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.evaluacion-detalle__meta .material-symbols-rounded {
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-
-/* ── Nota y chevron ── */
+/* Nota (a la derecha) */
 .evaluacion-detalle__nota {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 4px;
     flex-shrink: 0;
 }
 
 .evaluacion-detalle__nota-valor {
-    font-size: 1.35rem;
+    font-size: var(--fs-xl);
     font-weight: 700;
     color: var(--text-color-prioritary);
     font-variant-numeric: tabular-nums;
 }
 
-.evaluacion-detalle__chevron {
-    font-size: 1.3rem;
-    color: var(--text-color);
-    opacity: 0.6;
-    transition: transform 0.2s ease;
-}
-
-.evaluacion-detalle__card.is-abierto .evaluacion-detalle__chevron {
-    transform: rotate(180deg);
-}
-
-/* ── Panel de criterios (desglose) ── */
-.evaluacion-detalle__criterios {
-    padding: 0 14px 14px;
-    border-top: 1px solid var(--border);
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.evaluacion-detalle__criterios.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.evaluacion-detalle__criterios-titulo {
-    font-family: Poppins, sans-serif;
-    font-size: 0.8rem;
+.evaluacion-detalle__nota-escala {
+    font-size: var(--fs-xs);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     color: var(--text-color);
-    opacity: 0.7;
-    padding-top: 10px;
+    opacity: 0.5;
 }
 
-.evaluacion-detalle__criterios-contenido {
+/* ── Pestañas │ Detalles · Criterios (burbuja deslizante) ── */
+.evaluacion-detalle__tabs {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+}
+
+/* Burbuja que se desliza bajo la pestaña activa */
+.evaluacion-detalle__tab-indicador {
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 0;
+    width: 0;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--principal-color) 14%, transparent);
+    pointer-events: none;
+}
+
+/* La transición solo se activa tras el primer posicionamiento */
+.evaluacion-detalle__tab-indicador.is-animado {
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.evaluacion-detalle__tab {
+    position: relative;
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-color);
+    opacity: 0.72;
+    transition: color 0.18s ease, opacity 0.18s ease, background-color 0.18s ease;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.evaluacion-detalle__tab:hover:not(.is-activo) {
+    color: var(--text-color-secondary);
+    opacity: 1;
+    background: color-mix(in srgb, var(--border) 35%, transparent);
+}
+
+/* El fondo de la activa lo pinta la burbuja deslizante */
+.evaluacion-detalle__tab.is-activo {
+    color: var(--text-color-prioritary);
+    opacity: 1;
+}
+
+.evaluacion-detalle__tab:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--principal-color) 35%, transparent);
+    outline-offset: -3px;
+}
+
+/* ── Paneles de contenido ── */
+.evaluacion-detalle__panel {
+    border-top: 1px solid var(--border);
+    background: var(--font-color);
+}
+
+.evaluacion-detalle__panel-scroll {
+    padding: 14px 16px 16px;
+}
+
+/* Entrada del panel al cambiar de pestaña.
+   fill-mode: backwards (NO both): al terminar la animación el transform
+   desaparece; un transform persistente crearía un containing block y rompería
+   el position:fixed de los dropdowns de custom-select. */
+.evaluacion-detalle__panel.is-activo {
+    animation: panelEntra 0.26s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes panelEntra {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Escalonado de las filas dentro del panel */
+@keyframes filaEntra {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__dato,
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio {
+    animation: filaEntra 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__dato:nth-child(2),
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio:nth-child(2) {
+    animation-delay: 45ms;
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__dato:nth-child(3),
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio:nth-child(3) {
+    animation-delay: 90ms;
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__dato:nth-child(4),
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio:nth-child(4) {
+    animation-delay: 135ms;
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__dato:nth-child(5),
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio:nth-child(5) {
+    animation-delay: 180ms;
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio:nth-child(6) {
+    animation-delay: 225ms;
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio:nth-child(7) {
+    animation-delay: 270ms;
+}
+
+.evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterios-leyenda {
+    animation: filaEntra 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: 140ms;
+}
+
+/* Paneles que empiezan ocultos no ocupan espacio */
+.evaluacion-detalle__panel[hidden] {
+    display: none;
+}
+
+/* ── Pestaña Detalles: filas tipo ajustes (etiqueta izq · valor der) ── */
+.evaluacion-detalle__datos {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-top: 6px;
+    gap: 10px;
 }
 
-/* ── Fila de un criterio evaluado ── */
+.evaluacion-detalle__dato {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 16px;
+    background: var(--font-color-secondary);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-radius: 12px;
+}
+
+.evaluacion-detalle__dato dt {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.evaluacion-detalle__dato dd {
+    margin: 0;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color);
+    text-align: right;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.evaluacion-detalle__nota-fuerte {
+    font-weight: 700;
+    color: var(--text-color-prioritary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Pestaña Criterios: desglose ── */
+/* Desglose de criterios: filas-bloque con columnas alineadas */
+.evaluacion-detalle__criterios-tabla {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Fila de etiquetas de columna (comparte grid con las filas) */
+.evaluacion-detalle__criterios-cabecera,
 .evaluacion-detalle__criterio {
     display: grid;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: minmax(0, 1fr) 90px 70px 80px;
+    gap: 12px;
     align-items: center;
-    gap: 10px;
-    padding: 7px 10px;
-    background: color-mix(in srgb, var(--principal-color) 5%, transparent);
-    border-radius: 10px;
+}
+
+.evaluacion-detalle__criterios-cabecera {
+    padding: 0 16px;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-color);
+    opacity: 0.55;
+}
+
+.evaluacion-detalle__criterios-cabecera span:not(:first-child) {
+    text-align: right;
+}
+
+/* Fila de un criterio (bloque tipo ajustes) */
+.evaluacion-detalle__criterio {
+    padding: 13px 16px;
+    background: var(--font-color-secondary);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-radius: 12px;
     font-family: Poppins, sans-serif;
 }
 
 .evaluacion-detalle__criterio-nombre {
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     color: var(--text-color-secondary);
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.evaluacion-detalle__criterio-porc,
-.evaluacion-detalle__criterio-puntos {
-    font-size: 0.82rem;
+.evaluacion-detalle__criterio-col {
+    font-size: var(--fs-sm);
     color: var(--text-color);
-    opacity: 0.85;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
-.evaluacion-detalle__criterio-pond {
-    font-size: 0.82rem;
-    font-weight: 600;
+.evaluacion-detalle__criterio-aporte {
+    font-weight: 700;
     color: var(--principal-color);
-    white-space: nowrap;
+}
+
+/* Leyenda que explica qué es el "aporte".
+   Mismo padding horizontal que la cabecera y las filas de criterios
+   para quedar alineada con el resto del desglose. */
+.evaluacion-detalle__criterios-leyenda {
+    margin: 2px 0 0;
+    padding: 0 16px;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-xs);
+    color: var(--text-color);
+    opacity: 0.7;
+    line-height: 1.5;
+}
+
+.evaluacion-detalle__criterios-leyenda strong {
+    color: var(--text-color-secondary);
+    font-weight: 600;
 }
 
 .evaluacion-detalle__criterios-vacio {
     font-family: Poppins, sans-serif;
-    font-size: 0.88rem;
+    font-size: var(--fs-sm);
     color: var(--text-color);
     opacity: 0.75;
     padding: 8px 2px;
+}
+
+/* ── Botón de descarga (encabezado) ── */
+.btn-descargar-evaluacion {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    text-decoration: none;
+    color: var(--azul);
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--azul-lite);
+    background: var(--card);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    transform-origin: right center;
+}
+
+/* ── Cabecera compacta en móvil ──
+   En móvil el content_inicio (rubrica-editar.css) aplica flex-wrap, lo que
+   apilaba título y botón en 2 líneas (148px). Con grid se reordenan en 2
+   filas. Para que el título largo ("Detalle de evaluación") quepa COMPLETO
+   sin truncarse, el botón se reduce a solo-ícono en móvil. */
+@media (max-width: 640px) {
+    .content_inicio:has(.btn-descargar-evaluacion) {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            "btn back back"
+            "title title descargar";
+        align-items: center;
+        gap: 8px 12px;
+    }
+
+    .content_inicio:has(.btn-descargar-evaluacion) .item-boton-menu {
+        grid-area: btn;
+    }
+
+    .content_inicio:has(.btn-descargar-evaluacion) .back-link {
+        grid-area: back;
+    }
+
+    .content_inicio:has(.btn-descargar-evaluacion) .text-title-seccion {
+        grid-area: title;
+        margin-left: 0;
+        margin-top: 0;
+        font-size: var(--fs-2xl);
+        /* Sin ellipsis ni nowrap: al reducir el botón a ícono hay espacio de
+           sobra, y el título se muestra completo en una línea. */
+    }
+
+    .content_inicio:has(.btn-descargar-evaluacion) .btn-descargar-evaluacion {
+        grid-area: descargar;
+        justify-self: end;
+        margin-left: 0;
+        transform-origin: right center;
+        /* Solo-ícono en móvil: ahorra ~90px y deja sitio al título. */
+        width: 34px;
+        height: 34px;
+        padding: 6px;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
+    .content_inicio:has(.btn-descargar-evaluacion) .btn-descargar-evaluacion > span:not(.material-symbols-rounded) {
+        display: none;
+    }
+
+    /* ── Cabecera del proyecto (container1) ──
+       En móvil el badge de nota (185px) aplastaba el título hasta truncarlo
+       a una letra. La cabecera pasa a 2 filas: icono + textos arriba (el
+       título respira y usa ellipsis solo si es larguísimo), badge abajo. */
+    .container1--detalle-evaluacion {
+        padding: 12px 14px;
+    }
+
+    .container1--detalle-evaluacion .proyecto-header {
+        flex-wrap: wrap;
+        gap: 10px 12px;
+    }
+
+    .container1--detalle-evaluacion .proyecto-icon {
+        font-size: var(--fs-4xl, 34px);
+    }
+
+    .container1--detalle-evaluacion .proyecto-info {
+        flex: 1;
+        min-width: 0; /* permite que los textos hagan ellipsis en vez de desbordar */
+    }
+
+    .container1--detalle-evaluacion #nombre-proyecto {
+        font-size: var(--fs-xl);
+        gap: 0;
+    }
+
+    .container1--detalle-evaluacion .proyecto-titulo {
+        font-size: var(--fs-xl);
+    }
+
+    .container1--detalle-evaluacion .proyecto-descripcion {
+        font-size: var(--fs-xs);
+    }
+
+    /* Badge a ancho completo en su propia fila, alineado al inicio */
+    .container1--detalle-evaluacion .detalle-proyecto__nota {
+        flex-basis: 100%;
+        justify-content: flex-start;
+        padding: 7px 12px;
+    }
+
+    .container1--detalle-evaluacion .detalle-proyecto__nota::before {
+        font-size: var(--fs-xs);
+    }
+
+    .container1--detalle-evaluacion .detalle-proyecto__nota-valor {
+        font-size: var(--fs-lg);
+    }
+
+    /* ── Cabecera "Evaluaciones registradas" ──
+       En pantallas estrechas el texto + contador no cabían y se partía en
+       2 líneas. Se reduce un punto tipográfico para que quepa en una. */
+    .container2 .form-cabecera {
+        font-size: var(--fs-md);
+        gap: 8px;
+    }
+
+    /* ── Tabla de criterios (pestaña Criterios) ──
+       El grid fijo (1fr + 90px + 70px + 80px + gaps) dejaba ~16px para el
+       nombre del criterio (invisible) y la cabecera se solapaba. En móvil
+       se compactan las columnas numéricas y el padding para devolverle el
+       espacio al nombre. */
+    .evaluacion-detalle__panel-scroll {
+        padding: 12px 10px 14px;
+    }
+
+    .evaluacion-detalle__criterios-cabecera,
+    .evaluacion-detalle__criterio {
+        grid-template-columns: minmax(0, 1fr) 44px 44px 48px;
+        gap: 8px;
+    }
+
+    .evaluacion-detalle__criterios-cabecera {
+        padding: 0 12px;
+        letter-spacing: 0.03em;
+    }
+
+    .evaluacion-detalle__criterio {
+        padding: 11px 12px;
+    }
+
+    .evaluacion-detalle__criterio-nombre {
+        white-space: normal; /* nombres largos: envolver en vez de truncar */
+        line-height: 1.35;
+        font-size: var(--fs-xs);
+    }
+
+    .evaluacion-detalle__criterio-col {
+        font-size: var(--fs-xs);
+    }
+
+    .evaluacion-detalle__criterios-leyenda {
+        padding: 0 12px;
+        font-size: var(--fs-2xs);
+    }
+}
+
+.btn-descargar-evaluacion .material-symbols-rounded {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+}
+
+.btn-descargar-evaluacion:hover {
+    background: var(--azul-lite);
+    border-color: var(--azul);
+    transform: scale(1.04);
+    color: var(--azul-dark);
+}
+
+.btn-descargar-evaluacion:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* ── Diálogo de opciones de descarga ── */
+.dialogo-descargar .dialog-inner {
+    padding: 28px 28px 24px;
+}
+
+.dialogo-descargar__opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dialogo-descargar__opcion {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--txt);
+    font-family: Poppins, sans-serif;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.dialogo-descargar__opcion:hover {
+    background: var(--azul-lite);
+    border-color: var(--azul);
+}
+
+.dialogo-descargar__opcion:active {
+    transform: scale(0.98);
+}
+
+.dialogo-descargar__opcion:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.dialogo-descargar__opcion > .material-symbols-rounded {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--azul-lite);
+    color: var(--azul);
+    font-size: var(--fs-2xl);
+}
+
+.dialogo-descargar__opcion-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.dialogo-descargar__opcion-titulo {
+    font-size: var(--fs-md);
+    font-weight: 600;
+}
+
+.dialogo-descargar__opcion-texto small {
+    font-size: var(--fs-xs, 12px);
+    color: var(--soft);
 }
 
 /* ── Animación de entrada (igual que criterios-rubrica) ── */
@@ -223,7 +761,17 @@
         animation: none;
     }
 
-    .evaluacion-detalle__criterios {
+    .evaluacion-detalle__panel.is-activo,
+    .evaluacion-detalle__panel.is-activo .evaluacion-detalle__dato,
+    .evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterio,
+    .evaluacion-detalle__panel.is-activo .evaluacion-detalle__criterios-leyenda {
+        animation: none;
+    }
+
+    .evaluacion-detalle__tab-indicador,
+    .evaluacion-detalle__tab,
+    .evaluacion-detalle__cuerpo,
+    .evaluacion-detalle__chevron {
         transition: none;
     }
 }

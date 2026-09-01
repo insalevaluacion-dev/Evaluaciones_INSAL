@@ -31,6 +31,9 @@
     --sh: 0 4px 24px rgba(15, 90, 171, .13);
     --sh-sm: 0 2px 10px rgba(15, 90, 171, .09);
     --sh-lg: 0 12px 40px rgba(15, 90, 171, .18);
+    /* Elevación de overlays flotantes (menús contextuales, submenús):
+       capa de contacto + ambiente para que se lean "sobre" el contenido */
+    --sh-float: 0 2px 8px rgba(13, 30, 53, .14), 0 12px 28px rgba(15, 90, 171, .18), 0 28px 64px rgba(15, 90, 171, .22);
 
     --base-color: #11121a;
     --background-color: #ffffff;
@@ -61,7 +64,22 @@
     /* Circular progress */
     --progreso-arco: rgba(25, 118, 210, 0.95);
     --progreso-pista: rgba(0, 0, 0, 0.1);
-    
+
+    /* ═══ TIPOGRAFÍA — escala unificada (1rem = 16px) ═══
+       Todos los tamaños de fuente del sistema usan estos tokens.
+       Niveles: contadores → captions → secundario → cuerpo → destacado
+       → subtítulos → títulos → pantalla → display. */
+    --fs-2xs: 0.75rem;   /* 12px  — contadores, mini-badges, char-counter */
+    --fs-xs: 0.82rem;    /* 13.1px — captions, meta, roles, etiquetas */
+    --fs-sm: 0.95rem;    /* 15.2px — texto secundario, menús, tablas, labels */
+    --fs-md: 1rem;       /* 16px  — cuerpo base, inputs, botones secundarios */
+    --fs-lg: 1.15rem;    /* 18.4px — entradas de lista, botones primarios */
+    --fs-xl: 1.3rem;     /* 20.8px — subtítulos, selects, iconos de acción */
+    --fs-2xl: 1.5rem;    /* 24px  — títulos de sección, iconos de lista */
+    --fs-3xl: 1.7rem;    /* 27.2px — títulos de página/tarjeta */
+    --fs-4xl: 2rem;      /* 32px  — títulos de pantalla */
+    --fs-5xl: 2.25rem;   /* 36px  — títulos grandes (login) */
+    --fs-6xl: 2.6rem;    /* 41.6px — display, iconos de proyecto */
 }
 
 :root {
@@ -119,7 +137,7 @@ dialog {
     transform: translate(-50%, -50%);
     border: none;
     padding: 0;
-    font-size: 18px;
+    font-size: var(--fs-lg);
     /* Dimensiones basadas en contenido, con ancho máximo respetuoso */
     width: max-content;
     max-width: min(560px, 95vw);
@@ -167,11 +185,16 @@ dialog.opcionespanel svg {
     cursor: pointer;
 }
 
+/* En móvil SOLO el modal de ajustes (legacy .opcionespanel) ocupa casi toda
+   la pantalla. El resto de los diálogos NO se fuerza a fullscreen: se adaptan
+   con las reglas responsive de dialog.css (antes esta regla usaba selectores
+   `dialog` a secas con !important y estiraba todos los modales a 100dvw×100dvh,
+   dejando los diálogos pequeños con un enorme vacío debajo del contenido). */
 @media(width <=800px) {
-    dialog {
-        height: 100dvh !important;
-        width: 100dvw !important;
-        min-width: 100vw !important;
+    dialog.opcionespanel {
+        height: 90dvh !important;
+        width: 95dvw !important;
+        min-width: 0 !important;
     }
 }
 
@@ -199,7 +222,7 @@ dialog.opcionespanel svg {
     padding: 10px 20px;
     cursor: pointer;
     font-family: Poppins, sans-serif;
-    font-size: 20px;
+    font-size: var(--fs-lg);
     font-weight: 500;
     display: flex;
     gap: 5px;

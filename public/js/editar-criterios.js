@@ -45,7 +45,9 @@ function escapeHtml(str) {
 }
 
 function getTotal() {
-    return criterios.reduce((sum, c) => sum + (Number(c.porcentaje) || 0), 0);
+    return criterios
+        .filter(c => !c.eliminado)
+        .reduce((sum, c) => sum + (Number(c.porcentaje) || 0), 0);
 }
 
 /**
@@ -361,7 +363,7 @@ function renderEstadoSincronizacion() {
     if (!estado) return;
 
     const texto = estado.querySelector('.estado-sincronizacion__texto');
-    const tieneCambios = criterios.some(c => c.pendiente);
+    const tieneCambios = criterios.some(c => c.pendiente || c.eliminado);
 
     estado.classList.toggle('estado-sincronizacion--pendiente', tieneCambios);
     estado.classList.toggle('estado-sincronizacion--ok', !tieneCambios);
@@ -465,7 +467,7 @@ async function loadCriterios() {
         const res = await fetch(`/admin/niveles/${rubricaId}/criterios`);
         const data = await res.json();
         criterios = Array.isArray(data.criterios) ? data.criterios : [];
-        criterios.forEach(c => { c.uid = nextUid(); c.pendiente = false; });
+        criterios.forEach(c => { c.uid = nextUid(); c.pendiente = false; c.eliminado = false; });
     } catch (err) {
         console.log('Error al cargar criterios:', err);
         criterios = [];
@@ -484,10 +486,31 @@ function renderCriterios() {
 
     lista.innerHTML = '';
 
-    if (criterios.length === 0) {
-        lista.innerHTML = '<p class="criterios-vacio">Aún no hay criterios en esta rúbrica. Añade uno abajo.</p>';
+    // Píldora de deshacer: hay criterios marcados para eliminar
+    const eliminados = criterios.filter(c => c.eliminado);
+    if (eliminados.length > 0) {
+        const pildora = document.createElement('div');
+        pildora.className = 'criterios-deshacer';
+        pildora.innerHTML = `
+            <span class="material-symbols-rounded" aria-hidden="true">restore</span>
+            <span class="criterios-deshacer__texto">${eliminados.length} criterio(s) marcado(s) para eliminar</span>
+            <button type="button" class="criterios-deshacer__btn" data-ripple>Deshacer</button>
+        `;
+        pildora.querySelector('.criterios-deshacer__btn').addEventListener('click', deshacerEliminaciones);
+        lista.appendChild(pildora);
+    }
+
+    const activos = criterios.filter(c => !c.eliminado);
+
+    if (activos.length === 0) {
+        const mensaje = document.createElement('p');
+        mensaje.className = 'criterios-vacio';
+        mensaje.textContent = eliminados.length > 0
+            ? 'Los criterios marcados se eliminarán al pulsar «Guardar».'
+            : 'Aún no hay criterios en esta rúbrica. Añade uno abajo.';
+        lista.appendChild(mensaje);
     } else {
-        criterios.forEach((c, index) => {
+        activos.forEach((c, index) => {
             const card = createCriterioCard(c);
             card.classList.add('criterio-entrada');
             card.style.animationDelay = `${index * 80}ms`;
@@ -500,7 +523,7 @@ function renderCriterios() {
     }
     hideLoader();
     const contador = document.getElementById('contador-criterios');
-    if (contador) contador.textContent = criterios.length;
+    if (contador) contador.textContent = activos.length;
     renderTotal();
     renderEstadoSincronizacion();
 }
@@ -677,36 +700,25 @@ async function updateCriterio(uid, patch) {
     mostrarNotificacion('Criterio modificado (pendiente de guardar)', 'info');
 }
 
-/** Elimina un criterio (local si es borrador; vía DELETE si está guardado). */
-async function deleteCriterio(uid) {
+/**
+ * Marca un criterio para eliminar (SOLO en memoria). Se borra de la vista
+ * de inmediato y se elimina en la BD al pulsar «Guardar». Reversible con
+ * la píldora de deshacer.
+ */
+function deleteCriterio(uid) {
     const idx = criterios.findIndex(c => Number(c.uid) === Number(uid));
     if (idx === -1) return;
 
-    if (!criterios[idx].pendiente) {
-        // La petición DELETE se ejecuta dentro de confirmarAccion, de modo que el
-        // botón del diálogo muestra "Confirmando…" durante la operación real y
-        // "¡Hecho!" al completarse (en lugar de cerrarse a los 150ms).
-        let ok;
-        try {
-            ok = await confirmarAccion(
-                '¿Eliminar este criterio?',
-                'Esta acción no se puede deshacer.',
-                async () => {
-                    const res = await fetch(`/admin/criterios/${criterios[idx].criterio_id}`, { method: 'DELETE' });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data?.mensaje || 'Error al eliminar');
-                }
-            );
-        } catch (err) {
-            mostrarNotificacion(err.message || 'Error al eliminar', 'error');
-            return;
-        }
-        if (!ok) return;
-    }
-
-    criterios.splice(idx, 1);
+    criterios[idx].eliminado = true;
     renderCriterios();
-    mostrarNotificacion('Criterio eliminado', 'bien');
+    mostrarNotificacion('Criterio marcado para eliminar (se guardará al pulsar Guardar)', 'info');
+}
+
+/** Restaura todos los criterios marcados para eliminar. */
+function deshacerEliminaciones() {
+    criterios.forEach(c => { c.eliminado = false; });
+    renderCriterios();
+    mostrarNotificacion('Eliminación cancelada', 'info');
 }
 
 // ── Verificación de campos vacíos (patrón login) ──
@@ -757,6 +769,25 @@ function validarPorcentajeCriterio(input, errorSpan, porcentaje) {
     return true;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MODAL AÑADIR CRITERIO
+// ═══════════════════════════════════════════════════════════════
+
+/** Abre el modal de añadir criterio con el formulario limpio. */
+function abrirDialogoCriterio() {
+    const dialogo = document.getElementById('dialogo-criterio');
+    if (!dialogo) return;
+
+    limpiarFormularioCriterio();
+    setTimeout(() => document.getElementById('criterio-nombre')?.focus(), 30);
+    dialogo.showModal();
+}
+
+function cerrarDialogoCriterio() {
+    const dialogo = document.getElementById('dialogo-criterio');
+    if (dialogo) cerrarDialogoAnimado(dialogo);
+}
+
 /** Agrega el criterio del formulario a la lista como borrador (sin guardar aún). */
 function addCriterioDraft() {
     const nombreInput = document.getElementById('criterio-nombre');
@@ -795,9 +826,9 @@ function addCriterioDraft() {
     });
 
     limpiarFormularioCriterio();
+    cerrarDialogoCriterio();
 
     renderCriterios();
-    nombreInput?.focus();
     mostrarNotificacion('Criterio añadido (pendiente de guardar)', 'info');
 }
 
@@ -805,6 +836,7 @@ function cancelarCriterioDraft() {
     limpiarFormularioCriterio();
     // Quitar el foco del input activo (no re-enfocar en otro)
     document.activeElement?.blur?.();
+    cerrarDialogoCriterio();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -827,13 +859,29 @@ async function guardarCriterios() {
         throw new Error('Validación fallida');
     }
 
-    const pendientes = criterios.filter(c => c.pendiente);
-    if (pendientes.length === 0) {
+    const eliminados = criterios.filter(c => c.eliminado);
+    const pendientes = criterios.filter(c => c.pendiente && !c.eliminado);
+    if (eliminados.length === 0 && pendientes.length === 0) {
         mostrarNotificacion('No hay criterios por guardar', 'info');
         throw new Error('Sin cambios');
     }
 
     try {
+        // 1) Eliminar primero los criterios marcados (los borradores nuevos
+        //    marcados para eliminar simplemente se descartan).
+        for (const c of eliminados) {
+            if (c.criterio_id == null) continue;
+            const res = await fetch(`/admin/criterios/${c.criterio_id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error(`No se pudo eliminar "${c.nombre}": ${data?.mensaje || 'error'}`);
+            }
+        }
+
+        // 2) Persistir los pendientes (nuevos → POST, editados → PUT).
         for (const c of pendientes) {
             let res, data;
 
@@ -871,6 +919,10 @@ async function guardarCriterios() {
             }
             c.pendiente = false;
         }
+
+        // 3) Descartar los eliminados y normalizar el estado local.
+        criterios = criterios.filter(c => !c.eliminado);
+
         // La notificación de éxito y el re-render los hace el onSuccess del
         // handler (mostrarla aquí también la duplicaba).
         return { success: true };
@@ -1132,25 +1184,31 @@ function initEditarCriterios() {
         btnCancelar.addEventListener('click', cancelarCriterioDraft);
     }
 
-    // Mostrar/ocultar acciones solo cuando haya datos en el formulario.
-    const accionesContainer = document.querySelector('.criterio-form__acciones');
-    if (accionesContainer && !accionesContainer.dataset.handlerInitialized) {
-        accionesContainer.dataset.handlerInitialized = 'true';
+    // Abrir el modal de añadir criterio
+    const btnAbrir = document.getElementById('btn-abrir-criterio');
+    if (btnAbrir && !btnAbrir.dataset.handlerInitialized) {
+        btnAbrir.dataset.handlerInitialized = 'true';
+        btnAbrir.addEventListener('click', abrirDialogoCriterio);
+    }
 
-        const campoNombre = document.getElementById('criterio-nombre');
-        const campoPorcentaje = document.getElementById('criterio-porcentaje');
+    // Cerrar el modal con el botón X
+    const btnCerrar = document.getElementById('btn-cerrar-criterio');
+    if (btnCerrar && !btnCerrar.dataset.handlerInitialized) {
+        btnCerrar.dataset.handlerInitialized = 'true';
+        btnCerrar.addEventListener('click', cerrarDialogoCriterio);
+    }
 
-        const toggleAcciones = () => {
-            const visible = Boolean(
-                campoNombre?.value.trim() || campoPorcentaje?.value.trim()
-            );
-            accionesContainer.classList.toggle('oculto', !visible);
-        };
-
-        [campoNombre, campoPorcentaje].forEach(el => {
-            if (el) el.addEventListener('input', toggleAcciones);
+    // Cerrar el modal con Escape o click en el backdrop
+    const dialogoCriterio = document.getElementById('dialogo-criterio');
+    if (dialogoCriterio && !dialogoCriterio.dataset.handlerInitialized) {
+        dialogoCriterio.dataset.handlerInitialized = 'true';
+        dialogoCriterio.addEventListener('click', (e) => {
+            if (e.target === dialogoCriterio) cerrarDialogoCriterio();
         });
-        toggleAcciones();
+        dialogoCriterio.addEventListener('cancel', (e) => {
+            e.preventDefault();
+            cerrarDialogoCriterio();
+        });
     }
 
     const formGuardar = document.getElementById('form-guardar-criterios');

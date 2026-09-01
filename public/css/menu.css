@@ -121,7 +121,7 @@ body {
 #aside.close #usuario_perfil .perfil-icon{
     width: 24px;
     height: 24px;
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
     padding: 0;
     background: none;
     color: var(--text-color-prioritary);
@@ -133,7 +133,7 @@ body {
     justify-content: center;
     width: 44px;
     height: 44px;
-    font-size: 1.8rem;
+    font-size: var(--fs-3xl);
     color: var(--azul-dark);
     /* Avatar redondo plano, mismo patrón que los iconos de .list-item__content */
     background: var(--azul-lite);
@@ -152,7 +152,7 @@ body {
 }
 
 #usuario_perfil .perfil-info .texto{
-    font-size: 1rem;
+    font-size: var(--fs-md);
     line-height: 1.2;
     font-weight: 700;
     color: var(--txt);
@@ -162,7 +162,7 @@ body {
 
 /* Rol como texto secundario plano: sin icono, sin fondo ni borde */
 #usuario_perfil .perfil-rol{
-    font-size: 0.82rem;
+    font-size: var(--fs-xs);
     font-weight: 400;
     line-height: 1.2;
     color: var(--soft);
@@ -177,7 +177,7 @@ body {
    infoCard está abierta (detectado con :has(), sin tocar JS). */
 #usuario_perfil .perfil-chevron{
     margin-left: auto;
-    font-size: 20px;
+    font-size: var(--fs-xl);
     color: var(--text-color-prioritary);
     opacity: 0.45;
     flex-shrink: 0;
@@ -203,7 +203,7 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
     justify-content: start;
     align-items: center;
     gap: 10px;
-    font-size: 1.2rem;
+    font-size: var(--fs-lg);
     width: 100%;
     height: auto;
     padding: 11px 20px;
@@ -302,6 +302,13 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
         white-space: nowrap;
         position: fixed;
         font-weight: 600;
+        /* Tooltip flotante: debe pintarse por encima de todo el contenido de
+           #main__container (que viene después en el DOM y tiene elementos con
+           z-index propio, ej. 20 y 1010). Queda por debajo de los diálogos
+           (9999). Sin esto, el texto queda tapado al pasar junto a tarjetas,
+           tablas o cabeceras con fondo. */
+        z-index: 1200;
+        transition: opacity 0.15s ease;
     }
 }
 
@@ -390,7 +397,7 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
 
 .submenu-wrap > .submenu-arrow {
     margin-left: auto;
-    font-size: 14px;
+    font-size: var(--fs-xs);
     transition: transform 0.15s ease;
 }
 
@@ -413,7 +420,7 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
     transform: translateX(-4px);
     transition: opacity 0.12s ease, visibility 0s 0.12s, transform 0.12s ease;
     z-index: 9999;
-    box-shadow: 0 4px 16px rgba(15, 90, 171, 0.18);
+    box-shadow: var(--sh-float);
 }
 
 /* Direcciones alternativas (asignadas por JS dinámicamente) */
@@ -547,7 +554,7 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
     align-items: center;
     gap: 10px;
     padding: 8px 10px;
-    font-size: 13px;
+    font-size: var(--fs-xs);
     border-radius: 8px;
     cursor: pointer;
     color: var(--secundario-texto-color, #474a54);
@@ -563,7 +570,7 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
 }
 
 .ctx-submenu .submenu-item .material-symbols-rounded {
-    font-size: 18px;
+    font-size: var(--fs-lg);
 }
 
 /* 🆕 Cuando un .submenu-wrap está dentro de un submenú, se comporta como item */
@@ -575,9 +582,9 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
     transform: translateX(2px);
 }
 
-/* Mantener el menú contextual por encima del contenido */
+/* Mantener el menú contextual por encima del contenido y del aside */
 .menu_contextual.show {
-    z-index: 1000 !important;
+    z-index: 1100 !important;
 }
 
 /* Cuando el item-boton-menu tiene la clase 'cargando' */
@@ -594,7 +601,7 @@ body:has(#infoCard.show) #usuario_perfil .perfil-chevron{
     border: none;
     font-family: Poppins;
     height: 100%;
-    font-size: 1rem;
+    font-size: var(--fs-md);
 
     &:focus{
         outline: none;
@@ -668,7 +675,7 @@ th {
     padding-left: 8px;
     font-weight: 600;
     color: var(--secundario-texto-color);
-    font-size: 0.85rem;
+    font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     background-color: rgba(0, 0, 0, 0.02);
@@ -679,7 +686,7 @@ td {
     padding-left: 8px;
     border-bottom: 1px solid var(--border);
     color: var(--secundario-texto-color);
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     vertical-align: middle;
 }
 
@@ -742,7 +749,7 @@ tr:hover {
 .selection-bar__left {
     display: flex;
     align-items: center;
-    font-size: 1rem;
+    font-size: var(--fs-md);
     font-weight: 500;
     gap: 12px;
 }
@@ -822,7 +829,7 @@ tr:hover {
 
 .pagination__info {
     color: var(--secundario-texto-color);
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     min-width: fit-content;
 }
 
@@ -876,7 +883,7 @@ tr:hover {
     border-radius: 6px;
     background: white;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     color: var(--secundario-texto-color);
     transition: all 0.2s ease;
@@ -898,7 +905,7 @@ tr:hover {
     align-items: center;
     gap: 10px;
     color: var(--secundario-texto-color);
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     min-width: fit-content;
 }
 
@@ -914,7 +921,7 @@ tr:hover {
     color: var(--secundario-texto-color);
     cursor: pointer;
     font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     transition: all 0.2s ease;
 }
 
@@ -978,8 +985,32 @@ tr:hover {
         min-width: 250px;
     }
 
+    /* En móvil el drawer NO colapsa a solo-iconos como en escritorio: se
+       desliza completo fuera de pantalla manteniendo sus 250px. Sin esto, al
+       cerrarse se aplicaban los estilos de colapso de escritorio
+       (#aside.close .opcion => centrar + padding 13px, y #aside.close .texto
+       => tooltip gris #cacaca opacity:0) y el botón activo "se desmaqueta":
+       texto gris sobre fondo gris y sin sus 20px de padding, justo durante la
+       animación de salida. Se anulan aquí para que conserve su aspecto normal
+       mientras se desliza. */
+    #aside.close .opcion {
+        justify-content: flex-start;
+        padding: 11px 20px;
+    }
+
+    #aside.close .opcion:hover {
+        padding: 11px 20px;
+    }
+
     #aside.close .texto {
         position: static;
+        opacity: 1;
+        pointer-events: none;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        left: auto;
+        font-weight: 500;
     }
 
     .mobile-only {
@@ -1045,7 +1076,7 @@ tr:hover {
         text-align: left;
         font-weight: 600;
         color: var(--secundario-texto-color);
-        font-size: 0.8rem;
+        font-size: var(--fs-xs);
         text-transform: uppercase;
     }
 
@@ -1090,13 +1121,40 @@ tr:hover {
     justify-content: center;
     padding: 4px;
     border-radius: 50%;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+    /* Solo el icono interior rota: rotar el botón entero (que es
+       .ripple-container con overflow:hidden) se ve cortado/torpe y podía
+       desplazar el contenido porque el contenedor queda en el flujo. */
+    transition: background 0.2s ease;
     z-index: 1010;
 }
 
 .menu-close-btn:hover {
-    transform: rotate(90deg);
     background: rgba(255, 255, 255, 0.2);
+}
+
+.menu-close-btn .material-symbols-rounded {
+    /* Sin rotación: el icono permanece estático en el hover */
+    transition: none;
+}
+
+/* Sobre la info-card (fondo claro) el botón blanco sobre blanco es
+   invisible: icono oscuro + hover suave, mismo lenguaje que .dialog-close-btn */
+.info-card .menu-close-btn {
+    background: transparent;
+    color: var(--txt);
+    /* El botón lleva la clase .ripple-container, y ripple.css le impone
+       position: relative !important. Eso anula el position:absolute de
+       .menu-close-btn y lo saca de la esquina: la X aparecía arriba-izquierda
+       y, al entrar en el flujo, empujaba todo el contenido hacia abajo.
+       Reafirmamos absolute aquí para que quede clavada arriba-derecha. */
+    position: absolute !important;
+    top: 12px;
+    right: 12px;
+}
+
+.info-card .menu-close-btn:hover {
+    background: var(--bg2);
+    color: var(--azul);
 }
 
 .menu-close-btn-inline {
@@ -1125,7 +1183,10 @@ tr:hover {
 
 /* --- Tarjeta de perfil de usuario (info-card) --- */
 .info-card {
-    z-index: 1000;
+    /* Por encima del aside del drawer móvil (z-index 1000) y del overlay
+       (999): si el drawer está abierto, el menú contextual nunca queda
+       pintado debajo de él. */
+    z-index: 1100;
     background: var(--card);
     color: var(--txt);
     border: 1px solid var(--border);
@@ -1136,7 +1197,15 @@ tr:hover {
     opacity: 0;
     transform: scale(0.96) translateY(-4px);
     transform-origin: top left;
-    transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+    /* Sin transition en opacity/transform: la apertura y el cierre los
+       gestionan exclusivamente las animaciones (infoCardOpen/infoCardClose
+       y sus variantes móviles). Con transition activa, al cerrar el fade
+       por transition (0.18s) seguía corriendo DESPUÉS de que animationend
+       retiraba .closing (0.16s), y la tarjeta saltaba del translateY(16px)
+       final de la animación de vuelta a un estado semi-visible: parecía
+       que se abría dos veces. Esta regla va después de .menu_contextual
+       en el archivo, así que este transition: none gana al de esa regla. */
+    transition: none;
     pointer-events: none;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1237,7 +1306,7 @@ tr:hover {
 
 /* --- Texto del nombre de usuario --- */
 .title {
-    font-size: 1.25rem;
+    font-size: var(--fs-xl);
     font-weight: 600;
     color: var(--txt);
     text-align: center;
@@ -1250,37 +1319,38 @@ tr:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    min-height: 28px;
-    padding: 5px 12px;
+    height: 28px;
+    padding: 0 15px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--azul-lite) 82%, white);
-    border: 1px solid color-mix(in srgb, var(--azul) 16%, transparent);
-    color: var(--azul);
-    font-size: 0.8rem;
+    /* Mismo patrón de chip que .proyecto-tab__badge: tinte suave del color,
+       sin borde, sin degradado, sin sombra */
+    background: color-mix(in srgb, var(--azul) 12%, transparent);
+    color: var(--azul-dark);
+    font-size: var(--fs-md);
     font-weight: 600;
     line-height: 1;
     white-space: nowrap;
+    letter-spacing: 0.01em;
 }
 
-#infoCard .perfil-card-rol .rol-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
-    font-size: 1rem !important;
-    line-height: 1;
-    font-weight: 500 !important;
-    cursor: default;
+/* Claves de rol — chip con tinte suave del color del rol, mismo patrón que
+   los badges de pestaña de la app (la clase llega desde menu.ejs). */
+.perfil-card-rol--director,
+.perfil-card-rol--administrador {
+    background: color-mix(in srgb, var(--azul) 14%, transparent);
+    color: var(--azul-dark);
+}
+
+.perfil-card-rol--docente {
+    background: color-mix(in srgb, var(--verde) 14%, transparent);
+    color: var(--verde);
 }
 
 .user-email {
     max-width: 100%;
     word-break: break-word;
     text-align: center;
-    font-size: 0.85rem;
+    font-size: var(--fs-xs);
     color: var(--texto-color-secondary);
     opacity: 0.7;
     line-height: 1.3;
@@ -1300,7 +1370,7 @@ tr:hover {
     transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
     cursor: pointer;
     font-family: Poppins, sans-serif;
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
 }
 
@@ -1324,7 +1394,7 @@ tr:hover {
     transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
     cursor: pointer;
     font-family: Poppins, sans-serif;
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
 }
 
@@ -1347,3 +1417,76 @@ tr:hover {
         width: calc(100% - 25px);
     }
 }
+
+/* ── Móvil: el menú contextual del perfil ocupa toda la pantalla ─────────
+   Como hoja fullscreen nunca queda debajo del drawer del aside ni flotando
+   en una esquina con posición calculada. El JS deja de posicionarlo en
+   móvil (posicionarInfoCard), y el !important neutraliza cualquier
+   left/top inline que pudiera quedar de una apertura en escritorio. */
+@media screen and (max-width: 600px) {
+    .info-card.menu_contextual {
+        left: 0 !important;
+        top: 0 !important;
+        width: 100vw;
+        max-width: none;
+        height: 100dvh;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        padding: 28px 20px 24px;
+    }
+
+    /* Entrada/salida como hoja: desliza desde abajo en vez de escalar
+       desde la esquina (el scale de escritorio se ve raro a pantalla
+       completa). */
+    .info-card.menu_contextual.show {
+        animation: infoCardOpenMobile 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .info-card.menu_contextual.closing {
+        animation: infoCardCloseMobile 0.16s ease-in both;
+    }
+
+    .info-card .menu-close-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Contenido más cómodo a pantalla completa */
+    .info-card .info_user {
+        gap: 14px;
+        padding-top: 28px;
+    }
+    .info-card .btn-accion,
+    .info-card .logout-btn {
+        height: auto;
+        min-height: 52px;
+        font-size: var(--fs-md);
+    }
+}
+
+@keyframes infoCardOpenMobile {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes infoCardCloseMobile {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+}
+

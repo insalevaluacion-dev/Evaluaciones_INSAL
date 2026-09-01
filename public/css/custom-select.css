@@ -9,12 +9,24 @@ body.custom-select-locked {
     overflow: hidden;
 }
 
+/* ── transitions.dev — Menu dropdown (05): tokens ──
+   Abrir es más lento que cerrar; la escala de salida (0.99) es mayor que
+   la de entrada (0.97) para que el cierre se sienta como un asentamiento,
+   no como un pop. El ease smooth-out es el estándar de la skill. */
+:root {
+    --dropdown-open-dur: 250ms;
+    --dropdown-close-dur: 150ms;
+    --dropdown-pre-scale: 0.97;
+    --dropdown-closing-scale: 0.99;
+    --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* Contenedor del componente. Ancho completo igual que el <select> nativo. */
 .custom-select {
     position: relative;
     width: 100%;
     margin-bottom: 20px;
-    font-size: 1.4rem;
+    font-size: var(--fs-lg);
     font-family: inherit;
 }
 
@@ -30,7 +42,7 @@ body.custom-select-locked {
     border-radius: 25px;
     padding: 10px 16px;
     font-family: inherit;
-    font-size: 1.4rem;
+    font-size: var(--fs-lg);
     text-align: left;
     cursor: pointer;
     outline: none;
@@ -50,6 +62,15 @@ body.custom-select-locked {
     transform: scale(0.99);
 }
 
+/* Habilitado pero sin selección (placeholder "Seleccione …"): píldora azul
+   medio de la misma familia que el tema, claramente distinta del azul pálido
+   del seleccionado (#d6efff) y del gris del deshabilitado (#e0e0e0). :where
+   mantiene la especificidad en (0,1,0) para no pisar variantes con más
+   especificidad (toolbar, diálogos) ni los estados :hover/:focus-visible. */
+:where(.custom-select:not(.has-value):not(.is-disabled)) .custom-select__trigger {
+    background: #aacff0;
+}
+
 /* Evita que el texto del trigger haga wrap en anchos reducidos */
 .custom-select__trigger-label {
     white-space: nowrap;
@@ -64,7 +85,7 @@ body.custom-select-locked {
     border-right: 2px solid currentColor;
     border-bottom: 2px solid currentColor;
     transform: rotate(45deg) translateY(-2px);
-    transition: transform 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: transform var(--dropdown-close-dur) var(--dropdown-ease);
     flex-shrink: 0;
 }
 
@@ -93,6 +114,17 @@ body.custom-select-locked {
        invisible aún expande el área scrollable de ancestros con overflow
        (scroll fantasma en paneles con scroll propio). */
     display: none;
+    /* Origin-aware (transitions.dev): el menú "crece" desde donde está el
+       trigger. Abre hacia abajo → ancla arriba; con .is-open-up se invierte. */
+    transform-origin: top center;
+    will-change: transform, opacity;
+}
+
+/* Con buscador: sin padding superior para que el wrapper sticky del
+   buscador ancle en el borde REAL del panel (el padding-top limitaría el
+   sticky y dejaría una franja por donde se asoman las opciones al scroll). */
+.custom-select__dropdown:has(.custom-select__search-wrap) {
+    padding-top: 0;
 }
 
 /* Abrir hacia arriba cuando no hay espacio debajo (evita que salga de pantalla) */
@@ -103,64 +135,81 @@ body.custom-select-locked {
 }
 
 /* Estado abierto: animación en vez de transición porque display:none → block
-   no se puede transicionar; la keyframe conserva el mismo fade+slide+escala. */
+   no se puede transicionar. Escala desde 0.97 (casi el tamaño final: sin pop)
+   con el ease smooth-out de la skill. translateZ(0) pre-promueve la capa
+   para que la sombra entre junto con la escala (quirk de Safari). */
 .custom-select.is-open .custom-select__dropdown,
 .custom-select__dropdown.is-open {
     display: block;
     visibility: visible;
     pointer-events: auto;
-    animation: customDropdownIn 0.14s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+    animation: customDropdownIn var(--dropdown-open-dur) var(--dropdown-ease) backwards;
 }
 
 @keyframes customDropdownIn {
     from {
         opacity: 0;
-        transform: translateY(-12px) scale(0.94);
+        transform: scale(var(--dropdown-pre-scale)) translateZ(0);
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: scale(1) translateZ(0);
     }
 }
 
-/* Cuando abre hacia arriba, la entrada viene desde abajo. */
-.custom-select.is-open-up.is-open .custom-select__dropdown,
-.custom-select__dropdown.is-open-up.is-open {
-    animation-name: customDropdownInUp;
-    transform-origin: bottom center;
+/* Estado de cierre (receta transitions.dev): el panel permanece visible
+   mientras anima scale 0.99 + fade; el JS retira .is-closing al terminar. */
+.custom-select.is-closing .custom-select__dropdown,
+.custom-select__dropdown.is-closing {
+    display: block;
+    visibility: visible;
+    pointer-events: none;
+    animation: customDropdownOut var(--dropdown-close-dur) var(--dropdown-ease) both;
 }
 
-@keyframes customDropdownInUp {
+@keyframes customDropdownOut {
     from {
-        opacity: 0;
-        transform: translateY(12px) scale(0.94);
+        opacity: 1;
+        transform: scale(1) translateZ(0);
     }
     to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
+        opacity: 0;
+        transform: scale(var(--dropdown-closing-scale)) translateZ(0);
     }
 }
 
 /* Búsqueda opcional dentro del panel (selects con data-searchable).
-   Se queda fija arriba mientras las opciones hacen scroll. */
-.custom-select__search {
+   El input vive dentro de un wrapper blanco edge-to-edge que es el que se
+   queda fijo (sticky) al hacer scroll: tapa las opciones que pasan por
+   debajo, incluida la franja del padding del panel que rodea al input.
+   Estilo tipo "select-menu" (CodingNepal): borde azul prominente siempre
+   visible, esquinas redondeadas y placeholder gris. */
+.custom-select__search-wrap {
     position: sticky;
     top: 0;                       /* pegado al borde del dropdown al hacer scroll */
     z-index: 2;                   /* queda por encima de las opciones */
+    /* Edge-to-edge: anula el padding lateral del dropdown para que no queden
+       huecos por donde se asomen las opciones */
+    width: calc(100% + 12px);
+    margin: 0 -6px 6px;
+    padding: 6px 6px 0;
+    background: #ffffff;          /* fondo opaco: oculta lo que pasa por debajo */
+    box-sizing: border-box;
+}
+
+.custom-select__search {
     width: 100%;
     box-sizing: border-box;
     display: block;
-    margin: 0 0 6px;              /* el margin inferior separa del resto de opciones */
+    margin: 0;
     padding: 10px 12px;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: var(--fs-md);
     color: var(--texto-color, #0d1e35);
     background: #ffffff;
-    border: 1.5px solid var(--border, #c5d5ea);
+    border: 2px solid var(--principal-color, #03a2e6);
     border-radius: 10px;
     outline: none;
-    /* Sombra suave inferior: separa el buscador de la primera opción */
-    box-shadow: 0 5px 10px -8px rgba(0, 0, 0, 0.4);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -180,11 +229,13 @@ body.custom-select-locked {
     border-radius: 10px;
     cursor: pointer;
     color: var(--text-color);
-    font-size: 1.1rem;
+    font-size: var(--fs-lg);
     list-style: none;
     transition: background 0.12s ease, color 0.15s ease, padding-left 0.15s ease;
     animation: customOptionIn 0.12s cubic-bezier(0.25, 0.1, 0.25, 1) both;
-    animation-delay: calc(var(--i, 0) * 12ms);
+    /* Stagger con tope: en listas largas el retardo no se acumula
+       (máx. 6 pasos = 72ms) para que las últimas opciones no lleguen tarde. */
+    animation-delay: calc(min(var(--i, 0), 6) * 12ms);
 }
 
 @keyframes customOptionIn {
@@ -220,6 +271,19 @@ body.custom-select-locked {
     color: #666;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+/* Guard obligatorio de la receta transitions.dev: sin movimiento para
+   quienes lo pidieron a nivel de sistema. */
+@media (prefers-reduced-motion: reduce) {
+    .custom-select__dropdown,
+    .custom-select__option {
+        animation: none !important;
+    }
+
+    .custom-select__arrow {
+        transition: none !important;
+    }
 }
 
 /* El <select> nativo se oculta visualmente pero conserva su lógica.

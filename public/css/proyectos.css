@@ -39,7 +39,7 @@
     border: none;
     background: #1e1f1f;
     font-family: Poppins;
-    font-size: 1.3rem;
+    font-size: var(--fs-lg);
     color: white;
     outline: none;
 }
@@ -67,7 +67,7 @@
 
 .char-counter {
     align-self: flex-end;
-    font-size: 0.75rem;
+    font-size: var(--fs-2xs);
     color: var(--texto-color);
     opacity: 0.5;
     margin-top: 2px;
@@ -90,7 +90,7 @@
 ------------------------------------------------------------ */
 .boton {
     font-family: Poppins;
-    font-size: 1.2rem;
+    font-size: var(--fs-lg);
     height: 50px;
     width: fit-content;
     padding: 5px 15px;
@@ -137,7 +137,7 @@
 
 /* Icono refresh visible por defecto, spinner oculto */
 .btn-refresh-icon {
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
     color: inherit;
     display: flex;
 }
@@ -260,7 +260,7 @@
 /* Botón "Abrir" pequeño (modificadores de list-item) */
 .btn-small {
     padding: 5px 10px !important;
-    font-size: 1.1em;
+    font-size: var(--fs-lg);
     font-weight: 500;
     height: fit-content;
 }
@@ -313,7 +313,7 @@
 }
 
 .text-title-seccion {
-    font-size: 1.7rem;
+    font-size: var(--fs-3xl);
     font-weight: 400;
     color: var(--texto-color);
     margin: 0;
@@ -381,7 +381,7 @@
     /* Icono de búsqueda */
     .icon {
         color: var(--azul-med);
-        font-size: 1.35rem;
+        font-size: var(--fs-xl);
         display: flex;
         cursor: default;
         flex-shrink: 0;
@@ -395,7 +395,7 @@
         outline: none;
         background: transparent;
         font-family: 'Poppins', sans-serif;
-        font-size: 1rem;
+        font-size: var(--fs-md);
         color: var(--texto-color);
     }
 
@@ -428,7 +428,7 @@
     transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
 
     .material-symbols-rounded {
-        font-size: 1.15rem;
+        font-size: var(--fs-lg);
     }
 
     &:hover {
@@ -516,14 +516,14 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     > .material-symbols-rounded {
-        font-size: 1.15rem;
+        font-size: var(--fs-lg);
         color: var(--azul-med);
         flex-shrink: 0;
     }
 }
 
 .toolbar-control__label {
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     color: var(--secundario-texto-color);
     white-space: nowrap;
@@ -547,7 +547,7 @@
         flex: 1 1 auto;
         min-width: 0;
         margin: 0;
-        font-size: 0.9rem;
+        font-size: var(--fs-sm);
     }
 
     .custom-select__trigger {
@@ -556,7 +556,7 @@
         padding: 0;
         background: transparent;
         border-radius: 6px;
-        font-size: 0.9rem;
+        font-size: var(--fs-sm);
         font-weight: 500;
         color: var(--texto-color);
     }
@@ -586,7 +586,7 @@
     }
 
     .custom-select__option {
-        font-size: 0.9rem;
+        font-size: var(--fs-sm);
         padding: 9px 14px;
         white-space: nowrap;
     }
@@ -629,14 +629,14 @@
 }
 
 .empty-text {
-    font-size: 1.3rem;
+    font-size: var(--fs-xl);
     font-weight: 500;
     color: var(--secundario-texto-color);
     margin: 0 !important;
 }
 
 .empty-subtext {
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     color: var(--secundario-texto-color);
     opacity: 0.7;
     margin: 0 !important;
@@ -715,7 +715,7 @@
 
 .dialogo-add__titulo {
     font-family: Poppins, sans-serif;
-    font-size: 1.4rem;
+    font-size: var(--fs-2xl);
     font-weight: 600;
     color: var(--txt);
     margin: 0;
@@ -738,7 +738,7 @@
 /* Labels de campos del modal */
 .dialog-add-rubrica .campo-nota__label {
     font-family: Poppins, sans-serif;
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     color: var(--text-color-secondary);
     width: 100%;
@@ -756,7 +756,7 @@
     color: var(--texto-color);
     border: 2px solid var(--border);
     padding: 12px 16px;
-    font-size: 1.1rem;
+    font-size: var(--fs-lg);
     font-weight: 500;
     font-family: Poppins, sans-serif;
     border-radius: 12px;
@@ -780,7 +780,7 @@
 
 /* Contador de caracteres */
 .dialog-add-rubrica .char-counter {
-    font-size: 0.75rem;
+    font-size: var(--fs-2xs);
     color: var(--texto-color);
     opacity: 0.5;
     margin-top: 2px;
@@ -874,7 +874,7 @@
 #dialog-add-proyecto .field-group label,
 #dialogo-editar-proyecto .field-group label {
     font-family: Poppins, sans-serif;
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     color: var(--text-color-secondary);
     width: 100%;
@@ -885,12 +885,12 @@
 /* Título y subtítulo de los diálogos de proyecto: un punto más grandes */
 #dialog-add-proyecto .dialog-title,
 #dialogo-editar-proyecto .dialog-title {
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
 }
 
 #dialog-add-proyecto .dialog-subtitle,
 #dialogo-editar-proyecto .dialog-subtitle {
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
 }
 
 #dialog-add-proyecto .requerido,
@@ -910,7 +910,7 @@
 #dialogo-editar-proyecto .error-message {
     display: none;
     margin: 0;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     color: #b3261e;
 }
 
@@ -926,7 +926,7 @@
     color: var(--texto-color);
     border: 2px solid var(--border);
     padding: 10px 14px;
-    font-size: 1.1rem;
+    font-size: var(--fs-lg);
     font-weight: 500;
     font-family: Poppins, sans-serif;
     border-radius: 12px;
@@ -964,7 +964,7 @@
 }
 
 #dialog-add-proyecto .char-counter {
-    font-size: 0.75rem;
+    font-size: var(--fs-2xs);
     color: var(--texto-color);
     opacity: 0.5;
     margin-top: 2px;
@@ -982,7 +982,7 @@
     width: 100%;
     min-width: 0;
     margin: 0;
-    font-size: 1.1rem;
+    font-size: var(--fs-lg);
 }
 
 #dialog-add-proyecto .custom-select__trigger,
@@ -995,7 +995,7 @@
     box-sizing: border-box;
     padding: 10px 16px;
     font-family: Poppins, sans-serif;
-    font-size: 1.1rem;
+    font-size: var(--fs-lg);
     font-weight: 500;
     color: var(--texto-color);
     text-align: left;
@@ -1040,6 +1040,15 @@
     opacity: 0.45;
 }
 
+/* Placeholder sin selección: misma píldora azul medio que el componente base
+   (custom-select.css), distinta del azul pálido del seleccionado y del gris
+   del deshabilitado. Se excluye :hover/:focus-visible para que esos estados
+   conserven su feedback a pesar de la especificidad del id. */
+#dialog-add-proyecto .custom-select:not(.has-value):not(.is-disabled) .custom-select__trigger:not(:hover):not(:focus-visible),
+#dialogo-editar-proyecto .custom-select:not(.has-value):not(.is-disabled) .custom-select__trigger:not(:hover):not(:focus-visible) {
+    background: #aacff0;
+}
+
 /* Select deshabilitado: se atenúa todo el componente (fondo, texto y flecha).
    El trigger adopta el fondo gris del estado base (custom-select.css: #e0e0e0
    y color #666), igual que los selects deshabilitados de seleccion.ejs.
@@ -1077,13 +1086,13 @@
 
 #dialog-add-proyecto .custom-select__option,
 #dialogo-editar-proyecto .custom-select__option {
-    font-size: 1.05rem;
+    font-size: var(--fs-lg);
     padding: 9px 12px;
 }
 
 #dialog-add-proyecto .custom-select__search,
 #dialogo-editar-proyecto .custom-select__search {
-    font-size: 1rem;
+    font-size: var(--fs-md);
 }
 /* ============================================================
    Estados del botón submit (data-submit) - submitHandler.js
@@ -1209,17 +1218,17 @@ Elementos de lista
     background: var(--azul-lite);
     border-radius: 10px;
     padding: 8px;
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
 }
 
 .list-item__author {
     font-weight: 500;
-    font-size: 1.2rem;
+    font-size: var(--fs-lg);
 }
 
 .list-item__desc {
     font-weight: 500;
-    font-size: 0.92rem;
+    font-size: var(--fs-sm);
     color: var(--texto-color);
     opacity: 0.75;
     margin-top: 3px;
@@ -1276,7 +1285,7 @@ Elementos de lista
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: var(--sh-lg);
+    box-shadow: var(--sh-float);
     padding: 6px 0;
     min-width: 180px;
 }
@@ -1302,7 +1311,7 @@ Elementos de lista
     width: 100%;
     color: var(--txt);
     font-family: Poppins, sans-serif;
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     padding: 10px 16px;
     text-align: left;
@@ -1314,7 +1323,7 @@ Elementos de lista
 }
 
 .boton-menu__item .material-symbols-rounded {
-    font-size: 1.15rem;
+    font-size: var(--fs-lg);
     font-weight: 500;
 }
 
@@ -1608,7 +1617,7 @@ Elementos de lista
 
     /* Botón de creación */
     .boton {
-        font-size: 1rem;
+        font-size: var(--fs-md);
         padding: 12px;
     }
 }
@@ -1721,7 +1730,7 @@ Elementos de lista
 /* Etiqueta dinámica según el estado, igual que "Puntuación total:" */
 .proyecto-evaluado__resultado::before {
     content: 'Nota:';
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
     color: var(--text-color-secondary);
 }
@@ -1750,7 +1759,7 @@ Elementos de lista
     display: inline-flex;
     align-items: baseline;
     gap: 4px;
-    font-size: 1.25rem;
+    font-size: var(--fs-xl);
     font-weight: 700;
     line-height: 1;
     color: var(--text-color-secondary);
@@ -1761,7 +1770,7 @@ Elementos de lista
 /* Contexto de escala junto al número (verificado: la nota máxima es 10) */
 .proyecto-evaluado__nota::after {
     content: '/ 10';
-    font-size: 0.78rem;
+    font-size: var(--fs-xs);
     font-weight: 600;
     line-height: 1;
     color: var(--text-color-secondary);

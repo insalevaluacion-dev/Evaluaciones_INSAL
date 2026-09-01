@@ -16,11 +16,13 @@
 }
 
 /* ── Formulario de datos del proyecto ─────────────────────────── */
+/* El form envuelve pestañas + barra de acciones: ocupa toda la altura. */
 .proyecto-editar__form {
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding-top: 4px;
+    gap: 10px;
 }
 
 .proyecto-editar__form .field-group {
@@ -30,9 +32,29 @@
     width: 100%;
 }
 
+/* Fila de dos columnas (Rúbrica + Grado) */
+.proyecto-editar__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+@media (max-width: 720px) {
+    .proyecto-editar__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* El custom-select ya se separa del campo siguiente con el gap del form;
+   el margin-bottom global del componente (20px, pensado para selects
+   apilados sin field-group) inflaba el espacio entre campos. */
+.proyecto-editar__form .field-group .custom-select {
+    margin-bottom: 0;
+}
+
 .proyecto-editar__form .field-group label {
     font-family: Poppins, sans-serif;
-    font-size: 0.9rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     color: var(--text-color);
 }
@@ -49,6 +71,8 @@
     width: 100%;
     padding: 12px 16px;
     font-family: Poppins, sans-serif;
+    font-size: var(--fs-lg);
+    font-weight: 500;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -67,41 +91,98 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
 }
 
-.proyecto-editar__form .form-actions {
+/* ── Barra de acciones universal (guardar todo) ──────────────── */
+/* Anclada al fondo de la tarjeta .proyecto-tabs, visible en ambas pestañas */
+.proyecto-editar__acciones {
+    flex-shrink: 0;
     display: flex;
-    justify-content: flex-end;
-    margin-top: 4px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    border-top: 1.5px solid var(--border);
+    background: var(--font-color-secondary);
 }
 
-/* ── Zona de peligro (eliminar proyecto) ─────────────────────── */
+.proyecto-editar__acciones-guardar {
+    flex-shrink: 0;
+    height: 46px; /* iguala al botón de eliminar */
+}
+
+@media (max-width: 640px) {
+    .proyecto-editar__acciones {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .proyecto-editar__acciones-guardar {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .proyecto-editar__peligro {
+        width: 100%;
+    }
+
+    .boton-eliminar-proyecto {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Contador de caracteres alineado a la derecha, pegado al input */
+.proyecto-editar__form .char-counter {
+    align-self: flex-end;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-2xs);
+    font-weight: 500;
+    color: var(--text-color);
+    opacity: 0.65;
+}
+
+.proyecto-editar__form .char-counter--warn {
+    color: #f0a030;
+    opacity: 1;
+}
+
+.proyecto-editar__form .char-counter--limit {
+    color: #e04040;
+    opacity: 1;
+}
+
+/* ── Zona de peligro (eliminar proyecto) — en la barra de acciones ── */
 .proyecto-editar__peligro {
-    margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1.5px dashed color-mix(in srgb, #e04040 35%, var(--border));
+    flex-shrink: 0;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
 }
 
 .boton-eliminar-proyecto {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     height: 46px;
-    padding: 5px 18px;
+    padding: 5px 16px;
     border-radius: 12px;
-    border: 1.5px solid color-mix(in srgb, #e04040 55%, transparent);
+    border: 1.5px solid transparent;
     background: transparent;
     color: #e04040;
     font-family: Poppins, sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: var(--fs-md);
+    font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.boton-eliminar-proyecto .material-symbols-rounded {
+    font-size: var(--fs-lg);
 }
 
 .boton-eliminar-proyecto:hover {
-    background: #e04040;
-    color: #ffffff;
+    background: color-mix(in srgb, #e04040 10%, transparent);
+    border-color: color-mix(in srgb, #e04040 45%, transparent);
 }
 
 .boton-eliminar-proyecto:active {
@@ -121,6 +202,65 @@
     padding-top: 4px;
 }
 
+/* ── Píldora de deshacer (alumno marcado para quitar) ────────── */
+.alumnos-deshacer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1.5px solid color-mix(in srgb, #f0a030 45%, var(--border));
+    background: color-mix(in srgb, #f0a030 9%, var(--font-color-secondary));
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.alumnos-deshacer .material-symbols-rounded {
+    flex-shrink: 0;
+    color: #f0a030;
+    font-size: var(--fs-lg);
+}
+
+.alumnos-deshacer__texto {
+    flex: 1;
+    min-width: 0;
+}
+
+.alumnos-deshacer__btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 14px;
+    border: 1.5px solid color-mix(in srgb, #f0a030 60%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: #d97507;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.alumnos-deshacer__btn:hover {
+    background: #d97507;
+    color: #ffffff;
+}
+
+@media (max-width: 640px) {
+    .alumnos-deshacer {
+        flex-wrap: wrap;
+    }
+
+    .alumnos-deshacer__btn {
+        margin-left: auto;
+    }
+}
+
 .alumnos-agregar > .custom-select,
 .alumnos-agregar > select {
     flex: 1;
@@ -135,19 +275,36 @@
     width: 100%;
     padding: 12px 16px;
     font-family: Poppins, sans-serif;
+    font-size: var(--fs-lg);
+    font-weight: 500;
     outline: none;
 }
 
 .alumnos-agregar__btn {
     height: 46px;
     flex-shrink: 0;
-    font-size: 1rem;
+    font-size: var(--fs-md);
 }
 
 .alumnos-agregar__btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+@media (max-width: 900px) {
+    .alumnos-agregar {
+        flex-wrap: wrap;
+    }
+
+    .alumnos-agregar > .custom-select,
+    .alumnos-agregar > select {
+        flex-basis: 100%;
+    }
+
+    .alumnos-agregar__btn {
+        flex: 1;
+    }
 }
 
 /* ── Lista de alumnos inscritos ───────────────────────────────── */
@@ -178,7 +335,7 @@
     border-radius: 12px;
     background: color-mix(in srgb, var(--principal-color) 12%, transparent);
     color: var(--principal-color);
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
 }
 
 .alumno-item__info {
@@ -191,7 +348,7 @@
 
 .alumno-item__nombre {
     font-family: Poppins, sans-serif;
-    font-size: 0.95rem;
+    font-size: var(--fs-md);
     font-weight: 600;
     color: var(--text-color-secondary);
     white-space: nowrap;
@@ -201,7 +358,7 @@
 
 .alumno-item__nie {
     font-family: Poppins, sans-serif;
-    font-size: 0.78rem;
+    font-size: var(--fs-xs);
     font-weight: 500;
     color: var(--text-color);
     opacity: 0.7;
@@ -216,12 +373,12 @@
     padding: 4px 10px;
     border-radius: 999px;
     font-family: Poppins, sans-serif;
-    font-size: 0.75rem;
+    font-size: var(--fs-2xs);
     font-weight: 600;
 }
 
 .alumno-item__asistencia .material-symbols-rounded {
-    font-size: 1rem;
+    font-size: var(--fs-md);
 }
 
 .alumno-item__asistencia.is-presente {
@@ -251,7 +408,7 @@
 }
 
 .alumno-item__quitar .material-symbols-rounded {
-    font-size: 1.3rem;
+    font-size: var(--fs-xl);
 }
 
 .alumno-item__quitar:hover {
@@ -300,12 +457,13 @@
     overflow: hidden;
 }
 
-/* ── Barra de pestañas ───────────────────────────────────────── */
+/* ── Barra de pestañas (burbuja deslizante) ─────────────────── */
 .proyecto-tabs__bar {
+    position: relative;
     display: flex;
-    align-items: stretch;
-    gap: 4px;
-    padding: 0 10px;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
     border-bottom: 1.5px solid var(--border);
     background: var(--font-color-secondary);
     overflow-x: auto;
@@ -317,46 +475,65 @@
     display: none;
 }
 
+/* Burbuja que se desliza bajo la pestaña activa */
+.proyecto-tab-indicador {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 0;
+    width: 0;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--principal-color) 14%, transparent);
+    pointer-events: none;
+}
+
+/* La transición solo se activa tras el primer posicionamiento */
+.proyecto-tab-indicador.is-animado {
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .proyecto-tab {
+    position: relative;
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 54px;
-    padding: 0 20px;
+    height: 40px;
+    padding: 0 16px;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-radius: 10px;
     background: transparent;
     color: var(--text-color);
     font-family: Poppins, sans-serif;
-    font-size: 0.92rem;
+    font-size: var(--fs-sm);
     font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    transition: background 0.18s ease, color 0.18s ease;
 }
 
 .proyecto-tab .material-symbols-rounded {
-    font-size: 1.25rem;
+    font-size: var(--fs-xl);
     color: var(--text-color);
     opacity: 0.75;
     transition: color 0.18s ease;
 }
 
-.proyecto-tab:hover {
-    background: color-mix(in srgb, var(--principal-color) 7%, transparent);
-    color: var(--principal-color);
+.proyecto-tab:hover:not(.is-activa) {
+    background: color-mix(in srgb, var(--border) 35%, transparent);
+    color: var(--text-color-secondary);
 }
 
-.proyecto-tab:hover .material-symbols-rounded {
-    color: var(--principal-color);
+.proyecto-tab:hover:not(.is-activa) .material-symbols-rounded {
+    color: var(--text-color-secondary);
     opacity: 1;
 }
 
+/* El fondo de la activa lo pinta la burbuja deslizante */
 .proyecto-tab.is-activa {
     color: var(--principal-color);
-    border-bottom-color: var(--principal-color);
     font-weight: 600;
 }
 
@@ -381,9 +558,15 @@
     border-radius: 999px;
     background: color-mix(in srgb, var(--principal-color) 14%, transparent);
     color: var(--principal-color);
-    font-size: 0.75rem;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     line-height: 1;
+}
+
+/* Versión corta del label ("Datos"), solo visible en móvil: en escritorio la
+   etiqueta completa ("Datos del proyecto") cabe en una línea. */
+.proyecto-tab__short {
+    display: none;
 }
 
 .proyecto-tab.is-activa .proyecto-tab__badge {
@@ -392,6 +575,80 @@
 }
 
 /* ── Contenido de pestañas ───────────────────────────────────── */
+/* Entrada del panel al cambiar de pestaña.
+   fill-mode: backwards (NO both): al terminar la animación el transform
+   desaparece; un transform persistente crearía un containing block y rompería
+   el position:fixed de los dropdowns de custom-select. */
+.proyecto-panel.is-activa {
+    animation: panelProyectoEntra 0.26s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes panelProyectoEntra {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Escalonado de los bloques dentro del panel */
+@keyframes filaProyectoEntra {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.proyecto-panel.is-activa .form-cabecera,
+.proyecto-panel.is-activa .field-group,
+.proyecto-panel.is-activa .alumnos-agregar,
+.proyecto-panel.is-activa .alumno-item,
+.proyecto-panel.is-activa .criterios-vacio {
+    animation: filaProyectoEntra 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.proyecto-panel.is-activa .field-group:nth-child(2),
+.proyecto-panel.is-activa .alumno-item:nth-child(2) {
+    animation-delay: 45ms;
+}
+
+.proyecto-panel.is-activa .field-group:nth-child(3),
+.proyecto-panel.is-activa .alumno-item:nth-child(3) {
+    animation-delay: 90ms;
+}
+
+.proyecto-panel.is-activa .field-group:nth-child(4),
+.proyecto-panel.is-activa .alumno-item:nth-child(4) {
+    animation-delay: 135ms;
+}
+
+.proyecto-panel.is-activa .alumno-item:nth-child(5) {
+    animation-delay: 180ms;
+}
+
+.proyecto-panel.is-activa .alumno-item:nth-child(6) {
+    animation-delay: 225ms;
+}
+
+.proyecto-panel.is-activa .alumno-item:nth-child(7) {
+    animation-delay: 270ms;
+}
+
+.proyecto-panel.is-activa .alumno-item:nth-child(8) {
+    animation-delay: 315ms;
+}
+
+.proyecto-panel.is-activa .alumno-item:nth-child(n+9) {
+    animation-delay: 360ms;
+}
+
 .proyecto-tabs__content {
     flex: 1;
     min-height: 0;
@@ -447,14 +704,27 @@
 @media (max-width: 640px) {
     .proyecto-tab {
         flex: 1;
+        /* La altura se restaura a 40px porque en móvil el label corto
+           ("Datos") ya cabe en una línea; ya no se parte en 2 líneas. */
+        height: 40px;
         padding: 0 14px;
-        font-size: 0.85rem;
-        white-space: normal;
+        font-size: var(--fs-sm);
+        white-space: nowrap;
         text-align: center;
+        line-height: 1;
     }
 
     .proyecto-tab .material-symbols-rounded {
-        font-size: 1.15rem;
+        font-size: var(--fs-lg);
+    }
+
+    /* En móvil se muestra "Datos" (corto) y se oculta "Datos del proyecto" */
+    .proyecto-tab__label {
+        display: none;
+    }
+
+    .proyecto-tab__short {
+        display: inline;
     }
 }
 
@@ -490,38 +760,51 @@
     min-width: 148px;
 }
 
-/* Botón "Eliminar proyecto": fondo suave de peligro en hover para mejor
-   affordance, manteniendo el alto del botón de guardado. */
-.contenedor-criterios[data-proyecto-id] .boton-eliminar-proyecto {
-    height: 50px;
-}
-
 /* ── Encabezado del proyecto (container1) ────────────────────── */
-/* El texto descriptivo no se desborda y el icono se mantiene alineado. */
+/* Composición asimétrica: identidad a la izquierda (icono + título),
+   metadatos (grado · año) a la derecha separados por una línea fina.
+   El icono vuelve a ser glifo simple: la barra de acento del container1
+   ya aporta el color; no hace falta una caja pastel ni chips. */
 .contenedor-criterios[data-proyecto-id] .proyecto-icon {
     flex-shrink: 0;
     align-self: center;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   Coherencia de color de la cabecera (solo en esta vista)
-   ══════════════════════════════════════════════════════════════
-   El resto del dashboard usa --azul (oscuro) para el enlace "Atras",
-   pero esta vista usa --principal-color (cian) como acento en botones,
-   pestañas e iconos. Se unifica el acento aquí, escopado con
-   .vista-proyecto-editar para no alterar otras vistas. */
-
-/* Enlace "Atras" al mismo acento cian que el resto de la vista. */
-.vista-proyecto-editar .back-link {
-    color: var(--principal-color);
-    border-color: color-mix(in srgb, var(--principal-color) 25%, var(--border));
-    background: var(--font-color-secondary);
+.contenedor-criterios[data-proyecto-id] .proyecto-info {
+    flex: 1;
+    min-width: 0;
 }
 
-.vista-proyecto-editar .back-link:hover {
-    color: #ffffff;
-    background: var(--principal-color);
-    border-color: var(--principal-color);
+/* Metadatos alineados a la derecha, con separador vertical fino.
+   Scoped a .vista-proyecto-editar: sin esto, la regla se filtra a la vista
+   de detalle de evaluación (que comparte .contenedor-criterios[data-proyecto-id])
+   y trunca su subtítulo con max-width: 40%. */
+.vista-proyecto-editar .contenedor-criterios[data-proyecto-id] .proyecto-descripcion {
+    flex-shrink: 0;
+    max-width: 40%;
+    margin: 0;
+    padding-left: 18px;
+    border-left: 1px solid var(--border);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color);
+    opacity: 0.75;
+    text-align: right;
+}
+
+/* En móvil los metadatos bajan bajo el título, sin separador */
+@media (max-width: 640px) {
+    .vista-proyecto-editar .contenedor-criterios[data-proyecto-id] .proyecto-header {
+        flex-wrap: wrap;
+    }
+
+    .vista-proyecto-editar .contenedor-criterios[data-proyecto-id] .proyecto-descripcion {
+        max-width: none;
+        width: 100%;
+        padding-left: 0;
+        border-left: none;
+        text-align: left;
+    }
 }
 
 /* El título "Editar proyecto" se separa del botón "Atras" y respira.
@@ -530,16 +813,49 @@
     margin-left: 6px;
 }
 
-/* ── Responsive: apilar la cabecera sin desbordar ────────────── */
+/* ── Responsive: comprimir la cabecera sin desbordar ────────── */
 @media (max-width: 640px) {
+    /* En móvil la cabecera se reordena en 2 filas con grid (más fiable que
+       flex-wrap):
+         Fila 1: [menú] [Atras] [Todo sincronizado→derecha]
+         Fila 2: [Editar proyecto....................]
+       El estado va ARRIBA a la derecha (junto a Atras) para que el título
+       ocupe todo el ancho de la fila 2 y NUNCA se trunque ni se parta en 2
+       líneas — el título y el estado no cabían juntos en la misma fila
+       (estado 165px + título 174px > 350px disponibles). */
     .vista-proyecto-editar .content_inicio {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            "btn back estado"
+            "title title title";
+        align-items: center;
+        gap: 8px 12px;
+    }
+
+    .vista-proyecto-editar .content_inicio .item-boton-menu {
+        grid-area: btn;
+    }
+
+    .vista-proyecto-editar .content_inicio .back-link {
+        grid-area: back;
     }
 
     .vista-proyecto-editar .content_inicio .text-title-seccion {
-        flex-basis: 100%;
+        grid-area: title;
         margin-left: 0;
         margin-top: 2px;
+        /* Sin ellipsis ni restricciones: el título tiene todo el ancho. */
+    }
+
+    /* El estado se ancla a la derecha de la fila 1 (junto a Atras). */
+    .vista-proyecto-editar .content_inicio .estado-sincronizacion {
+        grid-area: estado;
+        justify-self: end;
+        flex-basis: auto;
+        margin-left: 0;
+        padding-top: 0;
+        white-space: nowrap;
     }
 }
 
@@ -574,7 +890,7 @@
 
 /* ── Insignia de asistencia más explícita ────────────────────── */
 .vista-proyecto-editar .alumno-item__asistencia {
-    font-size: 0.72rem;
+    font-size: var(--fs-2xs);
     white-space: nowrap;
 }
 
@@ -630,14 +946,15 @@
 
 /* Icono del estado (check / reloj) */
 .vista-proyecto-editar .alumno-asistencia__resultado .alumno-asistencia__icono {
-    font-size: 1.15rem;
+    font-size: var(--fs-lg);
     flex-shrink: 0;
 }
 
-/* Texto del estado */
+/* Texto del estado: neutro (negro) siempre, el color vive en el icono */
 .vista-proyecto-editar .alumno-asistencia__estado {
-    font-size: 0.92rem;
-    font-weight: 600;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color);
 }
 
 /* ── Estado: asistencia marcada (verde) ── */
@@ -646,8 +963,7 @@
     background: color-mix(in srgb, #2e9e5b 8%, var(--font-color-secondary));
 }
 
-.vista-proyecto-editar .alumno-asistencia__resultado.is-marcada .alumno-asistencia__icono,
-.vista-proyecto-editar .alumno-asistencia__resultado.is-marcada .alumno-asistencia__estado {
+.vista-proyecto-editar .alumno-asistencia__resultado.is-marcada .alumno-asistencia__icono {
     color: #2e9e5b;
 }
 
@@ -657,9 +973,33 @@
     background: color-mix(in srgb, #f0a030 8%, var(--font-color-secondary));
 }
 
-.vista-proyecto-editar .alumno-asistencia__resultado.is-pendiente .alumno-asistencia__icono,
-.vista-proyecto-editar .alumno-asistencia__resultado.is-pendiente .alumno-asistencia__estado {
+.vista-proyecto-editar .alumno-asistencia__resultado.is-pendiente .alumno-asistencia__icono {
     color: #f0a030;
+}
+
+/* ── Estado: alumno nuevo pendiente de guardar (azul) ── */
+.vista-proyecto-editar .alumno-asistencia__resultado.is-nuevo {
+    border-color: color-mix(in srgb, var(--principal-color) 45%, var(--border));
+    background: color-mix(in srgb, var(--principal-color) 8%, var(--font-color-secondary));
+}
+
+.vista-proyecto-editar .alumno-asistencia__resultado.is-nuevo .alumno-asistencia__icono {
+    color: var(--principal-color);
+}
+
+/* ── Estado: alumno marcado para quitar (rojo) ── */
+.vista-proyecto-editar .alumno-asistencia__resultado.is-quitar {
+    border-color: color-mix(in srgb, #e04040 45%, var(--border));
+    background: color-mix(in srgb, #e04040 7%, var(--font-color-secondary));
+}
+
+.vista-proyecto-editar .alumno-asistencia__resultado.is-quitar .alumno-asistencia__icono {
+    color: #e04040;
+}
+
+/* Tarjeta atenuada mientras está marcada para quitar */
+.vista-proyecto-editar .alumno-item:has(.is-quitar) .list-item__content {
+    opacity: 0.55;
 }
 
 /* Responsive: el estado a ancho completo */

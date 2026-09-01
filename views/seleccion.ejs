@@ -16,7 +16,9 @@
     <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
     <script src="/js/custom-select.js" defer></script>
     <script src="/js/seleccion.js" defer></script>
-    <script src="/js/notificaciones.js" defer></script>
+    <!-- type="module": el archivo usa export; como script clásico lanza
+         SyntaxError y mostrarNotificacion nunca queda disponible -->
+    <script type="module" src="/js/notificaciones.js"></script>
 </head>
 
 <body>
@@ -27,16 +29,15 @@
                     <span class="material-symbols-rounded principal__element--icon">manage_search</span>
                     Busque el proyecto a evaluar:
                 </p>
-                <label for="evento">Evento:</label>
-                <select id="evento" data-custom required>
-                    <option value="" hidden>Seleccione un evento</option>
-                    <option value="1|Expo de Logros">Expo de Logros</option>
-                    <option value="2|1|Expotecnia - Primer año">Expotecnia - Primer año</option>
-                    <option value="3|2|Expotecnia - Segundo año">Expotecnia - Segundo año</option>
-                    <option value="4|3|Expotecnia - Tercer año">Expotecnia - Tercer año</option>
+                <label for="tipo-evaluacion">Tipo de evaluación:</label>
+                <select id="tipo-evaluacion" data-custom required>
+                    <option value="" hidden>Seleccione un tipo de evaluación</option>
+                    <% niveles.forEach(function (nivel) { %>
+                    <option value="<%= nivel.nivel_id %>"><%= nivel.nombre %></option>
+                    <% }); %>
                 </select>
-                <label for="año" id="label-año" style="display: none;">Año:</label>
-                <select id="año" data-custom required style="display: none;">
+                <label for="año" id="label-año">Año:</label>
+                <select id="año" data-custom required>
                     <option value="" hidden>Seleccione un año</option>
                 </select>
                 <label for="nombre">Grado:</label>

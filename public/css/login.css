@@ -51,7 +51,7 @@ body{
     border: none;
     background: #1e1f1f;
     font-family: Poppins;
-    font-size: 1.3rem;
+    font-size: var(--fs-lg);
     color: white;
     outline: none;
     box-sizing: border-box;
@@ -73,13 +73,13 @@ body{
 }
 
 .title{
-    font-size: 2.25rem;
+    font-size: var(--fs-5xl);
     font-weight: 500;
 }
 
 .enviar{
     font-family: Poppins;
-    font-size: 1.2rem;
+    font-size: var(--fs-lg);
     height: 50px;
     width: 100%;
     padding: 15px;
@@ -140,7 +140,7 @@ a{
 
 .error-message{
     color: #ff6b6b;
-    font-size: 0.95rem;
+    font-size: var(--fs-sm);
     font-family: Poppins;
     margin: -8px 0 5px 10px;
     font-weight: 500;
@@ -175,7 +175,7 @@ a{
     justify-content: center;
     gap: 8px;
     font-family: Poppins;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     font-weight: 400;
     text-align: center;
     width: 100%;
@@ -191,7 +191,7 @@ a{
 
 .hint__correo-icono{
     color: var(--naranja);
-    font-size: 1.25rem;
+    font-size: var(--fs-xl);
     line-height: 1.4;
     flex-shrink: 0;
 }
@@ -250,5 +250,57 @@ a{
 }
 
 .password-toggle .material-symbols-rounded {
-    font-size: 1.4rem;
+    font-size: var(--fs-xl);
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+    .content {
+        gap: 4px;
+    }
+
+    .G_logo {
+        height: 38px;
+    }
+
+    .title {
+        font-size: var(--fs-4xl);
+    }
+
+    .input__text {
+        height: 52px;
+    }
+
+    .link {
+        flex-wrap: wrap;
+        text-align: center;
+    }
+
+    .link p {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hint__correo {
+        font-size: var(--fs-2xs);
+        padding: 8px 10px;
+    }
+
+    .enviar {
+        height: 48px;
+    }
+}
+
+/* Altura reducida (landscape / teclado abierto): permitir scroll en lugar
+   de recortar el formulario. */
+@media (max-height: 560px) {
+    body {
+        overflow-y: auto;
+    }
+
+    .main__container {
+        height: auto;
+        min-height: 100dvh;
+        padding: 16px 0;
+    }
 }

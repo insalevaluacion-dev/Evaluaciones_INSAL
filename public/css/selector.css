@@ -53,14 +53,14 @@
     align-items: center;
     gap: 8px;
     color: var(--text-color-secondary);
-    font-size: 1.2rem;
+    font-size: var(--fs-lg);
     font-weight: 600;
     letter-spacing: 0.3px;
     margin-bottom: 14px;
 }
 
 .principal__element--icon{
-    font-size: 1.6rem;
+    font-size: var(--fs-2xl);
     color: var(--principal-color);
 } 
 
@@ -88,7 +88,7 @@ select {
     border-radius: 25px;
     padding: 10px;
     outline: none;
-    font-size: 1.4rem;
+    font-size: var(--fs-xl);
     margin-bottom: 20px;
     width: 100%;
     height: fit-content;
@@ -121,7 +121,7 @@ select:focus {
 select::-webkit-dropdown{
     background: var(--secondary-color);
     color: white;
-    font-size: 1.2rem;
+    font-size: var(--fs-lg);
     border-radius: 20px;
     padding: 10px;
 }
@@ -130,4 +130,29 @@ select::-webkit-dropdown{
 select::-webkit-dropdown {
     background: var(--secondary-color);
     color: white;
+}
+
+/* ── Responsive ── */
+@media (max-width: 520px) {
+    .content {
+        gap: 12px;
+    }
+
+    .principal {
+        height: auto;
+        min-height: 88dvh;
+        width: 94dvw;
+        padding: 16px 12px;
+        margin-top: 10px;
+    }
+
+    .principal__element--text {
+        font-size: var(--fs-md);
+        text-align: center;
+        line-height: 1.4;
+    }
+
+    .custom-select, select {
+        font-size: var(--fs-md);
+    }
 }

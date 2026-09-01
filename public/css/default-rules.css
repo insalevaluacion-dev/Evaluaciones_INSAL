@@ -101,7 +101,7 @@
 }
 
 .title{
-    font-size: 2rem;
+    font-size: var(--fs-4xl);
     font-weight: 400;
 }
 

@@ -1,1 +1,123 @@
-Inicio
+<div class="title-seccion">
+    <div class="title-seccion__izq">
+        <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú" data-ripple>
+            <span class="material-symbols-rounded">menu</span>
+        </button>
+        <p class="text-title-seccion">Inicio</p>
+    </div>
+</div>
+
+<div class="inicio-scroll">
+<!-- ── Banner de bienvenida ── -->
+<section class="inicio-bienvenida">
+    <div class="inicio-bienvenida__texto">
+        <h2 class="inicio-bienvenida__saludo">Hola, <%= maestro.nombre %></h2>
+        <p class="inicio-bienvenida__sub">Bienvenido al panel de evaluaciones de proyectos INSAL.</p>
+    </div>
+    <span class="material-symbols-rounded inicio-bienvenida__icono" aria-hidden="true">waving_hand</span>
+</section>
+
+<!-- ── Tarjetas de estadísticas ── -->
+<section class="inicio-stats" aria-label="Resumen general">
+    <article class="stat-card" id="stat-proyectos">
+        <div class="stat-card__icono stat-card__icono--azul">
+            <span class="material-symbols-rounded">school</span>
+        </div>
+        <div class="stat-card__info">
+            <p class="stat-card__valor" data-stat="total-proyectos">—</p>
+            <p class="stat-card__etiqueta">Proyectos</p>
+        </div>
+    </article>
+    <article class="stat-card" id="stat-evaluados">
+        <div class="stat-card__icono stat-card__icono--verde">
+            <span class="material-symbols-rounded">task_alt</span>
+        </div>
+        <div class="stat-card__info">
+            <p class="stat-card__valor" data-stat="proyectos-evaluados">—</p>
+            <p class="stat-card__etiqueta">Evaluados</p>
+        </div>
+    </article>
+    <article class="stat-card" id="stat-completos">
+        <div class="stat-card__icono stat-card__icono--naranja">
+            <span class="material-symbols-rounded">verified</span>
+        </div>
+        <div class="stat-card__info">
+            <p class="stat-card__valor" data-stat="proyectos-completos">—</p>
+            <p class="stat-card__etiqueta">Completos</p>
+        </div>
+    </article>
+    <article class="stat-card" id="stat-evaluaciones">
+        <div class="stat-card__icono stat-card__icono--dorado">
+            <span class="material-symbols-rounded">grading</span>
+        </div>
+        <div class="stat-card__info">
+            <p class="stat-card__valor" data-stat="total-evaluaciones">—</p>
+            <p class="stat-card__etiqueta">Evaluaciones</p>
+        </div>
+    </article>
+</section>
+
+<!-- ── Accesos rápidos ── -->
+<section class="inicio-acciones" aria-label="Accesos rápidos">
+    <a class="accion-card" href="/menu/proyectos" data-link data-ripple>
+        <span class="material-symbols-rounded accion-card__icono">school</span>
+        <div class="accion-card__texto">
+            <p class="accion-card__titulo">Proyectos</p>
+            <p class="accion-card__desc">Gestiona los proyectos por grado</p>
+        </div>
+        <span class="material-symbols-rounded accion-card__flecha">chevron_right</span>
+    </a>
+    <a class="accion-card" href="/menu/evaluaciones" data-link data-ripple>
+        <span class="material-symbols-rounded accion-card__icono">quiz</span>
+        <div class="accion-card__texto">
+            <p class="accion-card__titulo">Evaluaciones</p>
+            <p class="accion-card__desc">Consulta las notas y su detalle</p>
+        </div>
+        <span class="material-symbols-rounded accion-card__flecha">chevron_right</span>
+    </a>
+    <a class="accion-card" href="/menu/rubrica" data-link data-ripple>
+        <span class="material-symbols-rounded accion-card__icono">checklist</span>
+        <div class="accion-card__texto">
+            <p class="accion-card__titulo">Rúbricas</p>
+            <p class="accion-card__desc">Administra los criterios de evaluación</p>
+        </div>
+        <span class="material-symbols-rounded accion-card__flecha">chevron_right</span>
+    </a>
+</section>
+
+<!-- ── Últimas evaluaciones ── -->
+<section class="inicio-recientes" aria-label="Últimas evaluaciones">
+    <div class="inicio-recientes__cabecera">
+        <h3 class="inicio-recientes__titulo">
+            <span class="material-symbols-rounded">history</span>
+            Últimas evaluaciones
+        </h3>
+        <button type="button" class="centrar boton btn-refresh btn-opcion" data-ripple onclick="loadInicioResumen(this)" aria-label="Actualizar resumen">
+            <span class="material-symbols-rounded btn-refresh-icon">refresh</span>
+            <div class="btn-refresh-spinner">
+                <div class="boton-spinner" style="background: var(--color-primario);">
+                    <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                        <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                        <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13"
+                            stroke="var(--spinner-arco)" />
+                    </svg>
+                </div>
+            </div>
+        </button>
+    </div>
+
+    <div class="inicio-recientes__loader">
+        <div class="progreso-lineal indeterminado">
+            <div class="progreso-indicador"></div>
+        </div>
+    </div>
+
+    <div class="inicio-recientes__vacio" style="display: none;">
+        <span class="material-symbols-rounded inicio-recientes__vacio-icono">hourglass_empty</span>
+        <p class="inicio-recientes__vacio-texto">Aún no hay evaluaciones registradas</p>
+        <p class="inicio-recientes__vacio-sub">Las evaluaciones de los proyectos aparecerán aquí.</p>
+    </div>
+
+    <ul class="inicio-recientes__lista" id="lista-ultimas-evaluaciones"></ul>
+</section>
+</div>
