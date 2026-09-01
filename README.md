@@ -99,7 +99,7 @@ Dependencias de desarrollo:
 
 ## Requisitos previos
 
-- **Node.js** (v18+). El proyecto utiliza `process.loadEnvFile()` para cargar las variables de entorno, una función nativa de Node.js 18.
+- **Node.js** (v18+).
 - **PostgreSQL** (v12+).
 - **npm** o **yarn**.
 
