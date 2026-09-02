@@ -76,9 +76,29 @@ async function initDB() {
 initDB();
 
 // ─── Auth helpers ──────────────────────────────────────────────────────────────
+// Las peticiones del SPA (parciales */html y fetch que espera JSON) NO deben
+// recibir un redirect a /login: el fetch del frontend lo sigue automáticamente
+// y el router inyectaría la vista login dentro del dashboard. Para esas
+// peticiones respondemos 401 y es el frontend quien hace la redirección de
+// página completa.
+function esPeticionSPA(req) {
+    return (
+        req.path.endsWith('/html') ||
+        req.get('X-Requested-With') === 'fetch' ||
+        req.accepts(['html', 'json']) === 'json'
+    );
+}
+
+function responderSinSesion(req, res) {
+    if (esPeticionSPA(req)) {
+        return res.status(401).json({ mensaje: 'Sesión expirada', redirect: '/login' });
+    }
+    return res.redirect('/login');
+}
+
 function requireAuth(req, res, next) {
     if (!req.session.maestro) {
-        return res.redirect('/login');
+        return responderSinSesion(req, res);
     }
     next();
 }
@@ -86,7 +106,7 @@ function requireAuth(req, res, next) {
 // Solo el director (rol_id = 1) gestiona maestros/orientadores
 function requireDirector(req, res, next) {
     if (!req.session.maestro) {
-        return res.redirect('/login');
+        return responderSinSesion(req, res);
     }
     if (req.session.maestro.rolId !== 1) {
         return res.status(403).json({ mensaje: 'Acción reservada al director' });

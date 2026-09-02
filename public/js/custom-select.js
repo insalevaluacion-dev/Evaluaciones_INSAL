@@ -30,6 +30,13 @@
         }
     }
 
+    // Detección de móvil/táctil: en pantallas pequeñas (breakpoint común de la
+    // app, 640px) el desplegable se convierte en un panel a pantalla completa.
+    const mobileMQ = window.matchMedia('(max-width: 640px)');
+    function isMobile() {
+        return mobileMQ.matches;
+    }
+
     function buildCustomSelect(select) {
         if (select.dataset.customSelect === 'true') return;
         select.dataset.customSelect = 'true';
@@ -118,6 +125,20 @@
             searchInput.setAttribute('autocomplete', 'off');
             searchInput.addEventListener('input', applyFilter);
             searchWrap.appendChild(searchInput);
+
+            // Botón "cerrar" para el panel a pantalla completa en móvil: permite
+            // salir sin elegir opción (en móvil no hay una tecla Escape cómoda).
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'custom-select__close';
+            closeBtn.setAttribute('aria-label', 'Cerrar');
+            closeBtn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeDropdown();
+            });
+            searchWrap.appendChild(closeBtn);
+
             dropdown.appendChild(searchWrap);
         }
 
@@ -238,9 +259,42 @@
             return { top, left };
         }
 
+        // Móvil: el desplegable se convierte en un panel a pantalla completa
+        // (visual viewport). El buscador queda fijo arriba y las opciones hacen
+        // scroll debajo, de modo que el teclado en pantalla NUNCA tape el input
+        // al escribir. Se re-ancla al tamaño del viewport visual en cada cambio.
+        function positionMobileDialog() {
+            const vv = window.visualViewport;
+            const vh = vv ? vv.height : window.innerHeight;
+            const vvTop = vv ? vv.offsetTop : 0;
+            container.classList.add('is-mobile-dialog');
+            dropdown.style.position = 'fixed';
+            dropdown.style.zIndex = '1000';
+            dropdown.style.top = vvTop + 'px';
+            dropdown.style.left = '0';
+            dropdown.style.right = '0';
+            dropdown.style.bottom = 'auto';
+            dropdown.style.width = 'auto';
+            dropdown.style.height = vh + 'px';
+            dropdown.style.maxHeight = vh + 'px';
+        }
+
         // Ajusta la dirección (hacia abajo o hacia arriba) y la altura del menú
         // para que nunca salga de la pantalla ni active el scroll del body.
         function positionDropdown() {
+            // En móvil, y solo si hay buscador (el caso que sufre con el teclado),
+            // el panel va a pantalla completa. Fuera de un <dialog>.
+            if (!insideDialog && isMobile() && searchInput) {
+                positionMobileDialog();
+                return;
+            }
+            // Fuera del modo móvil: limpiar los estilos del panel a pantalla
+            // completa (posición/altura del visual viewport) y reponer el look.
+            container.classList.remove('is-mobile-dialog');
+            dropdown.style.height = 'auto';
+            dropdown.style.right = 'auto';
+            dropdown.style.zIndex = '';
+
             const gap = 8;
             const maxH = 280;
             // Por defecto el menú se ancla al trigger (solo el texto del select).
@@ -374,6 +428,13 @@
 
         // Reposicionar mientras esté abierto si cambia el tamaño de la ventana
         window.addEventListener('resize', () => {
+            if (container.classList.contains('is-open')) positionDropdown();
+        });
+
+        // Móvil: el teclado en pantalla altera el tamaño del visual viewport.
+        // Al hacerlo, reposicionar (a pantalla completa) para que el buscador
+        // nunca quede tapado ni el panel se salga de la zona visible.
+        window.visualViewport?.addEventListener('resize', () => {
             if (container.classList.contains('is-open')) positionDropdown();
         });
 

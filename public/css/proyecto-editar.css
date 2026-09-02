@@ -30,6 +30,11 @@
     flex-direction: column;
     gap: 6px;
     width: 100%;
+    /* Los grid/flex items tienen min-width: auto por defecto, lo que les
+       impide encogerse por debajo del ancho de su contenido. min-width: 0
+       permite que se encojan y no desborden el track del grid (p. ej. un
+       <select> con un valor de texto muy largo). */
+    min-width: 0;
 }
 
 /* Fila de dos columnas (Rúbrica + Grado) */
@@ -41,7 +46,14 @@
 
 @media (max-width: 720px) {
     .proyecto-editar__grid {
-        grid-template-columns: 1fr;
+        /* minmax(0, 1fr) y NO solo 1fr: `1fr` es equivalente a
+           minmax(auto, 1fr), y el `auto` deja que el track crezca hasta el
+           ancho de CONTENIDO. Un value largo (p. ej. el nombre de una
+           especialidad) inflaba la columna más allá del viewport (820px) y
+           el pill del custom-select se recortaba. minmax(0, 1fr) permite que
+           la columna se encoja por debajo del ancho de su contenido, así el
+           label aplica su text-overflow: ellipsis y la flecha queda fija. */
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -830,15 +842,21 @@
             "btn back estado"
             "title title title";
         align-items: center;
-        gap: 8px 12px;
+        gap: 8px 8px;
     }
 
     .vista-proyecto-editar .content_inicio .item-boton-menu {
         grid-area: btn;
     }
 
+    /* En móvil el botón "Atras" se compacta: el estado "Cambios sin guardar"
+       es ancho (187px) y, con el padding + gap por defecto, la fila 1 se
+       desbordaba y el estado se recortaba contra el overflow:hidden de la
+       vista. Menos padding/gap le deja sitio al estado completo. */
     .vista-proyecto-editar .content_inicio .back-link {
         grid-area: back;
+        gap: 4px;
+        padding: 6px 8px;
     }
 
     .vista-proyecto-editar .content_inicio .text-title-seccion {
@@ -848,7 +866,9 @@
         /* Sin ellipsis ni restricciones: el título tiene todo el ancho. */
     }
 
-    /* El estado se ancla a la derecha de la fila 1 (junto a Atras). */
+    /* El estado se ancla a la derecha de la fila 1 (junto a Atras).
+       min-width: 0 deja que se encoja si no cabe; el texto interno trunca con
+       ellipsis como red de seguridad para NUNCA recortarse contra el borde. */
     .vista-proyecto-editar .content_inicio .estado-sincronizacion {
         grid-area: estado;
         justify-self: end;
@@ -856,6 +876,13 @@
         margin-left: 0;
         padding-top: 0;
         white-space: nowrap;
+        min-width: 0;
+    }
+
+    .vista-proyecto-editar .content_inicio .estado-sincronizacion .estado-sincronizacion__texto {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
     }
 }
 

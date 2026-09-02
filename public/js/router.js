@@ -53,8 +53,32 @@ const router = async () => {
     const fetchUrl = matchRoute(location.pathname);
 
     try {
-        const response = await fetch(fetchUrl);
+        const response = await fetch(fetchUrl, {
+            // Identifica la petición como AJAX para que el server devuelva 401
+            // en lugar de un redirect a /login cuando la sesión expiró.
+            headers: { 'X-Requested-With': 'fetch' },
+        });
+
+        // Sesión expirada: el server respondió 401 o el fetch terminó en otra
+        // ruta (p. ej. siguió un redirect a /login). Salir del SPA con una
+        // carga completa que reemplace TODO el DOM; nunca inyectar esa
+        // respuesta dentro del dashboard.
+        const finalPath = new URL(response.url, window.location.origin).pathname;
+        const rutaEsperada = new URL(fetchUrl, window.location.origin).pathname;
+        if (response.status === 401 || response.redirected || finalPath !== rutaEsperada) {
+            window.location.href = finalPath.startsWith('/login') ? finalPath : '/login';
+            return;
+        }
+
         const html = await response.text();
+
+        // Defensa extra: si por cualquier otra vía se recibiera una página
+        // completa (p. ej. la vista login), tampoco inyectarla aquí.
+        if (/<html[\s>]/i.test(html)) {
+            window.location.href = '/login';
+            return;
+        }
+
         document.querySelector('#main__container').innerHTML = html;
 
         // Marcar la pestaña activa según la ruta

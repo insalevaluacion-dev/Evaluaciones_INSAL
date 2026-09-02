@@ -71,9 +71,19 @@ body.custom-select-locked {
     background: #aacff0;
 }
 
-/* Evita que el texto del trigger haga wrap en anchos reducidos */
+/* Evita que el texto del trigger haga wrap en anchos reducidos.
+   flex: 1 + min-width: 0 es OBLIGATORIO: el label es un flex item y, por
+   defecto, su min-width es auto (no baja de su anchura de contenido). Un
+   valor largo (p. ej. "Bachillerato TECNICO PRODUCTIVO EN SISTEMAS...")
+   entonces NO encoge y se derrama fuera del pill azul. Con min-width:0 +
+   overflow:hidden + text-overflow:ellipsis el texto se trunca con "…" dentro
+   del pill. La flecha queda fija a la derecha (flex-shrink:0). */
 .custom-select__trigger-label {
     white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Flecha chevron animada (rota al abrir/cerrar) */
@@ -125,6 +135,35 @@ body.custom-select-locked {
    sticky y dejaría una franja por donde se asoman las opciones al scroll). */
 .custom-select__dropdown:has(.custom-select__search-wrap) {
     padding-top: 0;
+}
+
+/* Scrollbar integrado: por defecto el navegador pinta una barra ancha que
+   "se sale" de la caja y no respeta las esquinas redondeadas ni el padding
+   del panel. Se aplica el mismo look sutil que el resto de la app, pero vía
+   ::-webkit-scrollbar (thumb fino, redondeado e "inset", con track
+   transparente). IMPORTANTE: NO usar scrollbar-width/scrollbar-color aquí:
+   al estar activas, Chromium ignora los pseudo-elementos ::-webkit-scrollbar
+   y vuelve a la barra estándar gruesa. El thumb se encoge (border transparente
+   + background-clip: content-box) para no tocar bordes ni esquinas. */
+.custom-select__dropdown::-webkit-scrollbar {
+    width: 7px;
+}
+
+.custom-select__dropdown::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 0 12px 12px 0;
+}
+
+.custom-select__dropdown::-webkit-scrollbar-thumb {
+    background: var(--hover-color);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.custom-select__dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--text-color);
+    background-clip: content-box;
 }
 
 /* Abrir hacia arriba cuando no hay espacio debajo (evita que salga de pantalla) */
@@ -188,6 +227,9 @@ body.custom-select-locked {
     position: sticky;
     top: 0;                       /* pegado al borde del dropdown al hacer scroll */
     z-index: 2;                   /* queda por encima de las opciones */
+    display: flex;                /* input + botón cerrar en la misma fila */
+    align-items: center;
+    gap: 6px;
     /* Edge-to-edge: anula el padding lateral del dropdown para que no queden
        huecos por donde se asomen las opciones */
     width: calc(100% + 12px);
@@ -198,7 +240,8 @@ body.custom-select-locked {
 }
 
 .custom-select__search {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
     box-sizing: border-box;
     display: block;
     margin: 0;
@@ -221,6 +264,31 @@ body.custom-select-locked {
 .custom-select__search:focus {
     border-color: var(--principal-color, #03a2e6);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color, #03a2e6) 25%, transparent);
+}
+
+/* Botón para cerrar el panel a pantalla completa en móvil (oculto en desktop) */
+.custom-select__close {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-color, #47464b);
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+}
+
+.custom-select__close:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.custom-select__close span {
+    font-size: 1.4rem;
 }
 
 /* Cada opción entra con un pequeño retardo escalonado */
@@ -313,4 +381,53 @@ select.custom-select__native {
 
 .custom-select.is-loading .custom-select__loader {
     display: block;
+}
+
+/* ── Móvil: el desplegable se convierte en un panel a pantalla completa ──
+   El JS lo re-ancla al visual viewport (top/height). Aquí solo se redefine el
+   look para que ocupe el 100% de la pantalla, quede fijo (sin animación de
+   escala de entrada) y el buscador quede pegado arriba, siempre visible bajo
+   el teclado. */
+@media (max-width: 640px) {
+    .custom-select__close {
+        display: flex;
+    }
+
+    /* Sin escala de entrada: el panel "queda fijo" de verdad y no se mueve.
+       Solo se anula la animación de APERTURA; el fade de cierre (.is-closing)
+       sigue aplicándose para que el panel se desvanezca al salir. */
+    .custom-select.is-mobile-dialog .custom-select__dropdown.is-open,
+    .custom-select.is-mobile-dialog.is-open .custom-select__dropdown {
+        animation: none;
+    }
+
+    .custom-select.is-mobile-dialog .custom-select__dropdown {
+        top: 0;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        max-height: none;
+        transform-origin: top center;
+        overflow-y: auto;
+    }
+
+    /* El buscador queda fijo arriba: teclear sin que el teclado lo tape.
+       Se anula el edge-to-edge (width calc + márgenes negativos) porque a
+       pantalla completa ya no hay huecos que tapar y evitaría overflow. */
+    .custom-select.is-mobile-dialog .custom-select__search-wrap {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        width: 100%;
+        margin: 0 0 6px;
+        padding: 6px 6px 0;
+        background: #ffffff;
+    }
+
+    /* Opciones más altas y tocables en móvil */
+    .custom-select.is-mobile-dialog .custom-select__option {
+        padding: 14px 16px;
+    }
 }
