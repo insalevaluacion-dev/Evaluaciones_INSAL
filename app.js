@@ -84,37 +84,78 @@ app.use(express.static(path.join(__dirname, 'public')));
 // añadir su PostgreSQL). También se admiten las variables discretas DB_* y las
 // estándar PG* de libpq.
 // TLS: los hosts internos (*.internal) NO usan SSL; con la URL pública de la
-// plataforma sí suele hacer falta → define DB_SSL=true o añade ?sslmode=require
-// a DATABASE_URL.
-const SSL_DESDE_URL = /[?&]sslmode=(require|prefer|no-verify)/i.test(process.env.DATABASE_URL || '');
+// plataforma (Neon, Render, Railway…) sí es obligatorio, y por eso los pooled
+// endpoints de Neon rechazan la conexión con
+// "connection is insecure (try using sslmode=require)".
+//
+// Dos detalles importantes aquí:
+//
+//  1. pg NO implementa la semántica de libpq para require/prefer: los trata
+//     como verify-full (validan el certificado contra la CA del sistema), y al
+//     pasar `connectionString` el parseo de la URL PISA el objeto `ssl` que le
+//     demos. Para el "cifrar sin verificar" que significa require en libpq
+//     usamos `sslmode=no-verify`, que pg-connection-string sí traduce a
+//     { rejectUnauthorized: false }.
+//
+//  2. Si la URL trae sslmode y además SSL queda desactivado (DB_SSL=false), hay
+//     que QUITAR el parámetro: si se deja, pg lo interpreta y reactiva el TLS
+//     con verificación de certificado contra la CA del sistema, que es
+//     precisamente lo que rompe con los certificados de Neon.
+const MODO_SSL_URL = (process.env.DATABASE_URL?.match(/[?&]sslmode=([^&#]*)/i)?.[1] || '').toLowerCase();
+
+// Modos de libpq que implican tráfico cifrado.
+const MODOS_CIFRADOS = new Set(['allow', 'prefer', 'require', 'verify-ca', 'verify-full', 'no-verify']);
+
 const USAR_SSL =
     process.env.DB_SSL !== undefined
         ? process.env.DB_SSL === 'true'
-        : SSL_DESDE_URL || /^(require|prefer|no-verify|true|1)$/i.test(process.env.PGSSLMODE || '');
+        : MODO_SSL_URL
+          ? MODOS_CIFRADOS.has(MODO_SSL_URL)
+          : /^(allow|prefer|require|verify-ca|verify-full|no-verify|true|1)$/i.test(process.env.PGSSLMODE || '');
 
 // rejectUnauthorized:false porque los Postgres gestionados usan certificados que
 // Node no valida contra la CA del sistema, aunque el tráfico sí va cifrado.
 const ssl = USAR_SSL ? { rejectUnauthorized: false } : undefined;
 
-// Ojo: pg trata sslmode=require/prefer como verify-full y, al pasar
-// `connectionString`, el parseo de la URL PISA la opción `ssl` de arriba. Como
-// "require" en libpq significa "cifrar sin verificar", se quita ese parámetro de
-// la URL (solo esos modos; verify-full/verify-ca/disable quedan intactos para
-// que los siga interpretando pg).
+/**
+ * Reescribe el `sslmode` de la URL a `no-verify` para que sea pg quien aplique
+ * el TLS (cifrado sin validar el certificado) en lugar de interpretarlo como
+ * verify-full. Es un no-op si la URL no trae `sslmode`.
+ */
+function cadenaConTLS(url) {
+    return url.replace(/([?&])sslmode=[^&#]*/i, '$1sslmode=no-verify');
+}
+
+/**
+ * Elimina el `sslmode` de la URL (junto con el `?` o `&` que lo acompañaba)
+ * para que pg no lo interprete. Si la URL no trae `sslmode`, es un no-op.
+ */
 function cadenaSinSSLMODE(url) {
     try {
         const u = new URL(url);
         u.searchParams.delete('sslmode');
-        return u.toString();
+        // toString() deja un "?" colgante si ya no queda ningún parámetro.
+        return u.toString().replace(/\?&/, '?').replace(/[?&]$/, '');
     } catch {
-        return url;
+        return url.replace(/[?&]sslmode=[^&#]*&?/i, '');
     }
 }
 
-const CADENA_BD =
-    process.env.DATABASE_URL && SSL_DESDE_URL
-        ? cadenaSinSSLMODE(process.env.DATABASE_URL)
-        : process.env.DATABASE_URL;
+// Si SSL queda desactivado pero la URL pedía cifrado, avisamos: casi siempre es
+// un DB_SSL=false olvidado en el panel de la plataforma.
+if (!USAR_SSL && MODOS_CIFRADOS.has(MODO_SSL_URL)) {
+    console.warn(
+        `⚠️  La URL de conexión pide sslmode=${MODO_SSL_URL} pero DB_SSL/PGSSLMODE ` +
+            `desactiva el TLS. Se ignorará sslmode; si tu base de datos exige ` +
+            `cifrado, quita DB_SSL=false o ponla en true.`,
+    );
+}
+
+const CADENA_BD = process.env.DATABASE_URL
+    ? USAR_SSL
+        ? cadenaConTLS(process.env.DATABASE_URL)
+        : cadenaSinSSLMODE(process.env.DATABASE_URL)
+    : process.env.DATABASE_URL;
 
 const pool = new Pool(
     CADENA_BD
@@ -178,11 +219,14 @@ async function seedAdmin() {
 async function initDB() {
     try {
         const client = await pool.connect();
-        console.log('✅ Conexión exitosa a PostgreSQL');
+        console.log('✅ Conexión exitosa a PostgreSQL (TLS: ' + (USAR_SSL ? 'sí' : 'no') + ')');
         client.release();
         await seedAdmin();
     } catch (err) {
-        console.error(`❌ Error al conectar a PostgreSQL (${descripcionBD()}):`, err.message);
+        console.error(`❌ Error al conectar a PostgreSQL (${descripcionBD()}, TLS: ${USAR_SSL ? 'sí' : 'no'}):`, err.message);
+        if (/insecure|ssl|tls/i.test(err.message) && !USAR_SSL) {
+            console.error('   → Tu base de datos exige TLS. Define DB_SSL=true (o deja la URL con ?sslmode=require).');
+        }
         console.log('   Reintentando en 3 segundos...');
         setTimeout(initDB, 3000);
     }

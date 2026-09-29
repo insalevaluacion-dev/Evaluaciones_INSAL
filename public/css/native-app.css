@@ -1,0 +1,231 @@
+/* ═══════════════════════════════════════════════════════════════════
+   NATIVE-APP.CSS — Comportamiento de "app nativa" en móvil
+   ═══════════════════════════════════════════════════════════════════
+   Se importa desde main.css (primero de todo), de modo que estas
+   reglas aplican a TODAS las vistas: menú, login, registro,
+   selección, evaluación, resumen y configuración.
+
+   QUÉ ELIMINA
+   • Resaltado azul/gris al tocar (tap highlight) de Android/iOS.
+   • Menú contextual de pulsación larga (callout) de iOS.
+   • Selección de texto accidental al deslizar el dedo.
+   • Retardo de 300 ms del clic y el zoom por doble toque.
+   • Rebote elástico y "tirar para recargar" de la página.
+   • Halo azul de foco en punteros (dedo/ratón).
+   • Arrastre de imágenes con el dedo.
+
+   QUÉ AÑADE
+   • Estados de presión (:active) con feedback visible, que es lo que
+     hace que un toque se sienta como app nativa. Complementa al ripple
+     que el proyecto ya tenía.
+   • Anillo de foco solo al navegar con teclado (:focus-visible), de
+     modo que la accesibilidad no se pierde.
+   • Helpers de zona segura para notch / barra de gestos.
+   ═══════════════════════════════════════════════════════════════════ */
+
+
+/* ───────────────────────────────────────────────────────────────────
+   1. TOKENS DE PRESIÓN
+   120 ms, como en Material: el dedo se mueve más rápido que una
+   transición larga y un feedback lento se percibe como "la app no me
+   escuchó".
+   ─────────────────────────────────────────────────────────────────── */
+:root {
+    --press-scale: 0.97;
+    --press-fade: 0.72;
+    --press-dur: 120ms;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   2. TAMAÑO DE TEXTO ESTABLE
+   Sin esto, iOS infla los textos al rotar el dispositivo y la
+   maquetación da saltos que se sienten como un glitch.
+   ─────────────────────────────────────────────────────────────────── */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   3. SIN REBOTE NI PULL-TO-REFRESH
+   Se aplica en la raíz, no en los contenedores: el scroll interno de
+   los paneles (evaluación, listas, select) sigue intacto. Lo que se
+   evita es arrastrar la página entera al llegar al tope.
+   ─────────────────────────────────────────────────────────────────── */
+html,
+body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   4. ELIMINAR EL RESALTADO AL TOCAR
+   -webkit-tap-highlight-color es la propiedad que pinta el cuadro
+   azul/gris en Android y el gris translúcido en iOS. Se aplica con
+   el comodín y NO solo a los elementos interactivos, porque el
+   navegador también lo pinta sobre hijos no pulsables (por ejemplo,
+   el texto y el icono dentro de un botón).
+   ─────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    -webkit-touch-callout: none;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   5. SIN SELECCIÓN DE TEXTO POR DESLIZAMIENTO
+   En una app los títulos, etiquetas y celdas no se seleccionan al
+   deslizar el dedo. Se reactiva explícitamente donde sí tiene
+   sentido: campos editables, contenteditable y bloques marcados con
+   .texto-selectable.
+   ─────────────────────────────────────────────────────────────────── */
+body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+[contenteditable=""],
+.texto-selectable,
+.seleccionable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   6. FOCUS: SOLO CUANDO VIENE DEL TECLADO
+   Se quita el outline por defecto (Safari mobile pinta un halo azul
+   muy visible al tocar) y se devuelve con :focus-visible, que el
+   navegador activa únicamente cuando la navegación no viene de un
+   puntero. Accesibilidad de teclado intacta.
+   ─────────────────────────────────────────────────────────────────── */
+:focus,
+:focus-visible,
+:focus-within {
+    outline: none;
+}
+
+:focus-visible {
+    outline: 2px solid var(--azul-clr, #2a7de1);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   7. SIN ARRASTRE DE IMÁGENES
+   Arrastrar una foto con el dedo en móvil no aporta nada y deja
+   artefactos. Los <input type="file"> siguen funcionando con normalidad.
+   ─────────────────────────────────────────────────────────────────── */
+img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    user-drag: none;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   8. RETARDO DE CLIC Y DOBLE TOQUE
+   touch-action: manipulation elimina los 300 ms de espera del clic y
+   el zoom por doble toque, pero CONSERVA el scroll y el pellizco
+   (a diferencia de touch-action: none, que los rompería).
+
+   Solo se aplica a elementos que de verdad son interactivos, nunca al
+   body ni a los contenedores con scroll.
+   ─────────────────────────────────────────────────────────────────── */
+button,
+[role="button"],
+summary,
+a,
+.opcion,
+.btn,
+.btn-accion,
+.custom-select__trigger,
+[onclick] {
+    touch-action: manipulation;
+    transition:
+        transform var(--press-dur) cubic-bezier(0.2, 0, 0, 1),
+        filter var(--press-dur) cubic-bezier(0.2, 0, 0, 1);
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   9. ESTADO :ACTIVE
+   Es el reemplazo del resaltado azul: en lugar de un cuadro pintado
+   por el navegador, el elemento se comprime y se atenúa al contacto,
+   como en una app nativa.
+
+   Usa :where(), que aporta especificidad 0. Es deliberado: así, un
+   :active propio del proyecto (por ejemplo `.opcion:active`, que ya
+   hace scale(0.95) y cambia el color) sigue mandando en `transform`,
+   mientras `filter` —que casi ningún componente define— se aplica y
+   aporta el feedback de "elemento presionado" en toda la app.
+   ─────────────────────────────────────────────────────────────────── */
+:where(button, [role="button"], summary, a, .btn, .btn-accion, .custom-select__trigger, [onclick]):not(:disabled):active {
+    transform: scale(var(--press-scale));
+    filter: brightness(var(--press-fade));
+    /* Sin transición al soltar: si no, el elemento queda atenuado
+       después de levantar el dedo. */
+    transition:
+        transform 0ms,
+        filter 0ms;
+}
+
+/* Los <label> que envuelven checkbox/radio no deben encogerse: el
+   área de toque real es el control, no la etiqueta. */
+:where(label):has(input[type="checkbox"], input[type="radio"]):active {
+    transform: none;
+    filter: none;
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   10. ZONA SEGURA (notch / barra de gestos)
+   En iPhone con notch, el contenido pegado al borde queda bajo el
+   recorte de la cámara o bajo la barra de inicio. Se expone un helper
+   en vez de parchear cada pantalla.
+   ─────────────────────────────────────────────────────────────────── */
+.safe-area-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+}
+
+.safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+
+/* ───────────────────────────────────────────────────────────────────
+   11. ACCESIBILIDAD
+   Si el usuario pide movimiento reducido, se anula el escalado de
+   presión y se acorta el ripple.
+   ─────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+
+    button,
+    [role="button"],
+    summary,
+    a,
+    .opcion,
+    .btn,
+    .btn-accion,
+    [onclick] {
+        transition: none !important;
+    }
+
+    .ripple {
+        animation-duration: 0.01ms !important;
+    }
+}
+
