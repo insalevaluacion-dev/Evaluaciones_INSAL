@@ -209,12 +209,27 @@ a{
     }
 }
 
-/* Oculta el botón de revelar contraseña del navegador (Chrome, Edge, Safari) */
-.input__text::-webkit-password-reveal-button {
+/* Oculta el botón de revelar contraseña NATIVO del navegador (Chrome, Edge, Safari).
+   Se aplican en TODOS los estados (text/password) porque algunos navegadores
+   muestran el reveal-button también cuando el input ya está en type="text". */
+.input__text::-webkit-password-reveal-button,
+.input__text[type="password"]::-webkit-password-reveal-button,
+.input__text[type="text"]::-webkit-password-reveal-button {
     display: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
 }
-.input__text[type="password"]::-webkit-password-reveal-button {
+.input__text::-webkit-credentials-auto-save-button {
     display: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 /* Contenedor relativo para el input de contraseña */
@@ -251,6 +266,12 @@ a{
 
 .password-toggle .material-symbols-rounded {
     font-size: var(--fs-xl);
+}
+
+/* El :active global (native-app.css) pisa el translateY(-50%) del toggle.
+   Hay que combinar escala y traslape para que no salte de posición. */
+.password-toggle:active {
+    transform: translateY(-50%) scale(var(--press-scale));
 }
 
 /* ── Responsive ── */

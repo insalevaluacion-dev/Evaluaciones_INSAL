@@ -187,7 +187,7 @@ El puerto lo entrega la plataforma en `PORT` (Render usa `10000` si no definiste
 | `DATABASE_URL`            | Sí\*        | Cadena de conexión de PostgreSQL (`postgres://usuario:clave@host:puerto/bd`); es la que entrega el add-on de PostgreSQL en Render/Railway.                  |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Sí\* | Alternativa a `DATABASE_URL` con variables separadas (también se admiten las estándar de libpq: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`). |
 | `SESSION_SECRET`          | Recomendada | Secreto de firma de las sesiones. Sin ella se usa `insal-secret-2026`.                                                                                     |
-| `DB_SSL`                  | No          | `true`/`false` para forzar o desactivar el TLS. Si no se define, se deduce de `DATABASE_URL` (cualquier `sslmode` cifrado: `require`, `prefer`, `allow`, `verify-ca`, `verify-full`, `no-verify`) y, si no aparece, de `PGSSLMODE`. **Con Neon, Supabase o cualquier URL pública déjala sin definir o en `true`.** |
+| `DB_SSL`                  | Sí, con variables separadas | `true`/`false` para forzar o desactivar el TLS. **Obligatoria si usas `DB_HOST`/`DB_PORT`/… con Neon, Supabase o cualquier host público**: sin ella el TLS queda desactivado y el servidor rechaza la conexión. Si usas `DATABASE_URL` déjala sin definir y se deduce del `sslmode`. |
 | `COOKIE_SECURE`           | No          | Fuerza (`true`) o desactiva (`false`) las cookies solo-HTTPS. Por defecto quedan activadas al detectar Render/Railway.                                      |
 | `NODE_ENV`                | No          | `production` es lo habitual (Render lo fija solo; Railway se detecta por sus variables `RAILWAY_ENVIRONMENT_NAME` / `RAILWAY_ENVIRONMENT_ID` / `RAILWAY_PROJECT_ID`).                                                |
 | `TRUST_PROXY`             | No          | `true` si despliegas detrás de tu propio proxy inverso en lugar de Render/Railway.                                                                        |
@@ -198,7 +198,9 @@ El puerto lo entrega la plataforma en `PORT` (Render usa `10000` si no definiste
 
 Lo emite el propio servidor (Neon, Supabase…) cuando recibe la conexión **sin cifrar**. Suele significar que el TLS quedó desactivado, y en el caso de Neon es casi siempre por tener `DB_SSL=false` en el panel de la plataforma: entonces la app descarta el `sslmode=require` de la URL y se conecta en claro.
 
-Solución: **borra `DB_SSL`** (o ponla en `true`) y deja la URL tal como la entrega Neon. El arranque ahora indica el estado con `✅ Conexión exitosa a PostgreSQL (TLS: sí)` y, si vuelve a fallar por TLS, muestra una línea con la causa.
+Solución: pon `DB_SSL=true` en el panel. **Si usas variables separadas (`DB_HOST`, `DB_PORT`, …) es obligatoria**, porque al no haber `DATABASE_URL` no hay ningún `sslmode` del que deducirlo y el TLS se queda apagado. Si en cambio usas `DATABASE_URL`, basta con **borrar** `DB_SSL` y se deduce sola del `sslmode` de la URL.
+
+El arranque indica el estado con `✅ Conexión exitosa a PostgreSQL (TLS: sí)`, y si vuelve a fallar por TLS, muestra una línea con la causa.
 
 ### Notas de despliegue
 
