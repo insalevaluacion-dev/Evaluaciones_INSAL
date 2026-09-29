@@ -81,9 +81,18 @@ function setEditando(valor) {
     editandoNombre = valor;
     const input = $('#config-input-nombre');
     const btn = $('#config-btn-editar-nombre');
+    const btnCancelar = $('#config-btn-cancelar-nombre');
     if (!input || !btn) return;
 
     input.disabled = !valor;
+    // Mostrar/ocultar el botón Cancelar
+    if (btnCancelar) {
+        if (valor) {
+            btnCancelar.style.display = 'inline-flex';
+        } else {
+            btnCancelar.style.display = 'none';
+        }
+    }
     if (valor) {
         input.focus();
         input.select();
@@ -156,6 +165,13 @@ function initEditarNombre() {
             $('#config-input-nombre').value = actual.trim();
             setEditando(false);
         }
+    });
+
+    // Botón Cancelar: restaura el valor original y sale de modo edición
+    $('#config-btn-cancelar-nombre')?.addEventListener('click', () => {
+        const actual = document.querySelector('.info-card .title')?.textContent || '';
+        $('#config-input-nombre').value = actual.trim();
+        setEditando(false);
     });
 }
 

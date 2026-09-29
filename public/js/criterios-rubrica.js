@@ -7,6 +7,7 @@ import { createSubmitHandler } from './submitHandler.js';
 import { cerrarDialogoAnimado } from './menu.js';
 import { confirmarAccion } from './editar-criterios.js';
 import { animarEntrada, animarSalida } from './listAnimations.js';
+import { puedeEditarRubricas } from './permisos.js';
 
 /**
  * NOTA: La edición de rúbrica (diálogo #dialogo-editar-rubrica) se maneja
@@ -241,6 +242,10 @@ function createRubricaElement(nivel) {
     elementoDiv.className = 'list-item';
     elementoDiv.setAttribute('data-item-id', nivel.nivel_id);
 
+    // Solo los roles con permiso de gestión ven las acciones de escritura: el
+    // docente-orientador entra a la rúbrica únicamente a consultarla.
+    const puedeEditar = puedeEditarRubricas();
+
     elementoDiv.innerHTML = `
     <div class="list-item__content">
         <span class="material-symbols-rounded">checklist</span>
@@ -251,12 +256,12 @@ function createRubricaElement(nivel) {
     </div>
     <div class="centrar gap-row margin-left-20">
         <a href="/menu/rubrica/${nivel.nivel_id}" data-link class="centrar boton btn-small btn-mas" id="rubrica-${nivel.nivel_id}-open">
-            <p>Editar</p>
+            <p>${puedeEditar ? 'Editar' : 'Ver'}</p>
             <span class="material-symbols-rounded">arrow_outward</span>
         </a>
-        <button class="list-item__actions" id="rubrica-${nivel.nivel_id}-actions">
+        ${puedeEditar ? `<button class="list-item__actions" id="rubrica-${nivel.nivel_id}-actions">
             <span class="material-symbols-rounded">more_vert</span>
-        </button>
+        </button>` : ''}
     </div>
     `;
 
@@ -279,16 +284,24 @@ function createRubricaElement(nivel) {
  * y cada vez que el router reemplaza el contenido del main.
  */
 function initRubricasHandlers() {
+    const container = document.getElementById('rubricas__container');
+    if (!container) return;
+
+    // La lista se carga siempre: el docente-orientador también consulta rúbricas,
+    // aunque su vista sea de solo lectura.
+    loadRubricas();
+
+    // A partir de aquí todo es escritura (menú contextual y diálogos de edición),
+    // que solo existe en el DOM de los roles con permiso de gestión.
+    if (!puedeEditarRubricas()) return;
+
     // initDialogoEditarRubrica se conecta a createSubmitHandler y usa
     // currentRubricaId, que solo existe en la vista de lista.
     // En la vista individual, lo maneja editar-criterios.js.
-    const container = document.getElementById('rubricas__container');
-    if (!container) return;
     const menulist = getMenuList();
     if (!menulist) return;
 
     initDialogoEditarRubrica();
-    loadRubricas();
 
 
 
@@ -375,6 +388,9 @@ async function eliminarRubrica(nivelId) {
     if (!ok) return;
 
     mostrarNotificacion('Rúbrica eliminada', 'bien');
+    // El catálogo de rúbricas cambió: invalidar los cachés de otros módulos
+    // (p. ej. el select "Tipo de evaluación" del formulario de proyectos).
+    document.dispatchEvent(new CustomEvent('catalogos:actualizados'));
     await loadRubricas();
 }
 
@@ -444,6 +460,10 @@ async function guardarEdicionRubrica() {
         item.dataset.nombre = newNombre.trim();
         item.dataset.descripcion = (data.nivel?.descripcion || descripcion || '').trim();
     }
+
+    // El nombre de la rúbrica cambió: invalidar los cachés de otros módulos
+    // (select "Tipo de evaluación" del formulario de proyectos).
+    document.dispatchEvent(new CustomEvent('catalogos:actualizados'));
 
     return { success: true, nivel: data.nivel };
 }
@@ -616,6 +636,9 @@ function initRubricaFormHandler() {
             // Transición suave hacia la edición de la rúbrica recién creada:
             // 1. Notificación de éxito
             mostrarNotificacion('Rúbrica creada correctamente', 'bien');
+            // El catálogo de rúbricas cambió: invalidar los cachés de otros módulos
+            // (select "Tipo de evaluación" del formulario de proyectos).
+            document.dispatchEvent(new CustomEvent('catalogos:actualizados'));
             // 2. Cerrar el diálogo con su animación de salida
             toggleDialog();
             // 3. Refrescar la lista para que la rúbrica nueva aparezca

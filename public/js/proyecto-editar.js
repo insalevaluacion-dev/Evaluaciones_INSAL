@@ -12,6 +12,7 @@
 import { mostrarNotificacion } from './notificaciones.js';
 import { createSubmitHandler } from './submitHandler.js';
 import { confirmarAccion } from './editar-criterios.js';
+import { plural } from './texto.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ESTADO
@@ -414,8 +415,11 @@ async function guardarCambios() {
     // grado: recargar la lista para reflejarlo y limpiar pendientes.
     if (gradoCambio || habiaCambiosAlumnos) {
         if (gradoCambio && data?.alumnosEliminados > 0) {
+            const n = data.alumnosEliminados;
             mostrarNotificacion(
-                `${data.alumnosEliminados} alumno(s) fuera del nuevo grado fueron quitados del proyecto`,
+                n === 1
+                    ? '1 alumno fuera del nuevo grado fue quitado del proyecto'
+                    : `${n} alumnos fuera del nuevo grado fueron quitados del proyecto`,
                 'info',
             );
         }
@@ -546,7 +550,7 @@ function renderAlumnos() {
         pildora.className = 'alumnos-deshacer';
         pildora.innerHTML = `
             <span class="material-symbols-rounded" aria-hidden="true">restore</span>
-            <span class="alumnos-deshacer__texto">${quitadosManuales.length} alumno(s) marcado(s) para quitar</span>
+            <span class="alumnos-deshacer__texto">${quitadosManuales.length} ${plural(quitadosManuales.length, 'alumno', 'alumnos')} ${plural(quitadosManuales.length, 'marcado', 'marcados')} para quitar</span>
             <button type="button" class="alumnos-deshacer__btn" data-ripple>Deshacer</button>
         `;
         pildora.querySelector('.alumnos-deshacer__btn').addEventListener('click', () => {
@@ -840,7 +844,9 @@ async function aplicarCambioGrado(nuevoGradoId) {
     const fuera = [...pendientesQuitar.values()].filter((r) => r === 'grado').length;
     if (fuera > 0) {
         mostrarNotificacion(
-            `${fuera} alumno(s) dejarán el proyecto al guardar: no pertenecen al grado seleccionado`,
+            fuera === 1
+                ? '1 alumno dejará el proyecto al guardar: no pertenece al grado seleccionado'
+                : `${fuera} alumnos dejarán el proyecto al guardar: no pertenecen al grado seleccionado`,
             'info',
         );
     }

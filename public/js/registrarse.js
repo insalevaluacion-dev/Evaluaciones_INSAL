@@ -5,7 +5,7 @@ import { mostrarNotificacion } from './notificaciones.js';
 // ============================================================
 // Cambia SOLO_CORREOS_INSTITUCIONALES a false para permitir
 // cualquier correo (desactiva la restricción del dominio).
-const SOLO_CORREOS_INSTITUCIONALES = true;
+const SOLO_CORREOS_INSTITUCIONALES = false;
 const DOMINIO_INSTITUCIONAL = '@clases.edu.sv';
 // ============================================================
 

@@ -455,30 +455,91 @@ function updateProyectoElement(el, proyecto) {
 
 let nivelesCache = null;
 let gradosCache = null;
+// Petición en curso por catálogo: evita lanzar dos fetch idénticos cuando la
+// vista se inicializa en DOMContentLoaded y en contentUpdated casi a la vez.
+let nivelesPendiente = null;
+let gradosPendiente = null;
+
+/** Catálogos que alimentan el formulario de proyectos (URL y clave del JSON). */
+const CATALOGOS_PROYECTO = {
+    niveles: { url: '/admin/niveles-evaluacion', clave: 'niveles' },
+    grados: { url: '/admin/grados', clave: 'grados' },
+};
+
+/**
+ * Obtiene un catálogo del servidor cacheándolo en memoria.
+ * Las respuestas fallidas NO se cachean (antes un error del servidor guardaba
+ * una lista vacía y el select se quedaba sin opciones el resto de la sesión).
+ * @param {'niveles'|'grados'} tipo Catálogo a cargar.
+ * @param {boolean} forzar true para ignorar el caché y pedir datos frescos.
+ */
+async function obtenerCatalogo(tipo, forzar = false) {
+    const { url, clave } = CATALOGOS_PROYECTO[tipo];
+    const cache = tipo === 'niveles' ? nivelesCache : gradosCache;
+    const pendiente = tipo === 'niveles' ? nivelesPendiente : gradosPendiente;
+
+    if (!forzar && cache) return cache;
+    // Ya hay una petición en curso con datos frescos: se reutiliza.
+    if (pendiente) return pendiente;
+
+    const peticion = (async () => {
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        let data = null;
+        try {
+            data = await res.json();
+        } catch {
+            data = null;
+        }
+        if (!res.ok) {
+            throw new Error(data?.mensaje || `Error ${res.status} al cargar ${clave}`);
+        }
+        if (!data || !Array.isArray(data[clave])) {
+            throw new Error(`Respuesta inesperada del servidor al cargar ${clave}`);
+        }
+        if (tipo === 'niveles') nivelesCache = data[clave];
+        else gradosCache = data[clave];
+        return data[clave];
+    })();
+
+    if (tipo === 'niveles') nivelesPendiente = peticion;
+    else gradosPendiente = peticion;
+
+    try {
+        return await peticion;
+    } finally {
+        if (tipo === 'niveles') {
+            if (nivelesPendiente === peticion) nivelesPendiente = null;
+        } else if (gradosPendiente === peticion) {
+            gradosPendiente = null;
+        }
+    }
+}
 
 /** Obtiene las rúbricas (niveles de evaluación) para el select. */
-async function obtenerNiveles() {
-    if (nivelesCache) return nivelesCache;
-    const res = await fetch('/admin/niveles-evaluacion', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-    });
-    const data = await res.json();
-    nivelesCache = (data && data.niveles) || [];
-    return nivelesCache;
+async function obtenerNiveles(forzar = false) {
+    return obtenerCatalogo('niveles', forzar);
 }
 
 /** Obtiene los grados habilitados para el maestro. */
-async function obtenerGrados() {
-    if (gradosCache) return gradosCache;
-    const res = await fetch('/admin/grados', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-    });
-    const data = await res.json();
-    gradosCache = (data && data.grados) || [];
-    return gradosCache;
+async function obtenerGrados(forzar = false) {
+    return obtenerCatalogo('grados', forzar);
 }
+
+/**
+ * Descarta los catálogos cacheados para que la próxima carga pida datos frescos.
+ * Lo usan los módulos que crean/editan/eliminan rúbricas.
+ */
+function invalidarCatalogosProyecto() {
+    nivelesCache = null;
+    gradosCache = null;
+}
+
+// criterios-rubrica.js y editar-criterios.js avisan cuando cambia el catálogo de
+// rúbricas; el select "Tipo de evaluación" debe repintarse con los datos nuevos.
+document.addEventListener('catalogos:actualizados', invalidarCatalogosProyecto);
 
 /**
  * Rellena un <select data-custom> con una lista de valores (deduplicados y sin
@@ -677,29 +738,52 @@ function preseleccionarGradoEnCascade(prefijo, gradoId) {
     sincronizarIdsFormulario(prefijo);
 }
 
-/** Carga niveles y grados desde la DB y configura los selects (crear y editar). */
-async function poblarSelectsProyecto() {
-    try {
-        const [niveles, grados] = await Promise.all([obtenerNiveles(), obtenerGrados()]);
+/**
+ * Carga niveles y grados desde la DB y configura los selects (crear y editar).
+ * @param {boolean} forzar true para pedir datos frescos al servidor: se usa al
+ * entrar a la vista, así las rúbricas recién creadas aparecen en el select
+ * "Tipo de evaluación" sin recargar la página.
+ */
+async function poblarSelectsProyecto(forzar = false) {
+    // Cada catálogo se carga por separado: si uno falla, el otro todavía puede
+    // poblar sus selects y el usuario recibe un aviso claro del problema.
+    const [niveles, grados] = await Promise.all([
+        obtenerNiveles(forzar).catch((error) => {
+            console.error('Error al cargar los tipos de evaluación:', error);
+            mostrarNotificacion('No se pudieron cargar los tipos de evaluación', 'error');
+            return null;
+        }),
+        obtenerGrados(forzar).catch((error) => {
+            console.error('Error al cargar los grados:', error);
+            mostrarNotificacion('No se pudieron cargar los grados', 'error');
+            return null;
+        }),
+    ]);
 
+    if (niveles) {
         // Rúbricas (niveles) para crear y editar
         poblarOpcionesSelect('proyecto-nivel', niveles.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
         poblarOpcionesSelect('editar-nivel', niveles.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
 
-        // Cascadas Grado → Especialidad → Sección (crear y editar)
-        configurarCascadeGrado('proyecto', grados);
-        configurarCascadeGrado('editar', grados);
-
-        // Resolver el nivel_id cuando cambia la rúbrica
+        // Resolver el nivel_id cuando cambia la rúbrica (un listener por select)
         ['proyecto-nivel', 'editar-nivel'].forEach((id) => {
             const sel = document.getElementById(id);
             const hidden = document.getElementById(`${id}-id`);
             if (!sel || !hidden) return;
-            const listener = () => { hidden.value = resolverNivelId(sel.value); };
-            sel.addEventListener('change', listener);
+            // Tras repoblar, re-sincronizar el id oculto con la selección vigente
+            hidden.value = resolverNivelId(sel.value);
+            if (sel.dataset.nivelListenerInit === 'true') return;
+            sel.dataset.nivelListenerInit = 'true';
+            sel.addEventListener('change', () => {
+                hidden.value = resolverNivelId(sel.value);
+            });
         });
-    } catch (error) {
-        console.error('Error al cargar las opciones del formulario de proyectos:', error);
+    }
+
+    if (grados) {
+        // Cascadas Grado → Especialidad → Sección (crear y editar)
+        configurarCascadeGrado('proyecto', grados);
+        configurarCascadeGrado('editar', grados);
     }
 }
 // ═══════════════════════════════════════════════════════════════
@@ -1030,7 +1114,9 @@ function initProyectosHandlers() {
     if (!menulist) return;
 
     initDialogoEditarProyecto();
-    poblarSelectsProyecto();
+    // forzar = true: la vista se reabre al navegar (SPA) y puede haber rúbricas
+    // nuevas, así que se piden los catálogos frescos en cada entrada.
+    poblarSelectsProyecto(true);
     loadProyectos();
     initFiltroCascadaProyectos(container);
 

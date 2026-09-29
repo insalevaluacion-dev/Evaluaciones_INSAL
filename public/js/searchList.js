@@ -10,11 +10,13 @@
 
 import { animarMostrar, animarOcultar } from './listAnimations.js';
 
-/** Normaliza texto para comparar (minúsculas, sin tildes). */
+/** Normaliza texto para comparar (minúsculas, sin tildes).
+ *  Admite caracteres especiales como ° (equivalente a º). */
 function normalizeText(text) {
     return (text || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[º°]/g, '°') // º y ° se tratan como el mismo carácter
         .trim()
         .toLowerCase();
 }

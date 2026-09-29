@@ -43,9 +43,9 @@ La plataforma separa dos flujos de trabajo principales, cada uno con su propio p
 
 ### Control de acceso por rol
 
-- **Director (rol_id = 1):** acceso total. Único rol con permisos para gestionar maestros y orientadores.
-- **Administrador (rol_id = 2):** acceso total a la gestión de proyectos, grados, criterios y rúbricas.
-- **Orientador:** acceso restringido únicamente a los grados a los que ha sido asignado y que se encuentran activos.
+- **Director (rol_id = 1):** acceso total. Único rol que puede crear/editar cuentas de maestros y asignar o desactivar orientadores.
+- **Administrador (rol_id = 2):** acceso total a la gestión de proyectos, grados, criterios y rúbricas. Puede consultar el listado de orientadores, pero no modificarlo.
+- **Docente (rol_id = 3):** acceso total a grados, proyectos, estudiantes, evaluaciones y reportes de todo el instituto (la asignación de orientador organiza el año, pero **no** restringe lo que ve). Las rúbricas son de solo lectura.
 
 ## Funcionalidades
 
@@ -57,7 +57,7 @@ La plataforma separa dos flujos de trabajo principales, cada uno con su propio p
 - **Rúbricas y criterios:** definir niveles de evaluación con criterios y ponderaciones personalizadas (1-100 %).
 - **Gestión de estudiantes por proyecto:** asignar o remover estudiantes de un proyecto.
 - **Reportes de evaluación:** consultar proyectos evaluados con su nota final o parcial, y el detalle por criterio.
-- **Control de acceso por grado:** los orientadores solo ven los grados a los que están asignados.
+- **Control de acceso por grado:** todos los roles del panel (Director, Administrador y Docente) ven la información de todos los grados; el alcance restringido por grado queda disponible en la matriz de permisos de `app.js` por si se reactiva.
 
 ### Evaluadores
 
@@ -71,7 +71,7 @@ La plataforma separa dos flujos de trabajo principales, cada uno con su propio p
 
 | Capa                | Tecnología                                                                                        |
 | ------------------- | ------------------------------------------------------------------------------------------------- |
-| Backend             | Node.js + Express 5                                                                               |
+| Backend             | Node.js (módulos ES) + Express 5                                                                  |
 | Base de datos       | PostgreSQL (esquemas `principal` y `evaluaciones`)                                                |
 | Motor de plantillas | EJS (Embedded JavaScript)                                                                         |
 | Frontend            | HTML5, CSS3, JavaScript (ES6, módulos)                                                            |
@@ -99,7 +99,7 @@ Dependencias de desarrollo:
 
 ## Requisitos previos
 
-- **Node.js** (v18+). El proyecto utiliza `process.loadEnvFile()` para cargar las variables de entorno, una función nativa de Node.js 18.
+- **Node.js** (v20.12+). El backend está escrito como módulo ES (`"type": "module"` en `package.json`) y utiliza `process.loadEnvFile()` para cargar las variables de entorno, función nativa disponible desde Node.js 20.12 (no se requiere `dotenv`).
 - **PostgreSQL** (v12+).
 - **npm** o **yarn**.
 
@@ -139,6 +139,8 @@ PORT=3000
 
 > **Nota:** si no se define `SESSION_SECRET`, se utiliza `insal-secret-2026` como valor por defecto. Para entornos de producción se recomienda usar un secreto único y seguro.
 
+> **Render / Railway:** ahí **no** se usa `.env`. Define estas mismas variables en el panel de la plataforma (lo habitual es que el add-on de PostgreSQL te dé `DATABASE_URL` ya lista). Ver [Despliegue en Render / Railway](#despliegue-en-render--railway).
+
 ### 4. Importar la base de datos
 
 El archivo `db/Principal y Evaluacion-railway-202608232153.sql` contiene el esquema y los datos iniciales de PostgreSQL.
@@ -163,6 +165,43 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
 Al iniciar, la aplicación se conecta a PostgreSQL y, si no existe ningún maestro registrado, crea automáticamente el usuario Director por defecto (ver [Credenciales por defecto](#credenciales-por-defecto)).
 
+## Despliegue en Render / Railway
+
+En estas plataformas **no se sube el archivo `.env`**: el panel inyecta las variables directamente en el entorno del contenedor (`process.env`). El servidor detecta su ausencia, lo deja anotado en el log (`ℹ️ Sin archivo .env: se usan las variables inyectadas por el entorno`) y arranca normalmente con las variables de la plataforma.
+
+### Configuración del servicio
+
+| Ajuste            | Valor                                      |
+| ----------------- | ------------------------------------------ |
+| Build command     | `npm install`                              |
+| Start command     | `npm start`                                |
+| Health check path | `/health`                                  |
+| Node.js           | ≥ 20.12 (vía `engines.node` de `package.json`) |
+
+El puerto lo entrega la plataforma en `PORT` (Render usa `10000` si no definiste otro) y el servidor ya escucha en `0.0.0.0`, así que no hay que configurar nada más.
+
+### Variables de entorno
+
+| Variable                  | Obligatoria | Descripción                                                                                                                                              |
+| ------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`            | Sí\*        | Cadena de conexión de PostgreSQL (`postgres://usuario:clave@host:puerto/bd`); es la que entrega el add-on de PostgreSQL en Render/Railway.                  |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Sí\* | Alternativa a `DATABASE_URL` con variables separadas (también se admiten las estándar de libpq: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`). |
+| `SESSION_SECRET`          | Recomendada | Secreto de firma de las sesiones. Sin ella se usa `insal-secret-2026`.                                                                                     |
+| `DB_SSL`                  | No          | `true` si tu PostgreSQL exige TLS (por ejemplo la URL **pública** de Render/Railway). Por defecto se activa solo si `DATABASE_URL` contiene `?sslmode=require` o si `PGSSLMODE=require`. |
+| `COOKIE_SECURE`           | No          | Fuerza (`true`) o desactiva (`false`) las cookies solo-HTTPS. Por defecto quedan activadas al detectar Render/Railway.                                      |
+| `NODE_ENV`                | No          | `production` es lo habitual (Render lo fija solo; Railway se detecta por sus variables `RAILWAY_ENVIRONMENT_NAME` / `RAILWAY_ENVIRONMENT_ID` / `RAILWAY_PROJECT_ID`).                                                |
+| `TRUST_PROXY`             | No          | `true` si despliegas detrás de tu propio proxy inverso en lugar de Render/Railway.                                                                        |
+
+\* Necesitas **una** de las dos formas de indicar la base de datos, no ambas.
+
+### Notas de despliegue
+
+- **HTTPS y proxy inverso:** Render/Railway terminan TLS en su proxy, por lo que la app activa `trust proxy`. Sin esto, `req.ip` sería la IP del proxy y las cookies `secure` no se enviarían.
+- **PostgreSQL de la plataforma:** usa preferentemente la URL **interna** (`...@postgres.railway.internal:5432/...` o la interna de Render), que no necesita TLS. Si usas la URL pública, añade `DB_SSL=true`.
+- **Sesiones:** `express-session` usa el almacén en memoria, así que las sesiones se pierden en cada despliegue/reinicio y no se comparten entre varias instancias. Para persistirlas instala un almacén como `connect-pg-simple` (no viene incluido).
+- **Primer arranque:** si `principal.maestros` está vacía se crea el usuario `Director` con la contraseña `1NS4L2026` (ver [Credenciales por defecto](#credenciales-por-defecto)); **cámbiala** tras el primer login.
+- **Diagnóstico:** el log de arranque imprime el entorno detectado, el host de la BD (sin credenciales) y si TLS y las cookies seguras están activos, algo útil desde los logs de la plataforma.
+
 ## Arquitectura de rutas (API)
 
 ### Vistas principales y páginas
@@ -176,6 +215,7 @@ Al iniciar, la aplicación se conecta a PostgreSQL y, si no existe ningún maest
 | `GET`  | `/evaluacion`    | Formulario de evaluación de proyecto     |
 | `GET`  | `/resumen`       | Resumen de la evaluación del proyecto    |
 | `GET`  | `/menu{/*splat}` | Dashboard administrativo (SPA)           |
+| `GET`  | `/health`        | Health check para Render/Railway         |
 
 ### Vistas parciales del SPA (dashboard)
 
@@ -222,12 +262,12 @@ Al iniciar, la aplicación se conecta a PostgreSQL y, si no existe ningún maest
 
 | Método   | Ruta                                                     | Descripción                                   |
 | -------- | -------------------------------------------------------- | --------------------------------------------- |
-| `GET`    | `/admin/grados`                                          | Lista de grados (filtrada por rol)            |
+| `GET`    | `/admin/grados`                                          | Lista de grados (todos los roles)             |
 | `GET`    | `/admin/grados/:gradoId/estudiantes`                     | Estudiantes de un grado                       |
 | `GET`    | `/admin/grados/:gradoId/proyectos`                       | Proyectos de un grado con conteos             |
-| `GET`    | `/admin/evaluaciones/proyectos`                          | Proyectos evaluados (nota final y parciales)  |
+| `GET`    | `/admin/evaluaciones/proyectos`                          | Proyectos evaluados (todos los roles)         |
 | `GET`    | `/admin/evaluaciones/proyectos/:proyectoId/evaluaciones` | Detalle de evaluaciones de un proyecto        |
-| `GET`    | `/admin/evaluaciones/grado/:gradoId`                     | Reporte de evaluaciones por grado             |
+| `GET`    | `/admin/evaluaciones/grado/:gradoId`                     | Reporte de evaluaciones por grado (cualquier grado) |
 | `POST`   | `/admin/proyectos`                                       | Crear proyecto                                |
 | `GET`    | `/admin/proyectos`                                       | Listar proyectos                              |
 | `GET`    | `/admin/proyectos/:id`                                   | Obtener proyecto por ID                       |
@@ -240,18 +280,18 @@ Al iniciar, la aplicación se conecta a PostgreSQL y, si no existe ningún maest
 | `POST`   | `/admin/maestros`                                        | Crear maestro (solo director)                 |
 | `PUT`    | `/admin/maestros/:id`                                    | Actualizar maestro (solo director)            |
 | `DELETE` | `/admin/maestros/:id`                                    | Desactivar maestro (solo director)            |
-| `GET`    | `/admin/orientadores`                                    | Listar orientadores activos                   |
+| `GET`    | `/admin/orientadores`                                    | Listar orientadores activos (dirección/admón)  |
 | `POST`   | `/admin/orientadores`                                    | Asignar orientador a un grado (solo director) |
 | `DELETE` | `/admin/orientadores/:id`                                | Desactivar orientador (solo director)         |
-| `GET`    | `/admin/niveles-evaluacion`                              | Listar niveles de evaluación                  |
-| `POST`   | `/admin/niveles-evaluacion`                              | Crear nivel de evaluación                     |
-| `PUT`    | `/admin/niveles-evaluacion/:id`                          | Actualizar nivel de evaluación                |
-| `DELETE` | `/admin/niveles-evaluacion/:id`                          | Eliminar nivel de evaluación                  |
+| `GET`    | `/admin/niveles-evaluacion`                              | Listar niveles de evaluación (todos los roles) |
+| `POST`   | `/admin/niveles-evaluacion`                              | Crear nivel de evaluación (Director/Admin)     |
+| `PUT`    | `/admin/niveles-evaluacion/:id`                          | Actualizar nivel de evaluación (Director/Admin)|
+| `DELETE` | `/admin/niveles-evaluacion/:id`                          | Eliminar nivel de evaluación (Director/Admin) |
 | `GET`    | `/admin/niveles/:id`                                     | Obtener una rúbrica por ID                    |
 | `GET`    | `/admin/niveles/:id/criterios`                           | Listar criterios de una rúbrica               |
-| `POST`   | `/admin/niveles/:id/criterios`                           | Crear criterio dentro de una rúbrica          |
-| `PUT`    | `/admin/criterios/:id`                                   | Editar un criterio                            |
-| `DELETE` | `/admin/criterios/:id`                                   | Eliminar un criterio                          |
+| `POST`   | `/admin/niveles/:id/criterios`                           | Crear criterio dentro de una rúbrica (Director/Admin) |
+| `PUT`    | `/admin/criterios/:id`                                   | Editar un criterio (Director/Admin)           |
+| `DELETE` | `/admin/criterios/:id`                                   | Eliminar un criterio (Director/Admin)         |
 | `GET`    | `/admin/roles`                                           | Catálogo de roles                             |
 | `GET`    | `/admin/bachilleratos`                                   | Catálogo de bachilleratos                     |
 | `GET`    | `/admin/turnos`                                          | Catálogo de turnos                            |
@@ -266,11 +306,11 @@ La base de datos se organiza en dos esquemas PostgreSQL.
 
 | Tabla          | Descripción                                                                 |
 | -------------- | --------------------------------------------------------------------------- |
-| `maestros`     | Usuarios del sistema (directores, administradores, orientadores)            |
-| `roles`        | Tipos de rol (Director, Administrador, Orientador)                          |
+| `maestros`     | Usuarios del sistema (directores, administradores y docentes)               |
+| `roles`        | Tipos de rol (Director, Administrador, Docente)                             |
 | `grados`       | Grados escolares (combinación de nivel, bachillerato, sección, turno y año) |
 | `estudiantes`  | Alumnos registrados                                                         |
-| `orientadores` | Relación maestro-grado con año escolar                                      |
+| `orientadores` | Relación maestro-grado con año escolar (asigna el rol Docente como orientador de una sección) |
 
 ### Esquema `evaluaciones`
 
@@ -294,8 +334,9 @@ La base de datos se organiza en dos esquemas PostgreSQL.
 
 - **Sesiones:** `express-session` con cookie `httpOnly`. La sesión expira a las 8 horas (`maxAge`).
 - **Hashing de contraseñas:** `bcrypt` con factor de coste 10.
-- **Protección de rutas:** middleware `requireAuth` (requiere sesión de maestro) y `requireDirector` (restringe a rol Director).
-- **Acceso por grado:** `canAccessGrade` verifica que el maestro (cuando no es Director/Administrador) esté asignado como orientador activo del grado.
+- **Protección de rutas:** middleware `requireAuth` (requiere sesión de maestro) y `requirePermiso(permiso)` (exige que el rol tenga ese permiso en la matriz `PERMISOS`). Los alias usados en las rutas son `requireDirector` (gestión de personal: maestros y orientadores) y `requireRubricas` (escritura de niveles y criterios).
+- **Matriz de permisos:** en `app.js`, `ROL` (1 Director, 2 Administrador, 3 Docente) y `PERMISOS` definen qué rol puede hacer qué; las rutas no comparan números de rol. Los tres roles tienen **alcance institucional** (`accesoTotalGrados`, es decir, ven todos los grados y proyectos) y gestionan proyectos y alumnos; el Director y el Administrador editan las rúbricas, y el **Docente** las ve en **solo lectura**. Añadir o quitar un rol de un permiso es una línea en esa matriz.
+- **Acceso por grado:** `canAccessGrade` y `limitadoASusGrados` aplican el alcance restringido por grado (solo si un rol pierde `accesoTotalGrados` en la matriz); hoy los tres roles lo tienen, así que la asignación de `principal.orientadores` no oculta datos. El frontend oculta lo que el rol no puede hacer (`public/js/permisos.js`), pero la barrera real es siempre el servidor.
 - **Prevención de subidas duplicadas:** middleware `evitarSubmitDuplicado` bloquea solicitudes repetidas (doble clic) con código de respuesta `429`.
 
 ## Interfaz de usuario

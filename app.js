@@ -1,10 +1,66 @@
-const express = require('express');
-const { Pool } = require('pg');
-const path = require('path');
-const session = require('express-session');
-const bcrypt = require('bcrypt');
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Pool } from 'pg';
+import session from 'express-session';
+import bcrypt from 'bcrypt';
+
+// ─── Variables de entorno ─────────────────────────────────────────────────────
+// Local: se carga el archivo .env (nativo desde Node.js 20.12, sin dotenv).
+// Render/Railway: NO existe .env — la plataforma inyecta las variables
+// directamente en process.env, por lo que cargar el archivo es opcional y nunca
+// debe impedir el arranque. Además, loadEnvFile() no sobrescribe variables ya
+// definidas: las que entrega la plataforma siempre tienen prioridad.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const RUTA_ENV = path.join(__dirname, '.env');
+
+if (fs.existsSync(RUTA_ENV)) {
+    if (typeof process.loadEnvFile === 'function') {
+        process.loadEnvFile(RUTA_ENV);
+        console.log('Variables de entorno cargadas desde .env');
+    } else {
+        console.warn('Node < 20.12: no se puede leer .env; define las variables en el entorno.');
+    }
+} else {
+    console.log('Sin archivo .env: se usan las variables inyectadas por el entorno (Render/Railway)');
+}
+
+// ─── Entorno de ejecución ─────────────────────────────────────────────────────
+// Render define RENDER=true (y NODE_ENV=production para Node.js).
+// Railway define RAILWAY_ENVIRONMENT_NAME / RAILWAY_ENVIRONMENT_ID / RAILWAY_PROJECT_ID.
+const PLATAFORMA = process.env.RENDER
+    ? 'render'
+    : process.env.RAILWAY_ENVIRONMENT_NAME ||
+        process.env.RAILWAY_ENVIRONMENT_ID ||
+        process.env.RAILWAY_PROJECT_ID
+        ? 'railway'
+        : null;
+const EN_PRODUCCION = process.env.NODE_ENV === 'production' || PLATAFORMA !== null;
+
+// Render/Railway inyectan PORT (Render usa 10000 si no defines otro); en local
+// se usa 3000 o el valor del .env.
+const PORT = Number(process.env.PORT) || (PLATAFORMA === 'render' ? 10000 : 3000);
+
+// Las cookies `secure` solo viajan por HTTPS. Render/Railway sirven por HTTPS a
+// través de su proxy inverso; COOKIE_SECURE permite forzarlo o desactivarlo.
+const COOKIES_SEGURAS =
+    process.env.COOKIE_SECURE !== undefined ? process.env.COOKIE_SECURE === 'true' : EN_PRODUCCION;
+
+if (EN_PRODUCCION && !process.env.SESSION_SECRET) {
+    console.warn('SESSION_SECRET no definido: se usa el valor por defecto. Define uno propio.');
+}
+if (EN_PRODUCCION && !process.env.DATABASE_URL && !process.env.DB_HOST) {
+    console.warn('Sin DATABASE_URL ni DB_HOST: se intentará localhost:5432. Define DATABASE_URL.');
+}
 
 const app = express();
+
+// Render/Railway terminan TLS en su proxy: 'trust proxy' es necesario para que
+// req.ip / req.protocol y las cookies `secure` funcionen correctamente.
+if (PLATAFORMA || process.env.TRUST_PROXY === 'true') {
+    app.set('trust proxy', 1);
+}
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -14,7 +70,7 @@ app.use(
         secret: process.env.SESSION_SECRET || 'insal-secret-2026',
         resave: false,
         saveUninitialized: false,
-        cookie: { secure: false, httpOnly: true, maxAge: 8 * 60 * 60 * 1000 },
+        cookie: { secure: COOKIES_SEGURAS, httpOnly: true, maxAge: 8 * 60 * 60 * 1000 },
     }),
 );
 
@@ -23,13 +79,71 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    port: Number(process.env.DB_PORT) || 5432,
-    database: process.env.DB_NAME || 'dbInsal',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-});
+// ─── Conexión a PostgreSQL ────────────────────────────────────────────────────
+// Render/Railway entregan la cadena completa en DATABASE_URL (lo habitual al
+// añadir su PostgreSQL). También se admiten las variables discretas DB_* y las
+// estándar PG* de libpq.
+// TLS: los hosts internos (*.internal) NO usan SSL; con la URL pública de la
+// plataforma sí suele hacer falta → define DB_SSL=true o añade ?sslmode=require
+// a DATABASE_URL.
+const SSL_DESDE_URL = /[?&]sslmode=(require|prefer|no-verify)/i.test(process.env.DATABASE_URL || '');
+const USAR_SSL =
+    process.env.DB_SSL !== undefined
+        ? process.env.DB_SSL === 'true'
+        : SSL_DESDE_URL || /^(require|prefer|no-verify|true|1)$/i.test(process.env.PGSSLMODE || '');
+
+// rejectUnauthorized:false porque los Postgres gestionados usan certificados que
+// Node no valida contra la CA del sistema, aunque el tráfico sí va cifrado.
+const ssl = USAR_SSL ? { rejectUnauthorized: false } : undefined;
+
+// Ojo: pg trata sslmode=require/prefer como verify-full y, al pasar
+// `connectionString`, el parseo de la URL PISA la opción `ssl` de arriba. Como
+// "require" en libpq significa "cifrar sin verificar", se quita ese parámetro de
+// la URL (solo esos modos; verify-full/verify-ca/disable quedan intactos para
+// que los siga interpretando pg).
+function cadenaSinSSLMODE(url) {
+    try {
+        const u = new URL(url);
+        u.searchParams.delete('sslmode');
+        return u.toString();
+    } catch {
+        return url;
+    }
+}
+
+const CADENA_BD =
+    process.env.DATABASE_URL && SSL_DESDE_URL
+        ? cadenaSinSSLMODE(process.env.DATABASE_URL)
+        : process.env.DATABASE_URL;
+
+const pool = new Pool(
+    CADENA_BD
+        ? { connectionString: CADENA_BD, ssl }
+        : {
+            host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+            port: Number(process.env.DB_PORT || process.env.PGPORT) || 5432,
+            database: process.env.DB_NAME || process.env.PGDATABASE || 'dbInsal',
+            user: process.env.DB_USER || process.env.PGUSER || 'postgres',
+            password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'postgres',
+            ssl,
+        },
+);
+
+/** Destino de la BD para los logs de arranque (nunca incluye credenciales). */
+function descripcionBD() {
+    if (process.env.DATABASE_URL) {
+        try {
+            const { hostname, port, pathname } = new URL(process.env.DATABASE_URL);
+            return `${hostname}:${port || 5432}${pathname}`;
+        } catch {
+            return 'DATABASE_URL (no interpretable)';
+        }
+    }
+    const host = process.env.DB_HOST || process.env.PGHOST || 'localhost';
+    const puerto = Number(process.env.DB_PORT || process.env.PGPORT) || 5432;
+    const bd = process.env.DB_NAME || process.env.PGDATABASE || 'dbInsal';
+    return `${host}:${puerto}/${bd}`;
+}
 
 const BACH_ABREV = {
     1: 'G',
@@ -68,12 +182,32 @@ async function initDB() {
         client.release();
         await seedAdmin();
     } catch (err) {
-        console.error('❌ Error al conectar a PostgreSQL:', err.message);
+        console.error(`❌ Error al conectar a PostgreSQL (${descripcionBD()}):`, err.message);
         console.log('   Reintentando en 3 segundos...');
         setTimeout(initDB, 3000);
     }
 }
 initDB();
+
+// ─── Health check (Render/Railway) ────────────────────────────────────────────
+// Úsala como "Health Check Path" en Render o como healthcheck en Railway.
+// Siempre responde 200 si el proceso está vivo (así la plataforma no reinicia el
+// servicio solo porque la BD esté caída) e informa del estado de PostgreSQL.
+app.get('/health', async (req, res) => {
+    let bd = 'conectada';
+    try {
+        await pool.query('SELECT 1');
+    } catch {
+        bd = 'sin conexión';
+    }
+    res.json({
+        status: 'ok',
+        db: bd,
+        puerto: PORT,
+        entorno: PLATAFORMA || 'local',
+        uptime: Math.round(process.uptime()),
+    });
+});
 
 // ─── Auth helpers ──────────────────────────────────────────────────────────────
 // Las peticiones del SPA (parciales */html y fetch que espera JSON) NO deben
@@ -103,16 +237,114 @@ function requireAuth(req, res, next) {
     next();
 }
 
-// Solo el director (rol_id = 1) gestiona maestros/orientadores
-function requireDirector(req, res, next) {
-    if (!req.session.maestro) {
-        return responderSinSesion(req, res);
-    }
-    if (req.session.maestro.rolId !== 1) {
-        return res.status(403).json({ mensaje: 'Acción reservada al director' });
-    }
-    next();
+// ─── Modelo de permisos por rol ───────────────────────────────────────────────
+// Única fuente de verdad de la autorización del panel. Las rutas NO comparan
+// números de rol: piden un permiso por nombre, de modo que ajustar quién puede
+// hacer qué solo obliga a tocar la matriz PERMISOS y no a recorrer el archivo.
+//
+// Roles en principal.roles: 1 = Director · 2 = Administrador · 3 = Docente.
+// "Orientador" NO es un rol: es la ASIGNACIÓN de un docente a un grado/sección
+// (principal.orientadores) que la Dirección registra para organizar el año;
+// hoy NO limita lo que el docente ve (ver accesoTotalGrados).
+//
+//   · Director      → todo el panel + gestión de personal (cuentas de maestros y
+//                     asignación de orientadores) + rúbricas.
+//   · Administrador → todo el panel (incluido el listado de orientadores) y
+//                     rúbricas; no crea cuentas ni asigna orientadores.
+//   · Docente       → acceso total a grados, proyectos, alumnos, evaluaciones y
+//                     reportes de TODO el instituto. Las rúbricas (niveles y
+//                     criterios) son de SOLO LECTURA.
+const ROL = Object.freeze({ DIRECTOR: 1, ADMINISTRADOR: 2, DOCENTE: 3 });
+
+const PERMISOS = Object.freeze({
+    // Gestión de personal → reservada al director.
+    gestionarMaestros: [ROL.DIRECTOR],
+    gestionarOrientadores: [ROL.DIRECTOR],
+    // Consulta del listado de orientadores → dirección y administración.
+    consultarOrientadores: [ROL.DIRECTOR, ROL.ADMINISTRADOR],
+    // Alcance institucional: los tres roles ven todos los grados. Si alguna vez se
+    // quiere devolver al docente su alcance por grado, basta quitar ROL.DOCENTE de
+    // esta lista: canAccessGrade y los filtros de los listados loicketan solos.
+    accesoTotalGrados: [ROL.DIRECTOR, ROL.ADMINISTRADOR, ROL.DOCENTE],
+    // Escritura de rúbricas: niveles de evaluación y sus criterios.
+    gestionarRubricas: [ROL.DIRECTOR, ROL.ADMINISTRADOR],
+    // Proyectos y alumnos: todos los roles.
+    gestionarProyectos: [ROL.DIRECTOR, ROL.ADMINISTRADOR, ROL.DOCENTE],
+});
+
+/** true si el rol indicado tiene el permiso indicado según la matriz. */
+function tienePermiso(rolId, permiso) {
+    const roles = PERMISOS[permiso];
+    return Array.isArray(roles) && roles.includes(Number(rolId));
 }
+
+/**
+ * true si el rol solo puede operar sobre los grados donde está asignado como
+ * orientador activo. Como `accesoTotalGrados` incluye hoy a los tres roles, esto
+ * devuelve false siempre: se conserva para poder reactivar el alcance por grado
+ * cambiando únicamente la matriz PERMISOS.
+ */
+function limitadoASusGrados(rolId) {
+    return !tienePermiso(rolId, 'accesoTotalGrados');
+}
+
+/**
+ * Permisos del usuario en formato plano, para que el frontend oculte las
+ * acciones que su rol no puede ejecutar. Es solo cosmético: la barrera real
+ * son los middlewares de abajo y los chequeos de grado por petición.
+ */
+function permisosDe(maestro) {
+    const rolId = Number(maestro?.rolId) || null;
+    return {
+        rolId,
+        gestionarMaestros: tienePermiso(rolId, 'gestionarMaestros'),
+        gestionarOrientadores: tienePermiso(rolId, 'gestionarOrientadores'),
+        consultarOrientadores: tienePermiso(rolId, 'consultarOrientadores'),
+        accesoTotalGrados: tienePermiso(rolId, 'accesoTotalGrados'),
+        gestionarRubricas: tienePermiso(rolId, 'gestionarRubricas'),
+        gestionarProyectos: tienePermiso(rolId, 'gestionarProyectos'),
+    };
+}
+
+/**
+ * Elige la forma correcta de una palabra según la cantidad, para que los
+ * mensajes al usuario no salga como "proyecto(s)" / "estudiante(s)".
+ * @param {number} cantidad
+ * @param {string} singular  Forma para 1
+ * @param {string} plural    Forma para 0 o 2+
+ * @returns {string}
+ */
+function plural(cantidad, singular, pluralForma) {
+    return Number(cantidad) === 1 ? singular : pluralForma;
+}
+
+/** Middleware: exige sesión de maestro y el permiso indicado de la matriz. */
+function requirePermiso(permiso, mensaje = 'No tienes permisos para realizar esta acción') {
+    return (req, res, next) => {
+        if (!req.session.maestro) {
+            return responderSinSesion(req, res);
+        }
+        if (!tienePermiso(req.session.maestro.rolId, permiso)) {
+            return res.status(403).json({ mensaje });
+        }
+        next();
+    };
+}
+
+// Gestión de personal (maestros y orientadores). Nombre histórico conservado.
+const requireDirector = requirePermiso('gestionarOrientadores', 'Acción reservada al director');
+
+// Consulta del listado de orientadores: Dirección y Administración.
+const requireVerOrientadores = requirePermiso(
+    'consultarOrientadores',
+    'Acción reservada a Dirección y Administración',
+);
+
+// Escritura de rúbricas (niveles de evaluación y criterios).
+const requireRubricas = requirePermiso(
+    'gestionarRubricas',
+    'Tu rol solo puede consultar las rúbricas',
+);
 
 // ─── Protección contra submits repetidos (doble clic / reintentos rápidos) ───
 const submitCooldown = new Map(); // clave → timestamp (ms)
@@ -149,11 +381,12 @@ setInterval(() => {
 
 /**
  * Devuelve true si el maestro autenticado puede gestionar el grado dado.
- *  - rol_id 1 (director) y 2 (administrador) → acceso total
- *  - cualquier otro rol futuro → solo si es orientador activo del grado
+ * Los tres roles tienen alcance institucional hoy, así que devuelve true; si un
+ * rol pierde 'accesoTotalGrados' en la matriz, solo pasa si está asignado como
+ * orientador activo de ese grado en principal.orientadores.
  */
 async function canAccessGrade(maestroId, rolId, gradoId) {
-    if (rolId === 1 || rolId === 2) return true;
+    if (!limitadoASusGrados(rolId)) return true;
     const { rows } = await pool.query(
         `SELECT 1 FROM principal.orientadores
         WHERE maestro_id = $1 AND grado_id = $2 AND activo = true`,
@@ -247,6 +480,7 @@ app.get('/menu/inicio/html', requireAuth, async (req, res) => {
         res.render('partials/inicio', {
             rol: req.session.maestro.rolNombre || null,
             maestro: req.session.maestro,
+            permisos: permisosDe(req.session.maestro),
         });
     } catch (error) {
         console.error('Error:', error);
@@ -257,15 +491,17 @@ app.get('/menu/inicio/html', requireAuth, async (req, res) => {
 /**
  * Resumen para el dashboard de Inicio: contadores de proyectos/evaluaciones,
  * promedio general y últimas evaluaciones registradas.
- * Director/Admin → todos los grados; Orientador → solo sus grados asignados.
+ * Los tres roles ven todos los grados; el filtro por grados asignados queda
+ * latente en la matriz de permisos.
  */
 app.get('/admin/inicio/resumen', requireAuth, async (req, res) => {
     const { id: maestroId, rolId } = req.session.maestro;
     try {
-        // Filtro por grados para orientadores (rol distinto de 1 y 2)
+        // Filtro por grado: solo se aplica a roles con alcance restringido (hoy
+        // ninguno; se conserva por si la matriz vuelve a limitarlos).
         let filtroGrado = '';
         const params = [];
-        if (rolId !== 1 && rolId !== 2) {
+        if (limitadoASusGrados(rolId)) {
             filtroGrado = ` WHERE p.grado_id IN (
                 SELECT grado_id FROM principal.orientadores
                 WHERE maestro_id = $1 AND activo = true
@@ -402,6 +638,7 @@ app.get('/menu/rubrica/:id/html', requireAuth, async (req, res) => {
     try {
         res.render('partials/rubrica-editar', {
             id: req.params.id,
+            permisos: permisosDe(req.session.maestro),
         });
     } catch (error) {
         console.error('Error:', error);
@@ -412,7 +649,9 @@ app.get('/menu/rubrica/:id/html', requireAuth, async (req, res) => {
 // HTML parcial para la vista de criterios (usado por el SPA router)
 app.get('/menu/rubrica/html', requireAuth, async (req, res) => {
     try {
-        res.render('partials/rubrica', {});
+        res.render('partials/rubrica', {
+            permisos: permisosDe(req.session.maestro),
+        });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send('Error al cargar');
@@ -426,6 +665,7 @@ app.get('/menu{/*splat}', requireAuth, (req, res) => {
         user: req.session.maestro.nombre,
         icon: req.session.icon,
         rol: req.session.maestro.rolNombre || null,
+        permisos: permisosDe(req.session.maestro),
     });
 });
 
@@ -434,17 +674,21 @@ app.get('/menu{/*splat}', requireAuth, (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 app.post('/auth/login', async (req, res) => {
+    // 'nombre' acepta tanto el nombre de usuario como el correo registrado
     const { nombre, contrasena } = req.body;
     if (!nombre || !contrasena) {
-        return res.status(400).json({ mensaje: 'Nombre y contraseña son requeridos' });
+        return res.status(400).json({ mensaje: 'Nombre o correo y contraseña son requeridos' });
     }
     try {
+        const identificador = String(nombre).trim();
         const { rows } = await pool.query(
             `SELECT m.maestro_id, m.nombre, m.contrasena, m.rol_id,
                     (SELECT r.nombre FROM principal.roles r WHERE r.rol_id = m.rol_id) AS rol_nombre
             FROM principal.maestros m
-            WHERE m.nombre = $1 AND m.activo = true`,
-            [nombre],
+            WHERE m.activo = true
+              AND (m.nombre = $1 OR lower(m.email) = lower($1))
+            LIMIT 1`,
+            [identificador],
         );
         if (rows.length === 0) {
             return res.status(401).json({ mensaje: 'Credenciales incorrectas' });
@@ -452,9 +696,7 @@ app.post('/auth/login', async (req, res) => {
         const maestro = rows[0];
         const match = await bcrypt.compare(contrasena, maestro.contrasena);
 
-        // Acordarme de restaurar el ! diferente al comparar la contraseña
-        // Si la contraseña coincide dara error, only debugging
-        if (match) {
+        if (!match) {
             return res.status(401).json({ mensaje: 'Credenciales incorrectas' });
         }
         req.session.maestro = {
@@ -483,7 +725,10 @@ app.post('/auth/logout', (req, res) => {
 });
 
 app.get('/auth/me', requireAuth, (req, res) => {
-    res.json({ maestro: req.session.maestro });
+    res.json({
+        maestro: req.session.maestro,
+        permisos: permisosDe(req.session.maestro),
+    });
 });
 
 // ─── Perfil del maestro logueado (diálogo de configuración) ───────────────────
@@ -1058,11 +1303,12 @@ app.get('/proyecto/:id', async (req, res) => {
 
 /**
  * Lista de grados.
- * Director/Admin → todos los grados.
- * Orientador      → solo los grados asignados.
+ * Los tres roles ven todos los grados del instituto; el filtro por grados
+ * asignados queda latente en la matriz de permisos.
  */
 app.get('/admin/grados', requireAuth, async (req, res) => {
     const { id: maestroId, rolId } = req.session.maestro;
+    const accesoTodosLosGrados = !limitadoASusGrados(rolId);
     try {
         const base = `
       SELECT g.grado_id,
@@ -1078,15 +1324,14 @@ app.get('/admin/grados', requireAuth, async (req, res) => {
       JOIN principal.secciones         s  ON g.seccion_id         = s.seccion_id
       JOIN principal.turnos            t  ON g.turno_id           = t.turno_id
     `;
-        const query =
-            rolId === 1 || rolId === 2
-                ? `${base} ORDER BY g.anio, ne.nombre, b.nombre, s.letra`
-                : `${base}
+        const query = accesoTodosLosGrados
+            ? `${base} ORDER BY g.anio, ne.nombre, b.nombre, s.letra`
+            : `${base}
       JOIN principal.orientadores o ON g.grado_id = o.grado_id
       WHERE o.maestro_id = $1 AND o.activo = true
       ORDER BY g.anio, ne.nombre, b.nombre, s.letra`;
 
-        const { rows } = await pool.query(query, rolId === 1 || rolId === 2 ? [] : [maestroId]);
+        const { rows } = await pool.query(query, accesoTodosLosGrados ? [] : [maestroId]);
 
         const grados = rows.map((r) => ({
             ...r,
@@ -1170,7 +1415,8 @@ app.get('/admin/grados/:gradoId/proyectos', requireAuth, async (req, res) => {
  * Proyectos evaluados. Solo proyectos que ya tienen al menos 1 evaluación.
  *  - completos (3 evaluaciones): nota = promedio ya guardado en proyectos.nota
  *  - parciales (1-2 evaluaciones): nota = promedio de las evaluaciones existentes
- * Director/Admin → todos; Orientador → solo sus grados asignados.
+ * Los tres roles ven todos; el filtro por grados asignados queda latente en la
+ * matriz de permisos.
  */
 app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
     // console.log("[evaluaciones/proyectos] petición recibida (cualquier maestro autenticado)");
@@ -1203,9 +1449,18 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
                b.bachillerato_id, b.nombre, s.letra
       HAVING COUNT(ev.evaluacion_id) >= 1
     `;
-        const query = `${base}${groupBy} ORDER BY p.nombre`;
+        // Filtro por grado: solo se aplica a roles con alcance restringido (hoy
+        // ninguno; se conserva por si la matriz vuelve a limitarlos).
+        const soloSusGrados = limitadoASusGrados(req.session.maestro.rolId);
+        const filtroGrado = soloSusGrados
+            ? `WHERE p.grado_id IN (
+                   SELECT grado_id FROM principal.orientadores
+                   WHERE maestro_id = $1 AND activo = true
+               )`
+            : '';
+        const query = `${base}${filtroGrado}${groupBy} ORDER BY p.nombre`;
 
-        const { rows } = await pool.query(query);
+        const { rows } = await pool.query(query, soloSusGrados ? [req.session.maestro.id] : []);
         // console.log("[evaluaciones/proyectos] SQL ejecutado:\n%s", query);
         // console.log("[evaluaciones/proyectos] filas crudas (%d): %s", rows.length, JSON.stringify(rows));
 
@@ -1245,12 +1500,18 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
 app.get('/admin/evaluaciones/proyectos/:proyectoId/evaluaciones', requireAuth, async (req, res) => {
     const proyectoId = Number(req.params.proyectoId);
     if (!proyectoId) return res.status(400).json({ mensaje: 'proyectoId no válido' });
+    const { id: maestroId, rolId } = req.session.maestro;
     try {
         const { rows: check } = await pool.query(
             'SELECT grado_id, nombre FROM evaluaciones.proyectos WHERE proyecto_id = $1',
             [proyectoId],
         );
         if (check.length === 0) return res.status(404).json({ mensaje: 'Proyecto no encontrado' });
+
+        // El detalle solo se entrega si el proyecto pertenece a un grado permitido.
+        if (!(await canAccessGrade(maestroId, rolId, check[0].grado_id))) {
+            return res.status(403).json({ mensaje: 'No tienes acceso a este proyecto' });
+        }
         const { rows } = await pool.query(
             `SELECT ev.evaluacion_id,
                     ev.nota_evaluacion AS nota,
@@ -1444,9 +1705,14 @@ app.post('/admin/proyectos', requireAuth, async (req, res) => {
     }
 });
 
-/** Listar todos los proyectos (con grado y nivel para su visualización) */
+/**
+ * Listar todos los proyectos (con grado y nivel para su visualización).
+ * Los tres roles ven todos los proyectos; el filtro por grados asignados queda
+ * latente en la matriz de permisos.
+ */
 app.get('/admin/proyectos', requireAuth, async (req, res) => {
     const { id: maestroId, rolId } = req.session.maestro;
+    const accesoTodosLosGrados = !limitadoASusGrados(rolId);
     try {
         const base = `
       SELECT p.proyecto_id,
@@ -1467,15 +1733,14 @@ app.get('/admin/proyectos', requireAuth, async (req, res) => {
       JOIN principal.bachilleratos     b  ON g.bachillerato_id   = b.bachillerato_id
       JOIN principal.secciones         s  ON g.seccion_id        = s.seccion_id
     `;
-        const query =
-            rolId === 1 || rolId === 2
-                ? `${base} ORDER BY p.proyecto_id DESC`
-                : `${base}
+        const query = accesoTodosLosGrados
+            ? `${base} ORDER BY p.proyecto_id DESC`
+            : `${base}
       JOIN principal.orientadores o ON g.grado_id = o.grado_id
       WHERE o.maestro_id = $1 AND o.activo = true
       ORDER BY p.proyecto_id DESC`;
 
-        const { rows } = await pool.query(query, rolId === 1 || rolId === 2 ? [] : [maestroId]);
+        const { rows } = await pool.query(query, accesoTodosLosGrados ? [] : [maestroId]);
 
         const proyectos = rows.map((r) => ({
             ...r,
@@ -1684,7 +1949,7 @@ app.get('/admin/proyectos/:proyectoId/estudiantes', requireAuth, async (req, res
 });
 
 /**
- * Agregar estudiante(s) a un proyecto.
+ * Agregar uno o varios estudiantes a un proyecto.
  * Body: { estudianteIds: [principal.estudiantes.estudiante_id, ...] }
  */
 app.post('/admin/proyectos/:proyectoId/estudiantes', requireAuth, async (req, res) => {
@@ -1735,7 +2000,11 @@ app.post('/admin/proyectos/:proyectoId/estudiantes', requireAuth, async (req, re
             agregados++;
         }
         await client.query('COMMIT');
-        res.status(201).json({ mensaje: `${agregados} estudiante(s) agregado(s)` });
+        res.status(201).json({
+            mensaje:
+                `${agregados} ` +
+                `${plural(agregados, 'estudiante agregado', 'estudiantes agregados')}`,
+        });
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error POST /admin/proyectos/:proyectoId/estudiantes:', err);
@@ -1900,11 +2169,16 @@ app.delete('/admin/maestros/:id', requireDirector, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  ADMIN — ORIENTADORES  (solo director)
+//  ADMIN — ORIENTADORES  (consulta: dirección/administración · gestión: director)
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** Listar orientadores activos */
-app.get('/admin/orientadores', requireAuth, async (req, res) => {
+/**
+ * Listar orientadores activos (asignaciones docente ↔ grado).
+ * Solo lo consultan Dirección y Administración (crear/desactivar sigue siendo
+ * exclusivo del Director). No es la barrera del docente: el listado de la
+ * sección de personal no existe en el panel.
+ */
+app.get('/admin/orientadores', requireVerOrientadores, async (req, res) => {
     try {
         const { rows } = await pool.query(
             `SELECT o.orientador_id,
@@ -1992,6 +2266,11 @@ app.delete('/admin/orientadores/:id', requireDirector, async (req, res) => {
 //  UTILIDADES (catálogos)
 // ══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Listar rúbricas (niveles de evaluación).
+ * Lectura abierta a cualquier maestro: el docente-orientador las consulta en
+ * modo solo lectura; escribirlas exige permiso 'gestionarRubricas'.
+ */
 app.get('/admin/niveles-evaluacion', requireAuth, async (req, res) => {
     try {
         const { rows } = await pool.query(
@@ -2003,8 +2282,8 @@ app.get('/admin/niveles-evaluacion', requireAuth, async (req, res) => {
     }
 });
 
-/** Crear un nivel de evaluación */
-app.post('/admin/niveles-evaluacion', requireAuth, evitarSubmitDuplicado(), async (req, res) => {
+/** Crear un nivel de evaluación (rúbrica). Solo Dirección y Administración. */
+app.post('/admin/niveles-evaluacion', requireRubricas, evitarSubmitDuplicado(), async (req, res) => {
     const { nombre, descripcion } = req.body;
     if (!nombre) {
         return res.status(400).json({ mensaje: 'nombre es requerido' });
@@ -2023,8 +2302,8 @@ app.post('/admin/niveles-evaluacion', requireAuth, evitarSubmitDuplicado(), asyn
     }
 });
 
-/** Actualizar nombre y/o descripción de un nivel de evaluación */
-app.put('/admin/niveles-evaluacion/:id', requireAuth, async (req, res) => {
+/** Actualizar nombre y/o descripción de un nivel. Solo Dirección y Administración. */
+app.put('/admin/niveles-evaluacion/:id', requireRubricas, async (req, res) => {
     const nivelId = Number(req.params.id);
     const { nombre, descripcion } = req.body;
     if (!nivelId) {
@@ -2063,24 +2342,48 @@ app.put('/admin/niveles-evaluacion/:id', requireAuth, async (req, res) => {
     }
 });
 
-/** Eliminar un nivel de evaluación */
-app.delete('/admin/niveles-evaluacion/:id', requireAuth, async (req, res) => {
+/** Eliminar un nivel de evaluación. Solo Dirección y Administración. */
+app.delete('/admin/niveles-evaluacion/:id', requireRubricas, async (req, res) => {
     const nivelId = Number(req.params.id);
     if (!nivelId) {
         return res.status(400).json({ mensaje: 'nivelId no válido' });
     }
+    const client = await pool.connect();
     try {
-        const { rows } = await pool.query(
-            `DELETE FROM evaluaciones.niveles
-             WHERE nivel_id = $1
-             RETURNING nivel_id`,
+        const { rows: existe } = await client.query(
+            'SELECT 1 FROM evaluaciones.niveles WHERE nivel_id = $1',
             [nivelId],
         );
-        if (rows.length === 0) {
+        if (existe.length === 0) {
             return res.status(404).json({ mensaje: 'Nivel no encontrado' });
         }
-        res.json({ mensaje: 'Nivel eliminado correctamente' });
+
+        // Guardia: la rúbrica no se puede borrar si tiene proyectos asociados.
+        const { rows: proyectos } = await client.query(
+            'SELECT COUNT(*)::int AS total FROM evaluaciones.proyectos WHERE nivel_id = $1',
+            [nivelId],
+        );
+        const totalProyectos = proyectos[0]?.total ?? 0;
+        if (totalProyectos > 0) {
+            const unidad = plural(totalProyectos, 'proyecto asociado', 'proyectos asociados');
+            return res.status(409).json({
+                mensaje: `No se puede eliminar: la rúbrica tiene ${totalProyectos} ${unidad}. Elimina primero los proyectos.`,
+            });
+        }
+
+        await client.query('BEGIN');
+        // 1. Criterios de la rúbrica (hijos directos de niveles).
+        const { rowCount: criteriosEliminados } = await client.query(
+            'DELETE FROM evaluaciones.criterios WHERE nivel_id = $1',
+            [nivelId],
+        );
+        // 2. La rúbrica.
+        await client.query('DELETE FROM evaluaciones.niveles WHERE nivel_id = $1', [nivelId]);
+        await client.query('COMMIT');
+
+        res.json({ mensaje: 'Nivel eliminado correctamente', criteriosEliminados });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('Error DELETE /admin/niveles-evaluacion/:id:', err);
         if (err.code === '23503') {
             return res.status(409).json({
@@ -2088,6 +2391,8 @@ app.delete('/admin/niveles-evaluacion/:id', requireAuth, async (req, res) => {
             });
         }
         return res.status(500).json({ mensaje: 'Error al eliminar nivel' });
+    } finally {
+        client.release();
     }
 });
 
@@ -2139,8 +2444,8 @@ app.get('/admin/niveles/:id/criterios', requireAuth, async (req, res) => {
     }
 });
 
-/** Crear un criterio dentro de una rúbrica */
-app.post('/admin/niveles/:id/criterios', requireAuth, evitarSubmitDuplicado(), async (req, res) => {
+/** Crear un criterio dentro de una rúbrica. Solo Dirección y Administración. */
+app.post('/admin/niveles/:id/criterios', requireRubricas, evitarSubmitDuplicado(), async (req, res) => {
     const nivelId = Number(req.params.id);
     const { nombre, descripcion, porcentaje } = req.body;
     if (!nivelId) {
@@ -2167,8 +2472,8 @@ app.post('/admin/niveles/:id/criterios', requireAuth, evitarSubmitDuplicado(), a
     }
 });
 
-/** Editar un criterio (nombre y/o descripción y/o ponderación) */
-app.put('/admin/criterios/:id', requireAuth, async (req, res) => {
+/** Editar un criterio. Solo Dirección y Administración. */
+app.put('/admin/criterios/:id', requireRubricas, async (req, res) => {
     const criterioId = Number(req.params.id);
     const { nombre, descripcion, porcentaje } = req.body;
     if (!criterioId) {
@@ -2221,8 +2526,8 @@ app.put('/admin/criterios/:id', requireAuth, async (req, res) => {
     }
 });
 
-/** Eliminar un criterio */
-app.delete('/admin/criterios/:id', requireAuth, async (req, res) => {
+/** Eliminar un criterio. Solo Dirección y Administración. */
+app.delete('/admin/criterios/:id', requireRubricas, async (req, res) => {
     const criterioId = Number(req.params.id);
     if (!criterioId) {
         return res.status(400).json({ mensaje: 'criterioId no válido' });
@@ -2296,7 +2601,10 @@ app.get('/{*splat}', (req, res) => {
 });
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
+// Render/Railway inyectan PORT y esperan que el servidor escuche en 0.0.0.0.
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
+    console.log(`🚀 Servidor corriendo en http://0.0.0.0:${PORT}`);
+    console.log(`   Entorno : ${PLATAFORMA || 'local'}${EN_PRODUCCION ? ' (producción)' : ''}`);
+    console.log(`   BD      : ${descripcionBD()} · SSL: ${USAR_SSL ? 'activado' : 'desactivado'}`);
+    console.log(`   Cookies : seguras (HTTPS) = ${COOKIES_SEGURAS ? 'sí' : 'no'}`);
 });

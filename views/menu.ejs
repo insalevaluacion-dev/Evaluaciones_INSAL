@@ -39,9 +39,11 @@
     <script type="module">
         import 'https://esm.run/@material/web/all.js'
     </script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 </head>
-<body>
+
+<body data-permisos="<%= JSON.stringify(locals.permisos || {}) %>">
     <div id="infoCard" class="info-card menu_contextual">
         <button class="menu-close-btn" onclick="closeAll()" aria-label="Cerrar" data-ripple>
             <span class="material-symbols-rounded">close</span>
@@ -50,8 +52,11 @@
             <div class="user_profile img-card">
                 <span class="material-symbols-rounded perfil-card-icon" aria-hidden="true">account_circle</span>
             </div>
-            <h3 class="title"><%= maestro.nombre %></h3>
-            <span class="perfil-card-rol perfil-card-rol--<%= String(maestro.rolNombre || '').toLowerCase().replace(/\s+/g, '-') %>">
+            <h3 class="title">
+                <%= maestro.nombre %>
+            </h3>
+            <span
+                class="perfil-card-rol perfil-card-rol--<%= String(maestro.rolNombre || '').toLowerCase().replace(/\s+/g, '-') %>">
                 <%= maestro.rolNombre %>
             </span>
             <div class="btn-accion centrar" onclick="navigateTo('/menu/inicio')" data-ripple>
@@ -76,11 +81,16 @@
     </div>
     <section class="htmlcontent">
         <aside id="aside" class="aside close">
-            <div class="opcion background-none display-flex row no-flex-wrap ellipsis" id="usuario_perfil" onclick="openMenu(event, 'infoCard')" data-ripple>
+            <div class="opcion background-none display-flex row no-flex-wrap ellipsis" id="usuario_perfil"
+                onclick="openMenu(event, 'infoCard')" data-ripple>
                 <span class="material-symbols-rounded perfil-icon">account_circle</span>
                 <div class="perfil-info ellipsis">
-                    <p class="texto ellipsis"><%= maestro.nombre %></p>
-                    <span class="perfil-rol"><%= maestro.rolNombre %></span>
+                    <p class="texto ellipsis">
+                        <%= maestro.nombre %>
+                    </p>
+                    <span class="perfil-rol">
+                        <%= maestro.rolNombre %>
+                    </span>
                 </div>
                 <span class="material-symbols-rounded perfil-chevron" aria-hidden="true">expand_more</span>
             </div>
@@ -132,7 +142,8 @@
                  solapa con las pestañas del nav) -->
             <header class="dialog-configuracion__cabecera">
                 <h2 class="dialog-configuracion__titulo">Ajustes</h2>
-                <button type="button" class="dialog-close-btn" id="config-btn-cerrar" aria-label="Cerrar configuración" data-ripple>
+                <button type="button" class="dialog-close-btn" id="config-btn-cerrar" aria-label="Cerrar configuración"
+                    data-ripple>
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </header>
@@ -158,12 +169,16 @@
                         <div class="config-cuenta__avatar">
                             <span class="material-symbols-rounded">account_circle</span>
                         </div>
-                        <p class="config-cuenta__nombre" id="config-nombre-display"><%= maestro.nombre %></p>
+                        <p class="config-cuenta__nombre" id="config-nombre-display">
+                            <%= maestro.nombre %>
+                        </p>
                     </div>
 
                     <div class="config-fila">
                         <span class="config-fila__label">Rol</span>
-                        <span class="config-fila__valor" id="config-rol"><%= maestro.rolNombre || 'Sin rol' %></span>
+                        <span class="config-fila__valor" id="config-rol">
+                            <%= maestro.rolNombre || 'Sin rol' %>
+                        </span>
                     </div>
 
                     <div class="config-fila">
@@ -175,11 +190,16 @@
                         <div class="config-fila__linea">
                             <span class="config-fila__label">Nombre de usuario</span>
                             <input type="text" class="config-fila__input" id="config-input-nombre"
-                                   value="<%= maestro.nombre %>" maxlength="255" disabled
-                                   autocomplete="off" aria-label="Nombre de usuario">
+                                value="<%= maestro.nombre %>" maxlength="255" disabled autocomplete="off"
+                                aria-label="Nombre de usuario">
                             <button type="button" class="config-fila__editar" id="config-btn-editar-nombre" data-ripple>
                                 <span class="material-symbols-rounded">edit</span>
                                 <p>Editar</p>
+                            </button>
+                            <button type="button" class="config-fila__cancelar" id="config-btn-cancelar-nombre"
+                                data-ripple>
+                                <span class="material-symbols-rounded">close</span>
+                                <p>Cancelar</p>
                             </button>
                         </div>
                     </div>
@@ -217,6 +237,23 @@
                             <span><span class="material-symbols-rounded">school</span>Institución</span>
                             <span>INSAL</span>
                         </div>
+
+                        <!-- Créditos: cada persona en su propia fila -->
+                        <div class="config-creditos__header">
+                            <span class="material-symbols-rounded">star</span>Créditos
+                        </div>
+                        <div class="config-info__fila">
+                            <span><span class="material-symbols-rounded">person</span>José Manuel Guerra Soriano</span>
+                            <span>Desarrollador</span>
+                        </div>
+                        <div class="config-info__fila">
+                            <span><span class="material-symbols-rounded">person</span>Diego Alejandro Escobar</span>
+                            <span>Contribuidor</span>
+                        </div>
+                        <div class="config-info__fila">
+                            <span><span class="material-symbols-rounded">person</span>Jonathan Ortiz</span>
+                            <span>Contribuidor</span>
+                        </div>
                     </div>
                 </section>
 
@@ -224,4 +261,5 @@
         </div>
     </dialog>
 </body>
+
 </html>

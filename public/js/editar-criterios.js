@@ -12,6 +12,8 @@
 import { mostrarNotificacion } from './notificaciones.js';
 import { cerrarDialogoAnimado } from './menu.js';
 import { createSubmitHandler } from './submitHandler.js';
+import { puedeEditarRubricas } from './permisos.js';
+import { plural } from './texto.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ESTADO
@@ -493,7 +495,7 @@ function renderCriterios() {
         pildora.className = 'criterios-deshacer';
         pildora.innerHTML = `
             <span class="material-symbols-rounded" aria-hidden="true">restore</span>
-            <span class="criterios-deshacer__texto">${eliminados.length} criterio(s) marcado(s) para eliminar</span>
+            <span class="criterios-deshacer__texto">${eliminados.length} ${plural(eliminados.length, 'criterio', 'criterios')} ${plural(eliminados.length, 'marcado', 'marcados')} para eliminar</span>
             <button type="button" class="criterios-deshacer__btn" data-ripple>Deshacer</button>
         `;
         pildora.querySelector('.criterios-deshacer__btn').addEventListener('click', deshacerEliminaciones);
@@ -542,15 +544,23 @@ function createCriterioCard(criterio) {
         ? '<span class="criterio-guardado__estado">Pendiente</span>'
         : '';
 
+    // Solo los roles con permiso de gestión pueden editar o eliminar criterios:
+    // para el docente-orientador la rúbrica es de solo lectura.
+    const puedeEditar = puedeEditarRubricas();
+
+    const btnEditar = (ariaLabel) => (puedeEditar
+        ? `<button type="button" class="criterio-guardado__editar" data-editar aria-label="${ariaLabel}" data-ripple>
+                <span class="material-symbols-rounded">edit</span>
+            </button>`
+        : '');
+
     card.innerHTML = `
         <div class="criterio-guardado__campo" data-campo="nombre">
             <div class="criterio-guardado__campo-info">
                 <p class="criterio-guardado__campo-label">Nombre</p>
                 <p class="criterio-guardado__campo-valor">${escapeHtml(criterio.nombre || '—')}</p>
             </div>
-            <button type="button" class="criterio-guardado__editar" data-editar aria-label="Editar nombre" data-ripple>
-                <span class="material-symbols-rounded">edit</span>
-            </button>
+            ${btnEditar('Editar nombre')}
         </div>
 
         <div class="criterio-guardado__campo" data-campo="descripcion">
@@ -558,9 +568,7 @@ function createCriterioCard(criterio) {
                 <p class="criterio-guardado__campo-label">Descripción</p>
                 <p class="criterio-guardado__campo-valor">${escapeHtml(criterio.descripcion || 'Sin descripción')}</p>
             </div>
-            <button type="button" class="criterio-guardado__editar" data-editar aria-label="Editar descripción" data-ripple>
-                <span class="material-symbols-rounded">edit</span>
-            </button>
+            ${btnEditar('Editar descripción')}
         </div>
 
         <div class="criterio-guardado__campo" data-campo="porcentaje">
@@ -568,19 +576,20 @@ function createCriterioCard(criterio) {
                 <p class="criterio-guardado__campo-label">Ponderación</p>
                 <p class="criterio-guardado__campo-valor">${escapeHtml(String(criterio.porcentaje))}%</p>
             </div>
-            <button type="button" class="criterio-guardado__editar" data-editar aria-label="Editar ponderación" data-ripple>
-                <span class="material-symbols-rounded">edit</span>
-            </button>
+            ${btnEditar('Editar ponderación')}
         </div>
 
         <div class="criterio-guardado__footer">
             ${badge}
-            <button type="button" class="criterio-guardado__eliminar" data-accion="eliminar"
+            ${puedeEditar ? `<button type="button" class="criterio-guardado__eliminar" data-accion="eliminar"
                 aria-label="Eliminar criterio" data-ripple>
                 <span class="material-symbols-rounded">delete</span>
-            </button>
+            </button>` : ''}
         </div>
     `;
+
+    // Sin permiso de gestión la tarjeta se muestra como ficha informativa.
+    if (!puedeEditar) return card;
 
     card.querySelectorAll('[data-editar]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1046,6 +1055,10 @@ async function guardarEdicionRubrica() {
     if (titulo) titulo.textContent = data.nivel?.nombre || nombre;
     if (desc) desc.textContent = data.nivel?.descripcion || descripcion || 'Sin descripción';
 
+    // El nombre de la rúbrica cambió: invalidar los cachés de otros módulos
+    // (select "Tipo de evaluación" del formulario de proyectos).
+    document.dispatchEvent(new CustomEvent('catalogos:actualizados'));
+
     return { success: true, nivel: data.nivel };
 }
 
@@ -1120,6 +1133,9 @@ async function confirmarEliminarRubrica() {
     if (!ok) return;
 
     mostrarNotificacion('Rúbrica eliminada', 'bien');
+    // El catálogo de rúbricas cambió: invalidar los cachés de otros módulos
+    // (select "Tipo de evaluación" del formulario de proyectos).
+    document.dispatchEvent(new CustomEvent('catalogos:actualizados'));
     setTimeout(() => window.navigateTo('/menu/rubrica'), 200);
 }
 // ═══════════════════════════════════════════════════════════════
@@ -1142,6 +1158,11 @@ function initEditarCriterios() {
 
     loadRubrica();
     loadCriterios();
+
+    // El docente-orientador entra a la rúbrica en modo SOLO LECTURA: se cargan
+    // la ficha y sus criterios, pero no se conecta ninguna acción de escritura
+    // (añadir, editar en línea, eliminar criterios ni borrar la rúbrica).
+    if (!puedeEditarRubricas()) return;
 
     initMenuRubrica();
     initDialogoEditarRubrica();

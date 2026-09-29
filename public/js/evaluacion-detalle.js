@@ -702,13 +702,13 @@ async function exportarExcel() {
     const logo = await obtenerLogoDataUri();
 
     // Paleta institucional
-    const AZUL = 'FF0F5AAB';
-    const AZUL_OSCURO = 'FF0B3A66';
-    const AZUL_CLARO = 'FFE8F0FB';
-    const GRIS = 'FF4A607E';
+    const AZUL = 'FF0f5aab';
+    const AZUL_OSCURO = 'FF0b3a66';
+    const AZUL_CLARO = 'FFe8f0fb';
+    const GRIS = 'FF4a607e';
     const TEXTO = 'FF0D1E35';
-    const BORDE = 'FFC5D5EA';
-    const ZEBRA = 'FFF6FAFD';
+    const BORDE = 'FFc5d5ea';
+    const ZEBRA = 'FFf6fafe';
     const BLANCO = 'FFFFFFFF';
     const VERDE = 'FF1A7A45';
     const fuente = 'Segoe UI';

@@ -75,6 +75,7 @@
 .dialog-configuracion__tab {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 10px;
     width: 100%;
     padding: 11px 20px;
@@ -249,27 +250,31 @@
     text-align: right;
     font-family: Poppins, sans-serif;
     font-size: var(--fs-sm);
+    font-weight: 500;
+    /* Igual que .config-fila__valor: sin borde, sin background, texto alineado
+       a la derecha. La fila se ve uniforme en vista y edición. */
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
     color: var(--txt);
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 7px 10px;
     outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    -webkit-text-fill-color: var(--txt);
+    opacity: 1;
+    line-height: 1.5;
 }
 
 .config-fila__input:disabled {
-    background: transparent;
-    border-color: transparent;
     color: var(--soft);
-    /* Mantiene el layout idéntico entre estado vista y edición */
     -webkit-text-fill-color: var(--soft);
     opacity: 1;
 }
 
 .config-fila__input:focus {
-    border-color: var(--azul-med);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--azul-med) 18%, transparent);
+    /* Sin outline ni sombra: mantiene el estilo de .config-fila__valor */
+    outline: none;
+    box-shadow: none;
 }
 
 /* Fila Nombre de usuario: el botón Editar vive dentro de la línea para
@@ -330,6 +335,41 @@
     cursor: default;
 }
 
+/* Botón Cancelar: mismo estilo secundario que Editar pero con acento
+   rojo-suave. Se muestra junto a Editar/GUARDAR solo en modo edición. */
+.config-fila__cancelar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border: 1px solid color-mix(in srgb, var(--rojo) 30%, transparent);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--rojo);
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    display: none;
+}
+
+.config-fila__cancelar[aria-hidden="false"],
+.config-fila__cancelar.visible {
+    display: inline-flex;
+}
+
+.config-fila__cancelar:hover {
+    background: var(--rojo);
+    color: #ffffff;
+}
+
+.config-fila__cancelar:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
 /* ── Cerrar sesión (dentro de Cuenta) ────────────────────────────────────── */
 .config-cerrar-sesion {
     display: flex;
@@ -338,7 +378,7 @@
     gap: 8px;
     width: 100%;
     padding: 12px;
-    border: 1px solid color-mix(in srgb, var(--rojo) 30%, transparent);
+    border: none;
     border-radius: 12px;
     background: color-mix(in srgb, var(--rojo) 6%, var(--card));
     color: var(--rojo);
@@ -346,12 +386,16 @@
     font-size: var(--fs-sm);
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .config-cerrar-sesion:hover {
-    background: var(--rojo);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--rojo) 10%, var(--card));
+    color: var(--rojo);
+}
+
+.config-cerrar-sesion:active {
+    background: color-mix(in srgb, var(--rojo) 8%, var(--card));
 }
 
 .config-cerrar-sesion .material-symbols-rounded {
@@ -441,6 +485,26 @@
     text-align: right;
     line-height: 1.5;
     overflow-wrap: anywhere;
+}
+
+/* Créditos: encabezado visual dentro de .config-info__lista, seguido
+   por filas .config-info__fila — una por persona — al mismo nivel
+   que las demás filas (Versión, Base de datos, etc.). */
+.config-creditos__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--soft);
+    margin: 12px 16px 4px;
+}
+
+.config-creditos__header .material-symbols-rounded {
+    font-size: var(--fs-sm);
+    color: var(--azul);
 }
 
 /* ── Móvil: nav arriba en horizontal, contenido debajo ───────────────────── */

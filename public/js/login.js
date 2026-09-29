@@ -1,6 +1,7 @@
 import { mostrarNotificacion } from './notificaciones.js';
 
 // Validación personalizada del formulario de login (maestro)
+// El campo 'nombre' acepta tanto el nombre de usuario como el correo
 const form = document.getElementById('form-registrar');
 const nombreInput = document.getElementById('nombre');
 const contraseñaInput = document.getElementById('contraseña');
@@ -27,7 +28,7 @@ function validarCampo(input, errorSpan, nombreCampo) {
 
 // Eventos de validación en tiempo real
 nombreInput.addEventListener('blur', () => {
-    validarCampo(nombreInput, errorNombre, 'nombre');
+    validarCampo(nombreInput, errorNombre, 'nombre o correo');
 });
 
 contraseñaInput.addEventListener('blur', () => {
@@ -84,7 +85,7 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     // Validaciones
-    const esNombreValido = validarCampo(nombreInput, errorNombre, 'nombre');
+    const esNombreValido = validarCampo(nombreInput, errorNombre, 'nombre o correo');
     const esContraseñaValida = validarCampo(contraseñaInput, errorContraseña, 'contraseña');
 
     if (!esNombreValido || !esContraseñaValida) {

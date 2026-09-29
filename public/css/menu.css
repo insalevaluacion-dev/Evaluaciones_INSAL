@@ -74,24 +74,24 @@ body {
 }
 
 /* --- Perfil de usuario en el aside ---
-   Tarjeta sobria: borde 1px + sombra suave, igual lenguaje que el resto
-   del aside. Sin lifts ni efectos flotantes en hover. */
+   Unificado con el estilo de los demás .opcion del aside: fondo azul claro,
+   border-radius 25px, sin bordes ni sombras. */
 #usuario_perfil{
     gap: 12px;
-    padding: 10px 12px;
-    background: var(--card) !important;
-    border: 1px solid rgba(15, 90, 171, 0.14);
-    border-radius: 18px;
-    box-shadow: 0 4px 16px rgba(15, 90, 171, 0.08);
+    padding: 11px 20px;
+    background: var(--font-color-important) !important;
+    border: none;
+    border-radius: 25px;
+    box-shadow: none;
     width: 100%;
     min-height: 72px;
     align-items: center;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+    color: var(--text-color-prioritary);
 }
 
 #usuario_perfil:hover{
-    background: #f5faff !important;
-    border-color: rgba(15, 90, 171, 0.26);
+    background: #eceff1 !important;
 }
 
 /* Estado colapsado: igual que el resto de .opcion (píldora con icono centrado) */
@@ -154,8 +154,8 @@ body {
 #usuario_perfil .perfil-info .texto{
     font-size: var(--fs-md);
     line-height: 1.2;
-    font-weight: 700;
-    color: var(--txt);
+    font-weight: 500;
+    color: var(--texto-color);
     width: 100%;
     max-width: 100%;
 }
@@ -163,10 +163,10 @@ body {
 /* Rol como texto secundario plano: sin icono, sin fondo ni borde */
 #usuario_perfil .perfil-rol{
     font-size: var(--fs-xs);
-    font-weight: 400;
+    font-weight: 600;
     line-height: 1.2;
-    color: var(--soft);
-    opacity: 0.85;
+    color: var(--text-color-prioritary);
+    opacity: 0.75;
     max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
@@ -1367,7 +1367,7 @@ tr:hover {
     padding: 10px 14px;
     width: 100%;
     height: 46px;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
     cursor: pointer;
     font-family: Poppins, sans-serif;
     font-size: var(--fs-sm);
@@ -1377,7 +1377,8 @@ tr:hover {
 .btn-accion:hover {
     background: var(--azul);
     color: var(--font-color);
-    transform: scale(1.02);
+    transform: scale(1.03) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(15, 90, 171, 0.22);
 }
 
 /* --- Botón de cerrar sesión --- */
@@ -1391,7 +1392,7 @@ tr:hover {
     padding: 10px 14px;
     width: 100%;
     height: 46px;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
     cursor: pointer;
     font-family: Poppins, sans-serif;
     font-size: var(--fs-sm);
@@ -1401,7 +1402,8 @@ tr:hover {
 .logout-btn:hover {
     background: var(--azul);
     color: var(--font-color);
-    transform: scale(1.02);
+    transform: scale(1.03) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(15, 90, 171, 0.22);
 }
 
 /* --- Utilidades --- */

@@ -1,3 +1,5 @@
+<%# Rúbricas: el docente-orientador las consulta en SOLO LECTURA %>
+<% const puedeEditarRubricas = !!(locals.permisos && locals.permisos.gestionarRubricas); %>
 <div class="content_inicio">
     <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú"
         data-ripple>
@@ -27,10 +29,12 @@
                     </div>
                 </span>
             </div>
+            <% if (puedeEditarRubricas) { %>
             <button type="button" class="proyecto-acciones" id="btn-menu-rubrica"
                 aria-label="Opciones de la rúbrica" data-ripple>
                 <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>
             </button>
+            <% } %>
         </div>
     </section>
     <section class="container2">
@@ -40,10 +44,12 @@
                 <span>Criterios de evaluación</span>
                 <span id="contador-criterios" class="form-cabecera__contador">0</span>
             </p>
+            <% if (puedeEditarRubricas) { %>
             <button type="button" class="btn-añadir-criterio" id="btn-abrir-criterio" data-ripple>
                 <span class="material-symbols-rounded" aria-hidden="true">add</span>
                 <span>Añadir criterio</span>
             </button>
+            <% } %>
         </div>
         <div id="criterios-loader" class="criterios-loader" role="status" aria-label="Cargando criterios">
             <div class="progreso-lineal indeterminado">
@@ -57,6 +63,7 @@
             <span id="puntuacion-total" class="form-puntuacion__valor">0%</span>
             <span id="puntuacion-estado" class="form-puntuacion__estado"></span>
         </p>
+        <% if (puedeEditarRubricas) { %>
         <div class="botones-accion">
             <form id="form-guardar-criterios">
                 <button type="submit" class="boton-publicar" id="btn-guardar-criterios" data-ripple data-submit>
@@ -80,10 +87,12 @@
                 </button>
             </form>
 </div>
+        <% } %>
 
     </section>
 </section>
 
+<% if (puedeEditarRubricas) { %>
 <!-- Menú contextual flotante de la rúbrica: Editar / Eliminar -->
 <div id="menu__rubrica" class="boton-menu" role="menu" aria-hidden="true">
     <ul class="boton-menu__list">
@@ -218,6 +227,7 @@
         </div>
     </form>
 </dialog>
+<% } %>
 
 <!-- Modal de confirmación genérica de acción destructiva -->
 <dialog id="dialogo-confirmar" class="app-dialog--xs dialogo-confirmar" aria-labelledby="dialogo-confirmar-titulo">

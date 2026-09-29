@@ -178,6 +178,13 @@
                     li.classList.add('is-selected');
                 }
                 li.addEventListener('click', (e) => {
+                    // preventDefault + stopPropagation: el <select> nativo suele
+                    // estar dentro de un <label> (p. ej. el control .toolbar-control--sort).
+                    // El preventDefault cancela la "activación de label", que reenvía un
+                    // click sintético al <select> y cuyo toggle reabriría el menú
+                    // justo después de cerrarlo. El stopPropagation evita que el toggle
+                    // del ancla y el cierre por clic fuera se disparen también.
+                    e.preventDefault();
                     e.stopPropagation();
                     select.value = li.dataset.value;
                     select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -416,8 +423,16 @@
                 // oculto) generando un segundo toggle. Lo prevenimos para que solo
                 // haya un único toggle por clic.
                 e.preventDefault();
+                // Ese reenvío llega aquí con e.target === <select> nativo (hermano
+                // del contenedor, no está dentro de él). Si no se ignora, seleccionar
+                // una opción cerraría el menú y este toggle lo reabriría al instante,
+                // dejando el desplegable pegado abierto.
+                if (e.target === select) return;
                 // Evitar abrir dos veces si el click ya fue en el trigger
                 if (container.contains(e.target)) return;
+                // Las opciones viven dentro del contenedor, pero si el panel se montó
+                // como hijo del <dialog> no: nunca debe contar como clic de toggle.
+                if (dropdown.contains(e.target)) return;
                 if (container.classList.contains('is-open')) {
                     closeDropdown();
                 } else {
@@ -474,7 +489,13 @@
             subtree: true,
         });
 
-        select.addEventListener('change', syncTrigger);
+        select.addEventListener('change', () => {
+            syncTrigger();
+            // Cerrar el dropdown al cambiar el valor del <select> nativo,
+            // incluso cuando el cambio proviene de JS externo (p. ej.
+            // proyectos.js popular el filtro de año).
+            closeDropdown();
+        });
 
         // Cerrar el dropdown si su <dialog> contenedor se cierra (para selects que
         // montan el menú como hijo del dialog), evitando que quede abierto de forma

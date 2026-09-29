@@ -536,10 +536,11 @@
     min-width: 150px;
     cursor: pointer;
 
-    &:focus-within {
-        border-color: var(--azul-med);
-        box-shadow: 0 0 0 3px rgba(26, 107, 199, 0.15);
-    }
+    /* NOTA: sin estado :focus-within. El <select> nativo (oculto) está dentro
+       del <label>, así que al pulsar el control el navegador le da el foco y
+       ":focus-within" pintaba un borde azul + halo en la píldora, que se leía
+       como un borde inesperado. El feedback de foco lo aporta el propio
+       .custom-select__trigger, que se estiliza en custom-select.css. */
 
     /* Integración compacta del custom-select dentro de la toolbar */
     .custom-select {
@@ -1791,5 +1792,3 @@ Elementos de lista
 .info-evaluaciones__lista li + li {
     margin-top: 6px;
 }
-
-
