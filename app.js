@@ -206,11 +206,20 @@ function buildGradeName(nivelNombre, bachilleratoId, seccionLetra) {
 async function seedAdmin() {
     const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM principal.maestros');
     if (rows[0].cnt === 0) {
-        const hash = await bcrypt.hash('1NS4L2026', 10);
+        // ── REVERTIR A BCRYPT (código original, comenteado) ──────────────────────
+        // const hash = await bcrypt.hash('1NS4L2026', 10);
+        // await pool.query(
+        //     `INSERT INTO principal.maestros (nombre, contrasena, rol_id, activo)
+        //     VALUES ('Director', $1, 1, true)`,
+        //     [hash],
+        // );
+        // ───────────────────────────────────────────────────────────────────────
+        // TEMPORAL: la contraseña se guarda en texto plano (columna contrasena_plana),
+        // sin bcrypt. Se rellena también `contrasena` porque en el esquema es NOT NULL.
         await pool.query(
-            `INSERT INTO principal.maestros (nombre, contrasena, rol_id, activo)
-            VALUES ('Director', $1, 1, true)`,
-            [hash],
+            `INSERT INTO principal.maestros (nombre, contrasena, contrasena_plana, rol_id, activo)
+            VALUES ('Director', $1, $1, 1, true)`,
+            ['1NS4L2026'],
         );
         console.log('✅ Usuario director seed creado (contraseña: 1NS4L2026)');
     }
@@ -726,7 +735,7 @@ app.post('/auth/login', async (req, res) => {
     try {
         const identificador = String(nombre).trim();
         const { rows } = await pool.query(
-            `SELECT m.maestro_id, m.nombre, m.contrasena, m.rol_id,
+            `SELECT m.maestro_id, m.nombre, m.contrasena_plana, m.rol_id,
                     (SELECT r.nombre FROM principal.roles r WHERE r.rol_id = m.rol_id) AS rol_nombre
             FROM principal.maestros m
             WHERE m.activo = true
@@ -738,7 +747,12 @@ app.post('/auth/login', async (req, res) => {
             return res.status(401).json({ mensaje: 'Credenciales incorrectas' });
         }
         const maestro = rows[0];
-        const match = await bcrypt.compare(contrasena, maestro.contrasena);
+        // ── REVERTIR A BCRYPT (código original, comenteado) ──────────────────────
+        // En el SELECT de abajo usar:  `SELECT m.maestro_id, m.nombre, m.contrasena, m.rol_id,
+        // const match = await bcrypt.compare(contrasena, maestro.contrasena);
+        // ───────────────────────────────────────────────────────────────────────
+        // TEMPORAL: comparación en texto plano (sin bcrypt) contra contrasena_plana.
+        const match = String(contrasena) === String(maestro.contrasena_plana ?? '');
 
         if (!match) {
             return res.status(401).json({ mensaje: 'Credenciales incorrectas' });
@@ -829,23 +843,38 @@ app.put('/admin/mi-perfil', requireAuth, async (req, res) => {
                     mensaje: 'Se requiere la contraseña actual para cambiarla',
                 });
             }
-            const { rows } = await pool.query('SELECT contrasena FROM principal.maestros WHERE maestro_id = $1', [
-                maestroId,
-            ]);
+            const { rows } = await pool.query(
+                'SELECT contrasena_plana FROM principal.maestros WHERE maestro_id = $1',
+                [maestroId],
+            );
             if (rows.length === 0) {
                 return res.status(404).json({ mensaje: 'Usuario no encontrado' });
             }
-            const match = await bcrypt.compare(contrasena_actual, rows[0].contrasena);
+            // ── REVERTIR A BCRYPT (código original, comenteado) ──────────────────
+            // const { rows } = await pool.query('SELECT contrasena FROM principal.maestros WHERE maestro_id = $1', [
+            //     maestroId,
+            // ]);
+            // if (rows.length === 0) {
+            //     return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+            // }
+            // const match = await bcrypt.compare(contrasena_actual, rows[0].contrasena);
+            // ───────────────────────────────────────────────────────────────────
+            // TEMPORAL: comparación en texto plano (sin bcrypt).
+            const match = String(contrasena_actual) === String(rows[0].contrasena_plana ?? '');
             if (!match) {
                 return res.status(401).json({ mensaje: 'Contraseña actual incorrecta' });
             }
         }
 
+        // ── REVERTIR A BCRYPT (código original, comenteado) ──────────────────────
+        // En el UPDATE de abajo usar:  contrasena = COALESCE($4, contrasena),
+        // En el array de valores:    contrasena_nueva ? await bcrypt.hash(String(contrasena_nueva), 10) : null,
+        // ───────────────────────────────────────────────────────────────────────
         const { rows } = await pool.query(
             `UPDATE principal.maestros SET
                     nombre = COALESCE($2, nombre),
                     email = COALESCE($3, email),
-                    contrasena = COALESCE($4, contrasena),
+                    contrasena_plana = COALESCE($4, contrasena_plana),
                     actualizado_en = now()
              WHERE maestro_id = $1 AND activo = true
              RETURNING maestro_id, nombre, email`,
@@ -853,7 +882,7 @@ app.put('/admin/mi-perfil', requireAuth, async (req, res) => {
                 maestroId,
                 nombre !== undefined ? String(nombre).trim() : null,
                 email !== undefined ? String(email).trim() || null : null,
-                contrasena_nueva ? await bcrypt.hash(String(contrasena_nueva), 10) : null,
+                contrasena_nueva ? String(contrasena_nueva) : null,
             ],
         );
         if (rows.length === 0) {
@@ -2127,12 +2156,22 @@ app.post('/admin/maestros', requireDirector, async (req, res) => {
         return res.status(400).json({ mensaje: 'nombre y rol_id son requeridos' });
     }
     try {
-        const hash = await bcrypt.hash(contrasena || '1NS4L2026', 10);
+        // ── REVERTIR A BCRYPT (código original, comenteado) ──────────────────────
+        // const hash = await bcrypt.hash(contrasena || '1NS4L2026', 10);
+        // const { rows } = await pool.query(
+        //     `INSERT INTO principal.maestros (nombre, contrasena, rol_id, materia_id, turno_id, activo)
+        //      VALUES ($1, $2, $3, $4, $5, true)
+        //      RETURNING maestro_id, nombre, rol_id, activo`,
+        //     [nombre, hash, rol_id, materia_id || null, turno_id || null],
+        // );
+        // ───────────────────────────────────────────────────────────────────────
+        // TEMPORAL: texto plano, sin bcrypt. `contrasena` (NOT NULL) recibe el mismo valor.
+        const clave = contrasena || '1NS4L2026';
         const { rows } = await pool.query(
-            `INSERT INTO principal.maestros (nombre, contrasena, rol_id, materia_id, turno_id, activo)
-             VALUES ($1, $2, $3, $4, $5, true)
+            `INSERT INTO principal.maestros (nombre, contrasena, contrasena_plana, rol_id, materia_id, turno_id, activo)
+             VALUES ($1, $2, $2, $3, $4, $5, true)
              RETURNING maestro_id, nombre, rol_id, activo`,
-            [nombre, hash, rol_id, materia_id || null, turno_id || null],
+            [nombre, clave, rol_id, materia_id || null, turno_id || null],
         );
         res.status(201).json({ maestro: rows[0] });
     } catch (err) {
@@ -2157,9 +2196,14 @@ app.put('/admin/maestros/:id', requireDirector, async (req, res) => {
             values.push(nombre);
         }
         if (contrasena) {
-            const hash = await bcrypt.hash(contrasena, 10);
-            sets.push(`contrasena = $${idx++}`);
-            values.push(hash);
+            // ── REVERTIR A BCRYPT (código original, comenteado) ──────────────────
+            // const hash = await bcrypt.hash(contrasena, 10);
+            // sets.push(`contrasena = $${idx++}`);
+            // values.push(hash);
+            // ───────────────────────────────────────────────────────────────────
+            // TEMPORAL: texto plano, sin bcrypt.
+            sets.push(`contrasena_plana = $${idx++}`);
+            values.push(String(contrasena));
         }
         if (rol_id !== undefined) {
             sets.push(`rol_id     = $${idx++}`);
