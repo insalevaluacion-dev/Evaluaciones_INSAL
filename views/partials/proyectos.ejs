@@ -1,3 +1,5 @@
+<%# Proyecto: eliminar solo lo pueden Dirección y Administración %>
+<% const puedeEliminarProyectos = !!(locals.permisos && locals.permisos.eliminarProyectos); %>
 <dialog id="dialog-add-proyecto" class="app-dialog--sm" aria-labelledby="dialog-add-proyecto-titulo">
     <form id="form-proyecto" class="dialog-inner" novalidate>
         <button type="button" class="dialog-close-btn" onclick="toggleDialog('dialog-add-proyecto')" aria-label="Cerrar">
@@ -118,14 +120,17 @@
                 <span>Editar</span>
             </button>
         </li>
+        <% if (puedeEliminarProyectos) { %>
         <li>
             <button type="button" class="boton-menu__item boton-menu__item--peligro" data-menu="eliminar" data-ripple role="menuitem">
                 <span class="material-symbols-rounded" aria-hidden="true">delete</span>
                 <span>Eliminar</span>
             </button>
         </li>
+        <% } %>
     </ul>
 </div>
+<% if (puedeEliminarProyectos) { %>
 <dialog id="dialogo-eliminar-proyecto" class="app-dialog--xs" aria-labelledby="dialogo-eliminar-proyecto-titulo">
     <form method="dialog" class="dialog-inner">
         <button type="button" class="dialog-close-btn" data-cancelar-rubrica aria-label="Cancelar">
@@ -161,6 +166,7 @@
         </div>
     </form>
 </dialog>
+<% } %>
 <!-- Modal para editar el nombre, la rúbrica y el grado del proyecto -->
 <dialog id="dialogo-editar-proyecto" class="app-dialog--sm" aria-labelledby="dialogo-editar-proyecto-titulo">
     <form method="dialog" class="dialog-inner" id="dialogo-editar-proyecto-form" novalidate>
@@ -275,6 +281,20 @@
                 <span class="toolbar-control__label">Sección:</span>
                 <select id="filtro-seccion-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="seccion" data-custom data-dropdown-anchor=".toolbar-control--filter">
                     <option value="" selected>Todas</option>
+                </select>
+            </label>
+            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por rúbrica">
+                <span class="material-symbols-rounded" aria-hidden="true">library_books</span>
+                <span class="toolbar-control__label">Rúbrica:</span>
+                <select
+                    id="filtro-rubrica-proyectos"
+                    class="toolbar-select"
+                    data-filter
+                    data-filter-key="rubrica"
+                    data-custom
+                    data-dropdown-anchor=".toolbar-control--filter"
+                >
+                    <option value="">Todas</option>
                 </select>
             </label>
             <label class="toolbar-control toolbar-control--sort" aria-label="Ordenar proyectos">

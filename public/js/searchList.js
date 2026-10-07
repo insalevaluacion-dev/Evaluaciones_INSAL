@@ -71,6 +71,17 @@ function getSortComparator(state) {
     if (state.sort === 'id-asc') {
         return (a, b) => Number(a.dataset.itemId) - Number(b.dataset.itemId);
     }
+    if (state.sort === 'rubrica') {
+        return (a, b) => {
+            const ra = String(a.dataset.rubrica || '').toLowerCase();
+            const rb = String(b.dataset.rubrica || '').toLowerCase();
+            if (ra < rb) return -1;
+            if (ra > rb) return 1;
+            // Mismo grupo de rúbrica: más recientes primero (coincide con el
+            // orden por defecto id-desc dentro de un grupo)
+            return Number(b.dataset.itemId) - Number(a.dataset.itemId);
+        };
+    }
     // 'relevancia' → restaura el orden original capturado antes de ordenar
     const base = state.baseline || [];
     return (a, b) => {
@@ -260,6 +271,12 @@ function initListContainer(container) {
     filterSelects.forEach((sel) => {
         sel.addEventListener('change', () => {
             syncFilterState();
+            // El filtro de rúbrica define el orden/agrupamiento de la lista:
+            // con "Todas" queda agrupada por rúbrica; al escoger una rúbrica se
+            // filtra y agrupa a ese grupo.
+            if (sel.dataset.filterKey === 'rubrica') {
+                state.sort = 'rubrica';
+            }
             applyListState(container);
         });
     });

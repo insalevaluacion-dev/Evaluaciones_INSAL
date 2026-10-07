@@ -323,6 +323,8 @@ const PERMISOS = Object.freeze({
     gestionarRubricas: [ROL.DIRECTOR, ROL.ADMINISTRADOR],
     // Proyectos y alumnos: todos los roles.
     gestionarProyectos: [ROL.DIRECTOR, ROL.ADMINISTRADOR, ROL.DOCENTE],
+    // Eliminar proyectos (y todo lo relacionado): dirección y administración.
+    eliminarProyectos: [ROL.DIRECTOR, ROL.ADMINISTRADOR],
 });
 
 /** true si el rol indicado tiene el permiso indicado según la matriz. */
@@ -356,6 +358,7 @@ function permisosDe(maestro) {
         accesoTotalGrados: tienePermiso(rolId, 'accesoTotalGrados'),
         gestionarRubricas: tienePermiso(rolId, 'gestionarRubricas'),
         gestionarProyectos: tienePermiso(rolId, 'gestionarProyectos'),
+        eliminarProyectos: tienePermiso(rolId, 'eliminarProyectos'),
     };
 }
 
@@ -657,7 +660,9 @@ app.get('/menu/evaluaciones/:id/html', requireAuth, async (req, res) => {
 // HTML parcial para la vista de proyectos (usado por el SPA router)
 app.get('/menu/proyectos/html', requireAuth, async (req, res) => {
     try {
-        res.render('partials/proyectos', {});
+        res.render('partials/proyectos', {
+            permisos: permisosDe(req.session.maestro),
+        });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send('Error al cargar');
@@ -669,6 +674,7 @@ app.get('/menu/proyectos/:id/html', requireAuth, async (req, res) => {
     try {
         res.render('partials/proyecto-editar', {
             id: req.params.id,
+            permisos: permisosDe(req.session.maestro),
         });
     } catch (error) {
         console.error('Error:', error);
@@ -1940,7 +1946,7 @@ app.put('/admin/proyectos/:id', requireAuth, async (req, res) => {
 });
 
 /** Eliminar proyecto y todo lo relacionado (evaluaciones, criterios, estudiantes del proyecto) */
-app.delete('/admin/proyectos/:id', requireAuth, async (req, res) => {
+app.delete('/admin/proyectos/:id', requireAuth, requirePermiso('eliminarProyectos', 'Acción reservada a Dirección y Administración'), async (req, res) => {
     const proyectoId = Number(req.params.id);
     const { id: maestroId, rolId } = req.session.maestro;
     if (!proyectoId) return res.status(400).json({ mensaje: 'proyectoId no válido' });

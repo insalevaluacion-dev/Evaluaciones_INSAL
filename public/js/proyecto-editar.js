@@ -13,6 +13,7 @@ import { mostrarNotificacion } from './notificaciones.js';
 import { createSubmitHandler } from './submitHandler.js';
 import { confirmarAccion } from './editar-criterios.js';
 import { plural } from './texto.js';
+import { puedeEliminarProyectos } from './permisos.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ESTADO
@@ -440,7 +441,12 @@ function onGuardarExito() {
 /** Pide confirmación y elimina el proyecto, regresando a la lista. */
 async function eliminarProyecto() {
     if (!proyectoId) return;
-
+    // El servidor exige el permiso 'eliminarProyectos' (Dirección y
+    // Administración); aquí se corta antes de mostrar el diálogo.
+    if (!puedeEliminarProyectos()) {
+        mostrarNotificacion('No tienes permisos para eliminar proyectos', 'error');
+        return;
+    }
     let ok;
     try {
         ok = await confirmarAccion(

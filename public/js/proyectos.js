@@ -7,6 +7,7 @@ import { createSubmitHandler } from './submitHandler.js';
 import { cerrarDialogoAnimado } from './menu.js';
 import { confirmarAccion } from './editar-criterios.js';
 import { animarEntrada, animarSalida } from './listAnimations.js';
+import { puedeEliminarProyectos } from './permisos.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ESTADO Y REFERENCIAS
@@ -14,6 +15,111 @@ import { animarEntrada, animarSalida } from './listAnimations.js';
 
 let currentProyectoId = null;
 let menuVisible = false;
+
+// ═══════════════════════════════════════════════════════════════
+// ESTADO DE LOS FILTROS DE LA LISTA (se recuerda al salir/entrar)
+// ═══════════════════════════════════════════════════════════════
+// Al pulsar "Modificar" el router navega a /menu/proyectos/:id y destruye
+// el DOM de la lista; al volver, la vista se reconstruye desde cero con los
+// selects vacíos. Este objeto conserva los valores de la toolbar (Año,
+// Grado, Sección, Rúbrica y Orden) mientras viva la sesión de la pestaña,
+// para restaurarlos en la vista recreada. `sort` guarda el ORDEN EFECTIVO
+// de la lista: 'id-desc'/'id-asc' (del select de orden) o 'rubrica' (lo
+// fija searchList al tocar el filtro de rúbrica, aunque ese valor no exista
+// como opción del select de orden).
+const CLAVE_FILTROS_PROYECTOS = 'insal.filtrosProyectos';
+let estadoFiltros = {
+    anio: '',
+    gradoKey: '',
+    seccion: '',
+    rubrica: '',
+    sort: 'id-desc',
+};
+
+/** Hidrata estadoFiltros desde sessionStorage (sobrevive a recargas de F5). */
+function hidratarEstadoFiltros() {
+    try {
+        const crudo = sessionStorage.getItem(CLAVE_FILTROS_PROYECTOS);
+        if (!crudo) return;
+        const datos = JSON.parse(crudo);
+        if (datos && typeof datos === 'object') {
+            estadoFiltros = { ...estadoFiltros, ...datos };
+        }
+    } catch {
+        // Sin sessionStorage (modo privado) o dato corrupto: se ignora.
+    }
+}
+
+/** Persiste estadoFiltros en sessionStorage. */
+function persistirEstadoFiltros() {
+    try {
+        sessionStorage.setItem(CLAVE_FILTROS_PROYECTOS, JSON.stringify(estadoFiltros));
+    } catch {
+        // Sin sessionStorage: el estado sigue vigente en memoria.
+    }
+}
+
+hidratarEstadoFiltros();
+
+/**
+ * Vincula a cada select de la toolbar un listener que mantiene estadoFiltros
+ * al día (y lo persiste) cada vez que el usuario cambia un filtro u el orden.
+ * Se llama en cada initProyectosHandlers; el guard por dataset evita
+ * listeners duplicados sobre los selects de la vista vigente.
+ */
+function vincularGuardadoFiltros() {
+    const ids = [
+        'filtro-anio-proyectos',
+        'filtro-grado-proyectos',
+        'filtro-seccion-proyectos',
+        'filtro-rubrica-proyectos',
+        'orden-proyectos',
+    ];
+    ids.forEach((id) => {
+        const sel = document.getElementById(id);
+        if (!sel || sel.dataset.guardadoFiltrosInit === 'true') return;
+        sel.dataset.guardadoFiltrosInit = 'true';
+        sel.addEventListener('change', () => {
+            if (id === 'orden-proyectos') {
+                // El orden efectivo pasa a ser el del select...
+                estadoFiltros.sort = sel.value || 'id-desc';
+            } else if (id === 'filtro-rubrica-proyectos') {
+                // ...salvo al tocar rúbrica: searchList agrupa la lista por
+                // rúbrica (state.sort = 'rubrica') aunque el valor quede ''.
+                estadoFiltros.sort = 'rubrica';
+            }
+            const clave = id === 'filtro-anio-proyectos' ? 'anio'
+                : id === 'filtro-grado-proyectos' ? 'gradoKey'
+                : id === 'filtro-seccion-proyectos' ? 'seccion'
+                : 'rubrica';
+            estadoFiltros[clave] = sel.value;
+            persistirEstadoFiltros();
+        });
+    });
+}
+
+/**
+ * Restaura el orden efectivo de la lista (estadoFiltros.sort) en la toolbar.
+ * Si el orden guardado es 'rubrica' no hay opción que marcar en el select
+ * de orden (solo tiene id-desc/id-asc): se re-aplica re-disparando el change
+ * del filtro de rúbrica, que es como searchList activa ese agrupamiento.
+ * Idempotente: se llama en la init y de nuevo tras repoblar la rúbrica,
+ * porque el change de esta última fija state.sort = 'rubrica' y podría pisar
+ * el orden elegido por el usuario.
+ */
+function restaurarOrdenLista() {
+    const selOrden = document.getElementById('orden-proyectos');
+    if (!selOrden) return;
+    if (estadoFiltros.sort === 'rubrica') {
+        document.getElementById('filtro-rubrica-proyectos')
+            ?.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+    }
+    if (estadoFiltros.sort && selOrden.value !== estadoFiltros.sort) {
+        selOrden.value = estadoFiltros.sort;
+    }
+    selOrden.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
 function getMenuList() {
     return document.getElementById('menu__list');
@@ -139,19 +245,41 @@ function populateFiltrosProyectos(container, proyectos) {
         selGrado.disabled = false;
         selSeccion.disabled = false;
 
-        // Sincronizar el estado de filtrado del contenedor
+        // ── Restaurar los filtros recordados ──
+        // Al volver de la vista de edición el DOM se recrea y estos selects
+        // arrancan vacíos: se re-aplica el valor guardado si su opción ya
+        // existe en la lista cargada.
+        const restaurar = (sel, valor) => {
+            if (!valor || sel.value === valor) return false;
+            if (sel.querySelector(`option[value="${CSS.escape(valor)}"]`)) {
+                sel.value = valor;
+                return true;
+            }
+            return false;
+        };
+        const restaurarAnio = restaurar(selAnio, estadoFiltros.anio);
+        const restaurarGrado = restaurar(selGrado, estadoFiltros.gradoKey);
+        const restaurarSeccion = restaurar(selSeccion, estadoFiltros.seccion);
+
+        // Sincronizar el estado de filtrado del contenedor con TODOS los
+        // filtros, incluida la rúbrica (sin ella, cada recarga borraba la
+        // clave 'rubrica' de state.filters y el filtro dejaba de aplicarse
+        // aunque el select siguiera mostrando un valor).
         const state = container.__insalListState;
         if (state) {
             state.filters = {};
-            [selAnio, selGrado, selSeccion].forEach((sel) => {
-                if (sel.value) state.filters[sel.dataset.filterKey] = sel.value;
-            });
+            [selAnio, selGrado, selSeccion, container.querySelector('#filtro-rubrica-proyectos')]
+                .filter(Boolean)
+                .forEach((sel) => {
+                    if (sel.value) state.filters[sel.dataset.filterKey] = sel.value;
+                });
         }
 
-        // Refrescar el trigger del custom-select solo de los selects cuyo valor cambió
-        if (cambioAnio) selAnio.dispatchEvent(new Event('change', { bubbles: true }));
-        if (cambioGrado) selGrado.dispatchEvent(new Event('change', { bubbles: true }));
-        if (cambioSeccion) selSeccion.dispatchEvent(new Event('change', { bubbles: true }));
+        // Refrescar el trigger del custom-select solo de los selects cuyo
+        // valor cambió (reconstrucción o restauración del filtro guardado)
+        if (cambioAnio || restaurarAnio) selAnio.dispatchEvent(new Event('change', { bubbles: true }));
+        if (cambioGrado || restaurarGrado) selGrado.dispatchEvent(new Event('change', { bubbles: true }));
+        if (cambioSeccion || restaurarSeccion) selSeccion.dispatchEvent(new Event('change', { bubbles: true }));
     } finally {
         container.__cascadeSync = false;
     }
@@ -402,6 +530,7 @@ function createProyectoElement(proyecto) {
     elementoDiv.dataset.grado = gradoTexto.trim();
     elementoDiv.dataset.nivelId = proyecto.nivel_id || '';
     elementoDiv.dataset.gradoId = proyecto.grado_id || '';
+    elementoDiv.dataset.rubrica = String(proyecto.nivel_id || '');
 
     // Categorías del grado para los filtros en cascada (Año → Grado → Sección)
     const categoriasGrado = partirDisplayGrade(proyecto.displayGrade);
@@ -445,6 +574,7 @@ function updateProyectoElement(el, proyecto) {
     el.dataset.grado = gradoTexto.trim();
     el.dataset.nivelId = proyecto.nivel_id || '';
     el.dataset.gradoId = proyecto.grado_id || '';
+    el.dataset.rubrica = String(proyecto.nivel_id || '');
     el.dataset.anio = proyecto.anio != null ? String(proyecto.anio) : '';
     el.dataset.gradoKey = categoriasGrado.gradoKey;
     el.dataset.seccion = categoriasGrado.seccion;
@@ -523,6 +653,53 @@ async function obtenerNiveles(forzar = false) {
     return obtenerCatalogo('niveles', forzar);
 }
 
+/**
+ * Rellena el select de filtro por rúbrica con los niveles (rubricas) de la BD.
+ * Usa el catálogo ya cacheado por el formulario de proyectos; en caso
+ * contrario lo pide fresco. Conserva la selección actual si el valor sigue
+ * existiendo.
+ */
+async function cargarOpcionesRubricas() {
+    const sel = document.getElementById('filtro-rubrica-proyectos');
+    if (!sel) return;
+
+    let niveles = nivelesCache;
+    if (!Array.isArray(niveles)) {
+        try {
+            niveles = await obtenerNiveles();
+        } catch {
+            return;
+        }
+    }
+
+    const opciones = niveles.map((nivel) => ({
+        valor: String(nivel.nivel_id),
+        label: nivel.nombre || 'Sin nombre',
+    }));
+    const cambioValor = reconstruirOpcionesFiltro(sel, opciones, 'Todas');
+
+    // ── Restaurar la rúbrica recordada ──
+    // Al volver de la vista de edición el select llega vacío ('Todas'):
+    // se re-aplica el valor guardado si su opción ya existe en el catálogo.
+    let restauroRubrica = false;
+    if (estadoFiltros.rubrica && sel.value !== estadoFiltros.rubrica &&
+        sel.querySelector(`option[value="${CSS.escape(estadoFiltros.rubrica)}"]`)) {
+        sel.value = estadoFiltros.rubrica;
+        restauroRubrica = true;
+    }
+
+    // Refrescar el trigger del custom-select y el estado de filtrado solo si
+    // el valor seleccionado cambió (rúbrica eliminada o restauración tras
+    // volver de la edición). Así se evita un change espuro en la carga
+    // inicial ("" → "" no cambia).
+    if (cambioValor || restauroRubrica) sel.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Tras repoblar/restaurar la rúbrica hay que re-aplicar el orden: el
+    // change anterior (si lo hubo) fija state.sort = 'rubrica' en searchList
+    // y podría pisar un orden 'id-desc'/'id-asc' que el usuario había elegido.
+    restaurarOrdenLista();
+}
+
 /** Obtiene los grados habilitados para el maestro. */
 async function obtenerGrados(forzar = false) {
     return obtenerCatalogo('grados', forzar);
@@ -540,6 +717,13 @@ function invalidarCatalogosProyecto() {
 // criterios-rubrica.js y editar-criterios.js avisan cuando cambia el catálogo de
 // rúbricas; el select "Tipo de evaluación" debe repintarse con los datos nuevos.
 document.addEventListener('catalogos:actualizados', invalidarCatalogosProyecto);
+
+// Filtro de rúbrica: se repuebla DESPUÉS de invalidar (el orden importa: primero
+// se descarta el caché para que cargarOpcionesRubricas pida datos frescos).
+// Cubre creación/edición en /menu/rubrica o vía el módulo de rúbricas.
+document.addEventListener('catalogos:actualizados', () => {
+    cargarOpcionesRubricas();
+});
 
 /**
  * Rellena un <select data-custom> con una lista de valores (deduplicados y sin
@@ -1076,7 +1260,12 @@ function initDialogoEditarProyecto() {
 /** Elimina un proyecto mediante la API y refresca la lista. */
 async function eliminarProyecto(proyectoId) {
     if (!proyectoId) return;
-
+    // El servidor exige el permiso 'eliminarProyectos' (Dirección y
+    // Administración); aquí se corta antes de mostrar el diálogo.
+    if (!puedeEliminarProyectos()) {
+        mostrarNotificacion('No tienes permisos para eliminar proyectos', 'error');
+        return;
+    }
     let ok;
     try {
         ok = await confirmarAccion(
@@ -1113,10 +1302,19 @@ function initProyectosHandlers() {
     const menulist = getMenuList();
     if (!menulist) return;
 
+    // Mantener estadoFiltros al día con los cambios de la toolbar (se
+    // recuerdan al salir/entrar de la vista de edición) y restaurar en la
+    // toolbar recreada el orden guardado.
+    vincularGuardadoFiltros();
+    restaurarOrdenLista();
+
     initDialogoEditarProyecto();
     // forzar = true: la vista se reabre al navegar (SPA) y puede haber rúbricas
     // nuevas, así que se piden los catálogos frescos en cada entrada.
     poblarSelectsProyecto(true);
+    // Rellenar el filtro por rúbrica. Reutiliza la petición de niveles en curso
+    // que acabó de lanzar poblarSelectsProyecto, así que no duplica el fetch.
+    cargarOpcionesRubricas();
     loadProyectos();
     initFiltroCascadaProyectos(container);
 

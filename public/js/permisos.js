@@ -16,6 +16,7 @@ const SIN_PERMISOS = Object.freeze({
     accesoTotalGrados: false,
     gestionarRubricas: false,
     gestionarProyectos: false,
+    eliminarProyectos: false,
 });
 
 function leerPermisos() {
@@ -49,4 +50,9 @@ export function puedeEditarRubricas() {
 /** true si el usuario ve todos los grados (Dirección y Administración). */
 export function tieneAccesoTotalGrados() {
     return permisos.accesoTotalGrados === true;
+}
+
+/** true si el usuario puede eliminar proyectos (Dirección y Administración). */
+export function puedeEliminarProyectos() {
+    return permisos.eliminarProyectos === true;
 }

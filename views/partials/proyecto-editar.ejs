@@ -1,3 +1,5 @@
+<%# Proyecto: eliminar solo lo pueden Dirección y Administración %>
+<% const puedeEliminarProyectos = !!(locals.permisos && locals.permisos.eliminarProyectos); %>
 <div class="vista-proyecto-editar">
     <div class="content_inicio">
         <button type="button" class="item-boton-menu mobile-only" onclick="abrirAside()" aria-label="Abrir menú"
@@ -134,6 +136,7 @@
 
             <!-- Barra de acciones universal: guardar cambios + zona de peligro -->
             <div class="proyecto-editar__acciones">
+                <% if (puedeEliminarProyectos) { %>
                 <div class="proyecto-editar__peligro">
                     <button type="button" id="btn-eliminar-proyecto" class="boton-eliminar-proyecto" data-ripple
                         title="Eliminar el proyecto borrará sus evaluaciones y quitará a los alumnos inscritos en él.">
@@ -141,6 +144,7 @@
                         <span>Eliminar proyecto</span>
                     </button>
                 </div>
+                <% } %>
                 <button type="submit" class="boton-confirmar proyecto-editar__acciones-guardar" data-submit>
                     <div class="submit-states">
                         <!-- Estado normal -->
