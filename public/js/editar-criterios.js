@@ -509,7 +509,7 @@ function renderCriterios() {
         mensaje.className = 'criterios-vacio';
         mensaje.textContent = eliminados.length > 0
             ? 'Los criterios marcados se eliminarán al pulsar «Guardar».'
-            : 'Aún no hay criterios en esta rúbrica. Añade uno abajo.';
+            : 'Aún no hay criterios en esta rúbrica.';
         lista.appendChild(mensaje);
     } else {
         activos.forEach((c, index) => {

@@ -251,17 +251,24 @@
 <section id="proyectos__container" class="list-container">
     <!-- Barra de herramientas: búsqueda + ordenar -->
     <div class="list-toolbar">
-        <div class="search-wrapper" onclick="focusSearchBar(this)">
-            <span class="material-symbols-rounded icon" aria-hidden="true">
-                search
-            </span>
-            <input type="text" placeholder="Buscar proyectos..." aria-label="Buscar proyectos" role="searchbox" spellcheck="false" autocomplete="off" id="search-proyectos" class="search-input">
-            <button type="button" class="search-clear" aria-label="Limpiar búsqueda" onclick="clearSearch(this)">
-                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        <div class="list-toolbar__search-row">
+            <div class="search-wrapper">
+                <span class="material-symbols-rounded icon" aria-hidden="true">
+                    search
+                </span>
+                <input type="text" placeholder="Buscar proyectos..." aria-label="Buscar proyectos" role="searchbox" spellcheck="false" autocomplete="off" id="search-proyectos" class="search-input">
+                <button type="button" class="search-clear" aria-label="Limpiar búsqueda" onclick="clearSearch(this)">
+                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <button type="button" class="list-toolbar__filters-toggle" aria-controls="proyectos-toolbar-opciones" aria-expanded="true">
+                <span class="material-symbols-rounded" aria-hidden="true">tune</span>
+                <span>Filtros</span>
+                <span class="list-toolbar__filters-count" aria-live="polite" hidden></span>
             </button>
         </div>
 
-        <div class="toolbar-opciones">
+        <div class="toolbar-opciones" id="proyectos-toolbar-opciones">
             <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por año escolar">
                 <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
                 <span class="toolbar-control__label">Año:</span>

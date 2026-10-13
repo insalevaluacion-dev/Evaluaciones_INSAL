@@ -120,6 +120,9 @@ textarea,
 :focus-visible {
     outline: 2px solid var(--azul-clr, #2a7de1);
     outline-offset: 2px;
+}
+
+:focus-visible:not(input):not(textarea) {
     border-radius: 4px;
 }
 
@@ -228,4 +231,3 @@ a,
         animation-duration: 0.01ms !important;
     }
 }
-

@@ -1,0 +1,182 @@
+/* Apariencia compartida de los campos de texto; no altera su border-radius. */
+:is(input, textarea):not([type="checkbox"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"],
+    [type="image"],
+    [type="radio"],
+    [type="range"],
+    [type="reset"],
+    [type="submit"],
+    [type="button"],
+    .search-wrapper .search-input,
+    .error,
+    .error *):not(:disabled):not([readonly]) {
+    background-color: transparent;
+    border: 2px solid color-mix(in srgb, currentColor 28%, transparent);
+    border-bottom-width: 6px;
+    box-shadow: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+:is(input, textarea):not([type="checkbox"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"],
+    [type="image"],
+    [type="radio"],
+    [type="range"],
+    [type="reset"],
+    [type="submit"],
+    [type="button"],
+    .search-wrapper .search-input,
+    .error,
+    .error *):not(:disabled):not([readonly]):hover {
+    border-color: var(--azul-med, #1a6bc7);
+}
+
+:is(input, textarea):not([type="checkbox"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"],
+    [type="image"],
+    [type="radio"],
+    [type="range"],
+    [type="reset"],
+    [type="submit"],
+    [type="button"],
+    .search-wrapper .search-input,
+    .error,
+    .error *):not(:disabled):not([readonly]):focus {
+    background-color: transparent;
+    border-color: var(--azul-med, #0e325c);
+    border-bottom-width: 6px;
+    box-shadow: none;
+    outline: none;
+}
+
+:is(input, textarea):not([type="checkbox"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"],
+    [type="image"],
+    [type="radio"],
+    [type="range"],
+    [type="reset"],
+    [type="submit"],
+    [type="button"],
+    .search-wrapper .search-input,
+    .error,
+    .error *):not(:disabled):not([readonly]):focus-visible {
+    outline: none;
+}
+
+/* Los buscadores con input dentro de un wrapper usan el wrapper como campo. */
+.search-wrapper {
+    background-color: transparent;
+    border: 2px solid color-mix(in srgb, currentColor 28%, transparent);
+    border-bottom-width: 6px;
+    box-shadow: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-wrapper:focus-within {
+    background-color: transparent;
+    border-color: var(--principal-color, #03a2e6);
+    border-bottom-width: 6px;
+    box-shadow: none;
+}
+
+/* Campos de diálogos y formularios con reglas locales más específicas. */
+:is(#dialog-add-proyecto,
+    #dialogo-editar-proyecto,
+    #dialog-add-rubrica,
+    .proyecto-editar__form,
+    .alumnos-agregar) :is(input, textarea):not([type="checkbox"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"],
+    [type="image"],
+    [type="radio"],
+    [type="range"],
+    [type="reset"],
+    [type="submit"],
+    [type="button"],
+    .search-wrapper .search-input):not(:disabled):not([readonly]):hover {
+    border-color: var(--azul-med, #1a6bc7);
+    border-bottom-width: 6px;
+}
+
+/* En diálogos, las reglas con ID tienen prioridad sobre el estilo general. */
+:is(#dialog-add-proyecto,
+    #dialogo-editar-proyecto,
+    #dialog-add-rubrica,
+    .proyecto-editar__form,
+    .alumnos-agregar) :is(input, textarea):not([type="checkbox"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"],
+    [type="image"],
+    [type="radio"],
+    [type="range"],
+    [type="reset"],
+    [type="submit"],
+    [type="button"],
+    .search-wrapper .search-input,
+    .error,
+    .error *):not(:disabled):not([readonly]) {
+    background-color: transparent;
+    border: 2px solid color-mix(in srgb,
+            var(--bg2, #dce8f6) 68%,
+            var(--azul-med, #1a6bc7));
+    border-bottom-width: 6px;
+    box-shadow: none;
+}
+
+:is(#dialog-add-proyecto,
+    #dialogo-editar-proyecto,
+    #dialog-add-rubrica,
+    .proyecto-editar__form,
+    .alumnos-agregar) :is(input, textarea):not([type="checkbox"],
+    [type="color"],
+    [type="file"],
+    [type="hidden"],
+    [type="image"],
+    [type="radio"],
+    [type="range"],
+    [type="reset"],
+    [type="submit"],
+    [type="button"],
+    .search-wrapper .search-input,
+    .error,
+    .error *):not(:disabled):not([readonly]):focus {
+    background-color: transparent;
+    border-color: var(--azul-med, #1a6bc7);
+    border-bottom-width: 6px;
+    box-shadow: none;
+    outline: none;
+}
+
+/* El estado de error cambia el color, no la forma ni el grosor del campo. */
+:is(input, textarea).error,
+:is(.campo-nota.error, .field-group.error, .form-group.error) :is(input, textarea),
+:is(#dialog-add-proyecto,
+    #dialogo-editar-proyecto,
+    #dialog-add-rubrica,
+    .proyecto-editar__form,
+    .alumnos-agregar) :is(input, textarea).error,
+:is(#dialog-add-proyecto,
+    #dialogo-editar-proyecto,
+    #dialog-add-rubrica,
+    .proyecto-editar__form,
+    .alumnos-agregar) :is(.campo-nota.error, .field-group.error, .form-group.error) :is(input, textarea) {
+    background-color: transparent;
+    border: 2px solid #ff6b6b !important;
+    border-bottom-width: 6px !important;
+    box-shadow: none;
+}
+
+:is(input, textarea).error:hover,
+:is(.campo-nota.error, .field-group.error, .form-group.error) :is(input, textarea):hover {
+    border-color: #ff6b6b !important;
+}

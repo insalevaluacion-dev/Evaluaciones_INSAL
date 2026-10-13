@@ -35,28 +35,28 @@
     opacity: 1;
 }
 
-/* ── Feedback de carga en botones (patrón del botón "Ingresar") ── */
-/* El mensaje con spinner está oculto por defecto y se muestra con .cargando */
-#mensaje-buscar-1 {
-    display: none;
-    gap: 10px;
-}
-
-#mensaje-buscar-2 {
-    gap: 10px;
-}
-
-#buscar-proyectos.cargando > #mensaje-buscar-1 {
-    display: flex;
-}
-
-#buscar-proyectos.cargando > #mensaje-buscar-2 {
-    display: none;
+#buscar-proyectos {
+    width: 100%;
 }
 
 #buscar-proyectos:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+#boton-cerrar {
+    width: 100%;
+}
+
+/* Ajuste de espacios solo para los dropdowns de los filtros de selección. */
+#formulario-filtros .custom-select__dropdown {
+    padding: 6px;
+    border-radius: 10px;
+}
+
+#formulario-filtros .custom-select__options {
+    margin-top: 0;
+    padding-right: 0;
 }
 
 /* ── Feedback "active" (presionado) para los botones ── */

@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // MÓDULO: Controles de lista — búsqueda + ordenar
-//   • Click en la píldora enfoca el input (onclick -> focusSearchBar)
+//   • Click en la píldora enfoca el input
 //   • Filtro en vivo sobre los .list-item del .list-container
 //   • Botón de limpiar (✕) y tecla Escape
 //   • Orden con select[data-sort] (reordena los .list-item del contenedor)
@@ -215,12 +215,6 @@ function clearSearch(el) {
     input.focus();
 }
 
-/** Enfoca el input al hacer click en cualquier parte de la píldora. */
-function focusSearchBar(el) {
-    const wrapper = el?.closest ? el.closest('.search-wrapper') : el;
-    wrapper?.querySelector('.search-input')?.focus();
-}
-
 /** Vincula búsqueda + orden + filtros de un contenedor de lista. */
 function initListContainer(container) {
     if (container.dataset.insalListInit === 'true') return;
@@ -235,6 +229,10 @@ function initListContainer(container) {
 
     // Buscador
     if (input) {
+        wrapper.addEventListener('click', (event) => {
+            if (event.target instanceof Element && event.target.closest('button, input')) return;
+            input.focus({ preventScroll: true });
+        });
         input.addEventListener('input', () => {
             state.query = input.value;
             applyListState(container);
@@ -292,7 +290,6 @@ function initListControls() {
 }
 
 // Exportar funciones usadas por onclick en HTML
-window.focusSearchBar = focusSearchBar;
 window.clearSearch = clearSearch;
 
 // Expuesto para que los módulos de lista (p. ej. proyectos.js) puedan

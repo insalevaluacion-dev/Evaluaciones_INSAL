@@ -36,9 +36,12 @@
     flex-direction: column;
     gap: 10px;
     margin-bottom: 8px;
+    align-items: center;
+    justify-content: center;
 }
 
 .grupo__element{
+    display: flex;
     width: 100%;
     height: auto;
     background: var(--font-color);

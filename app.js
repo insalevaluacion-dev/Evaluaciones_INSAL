@@ -374,6 +374,24 @@ function plural(cantidad, singular, pluralForma) {
     return Number(cantidad) === 1 ? singular : pluralForma;
 }
 
+/**
+ * Normaliza y valida la cantidad de evaluadores requeridos por una rúbrica.
+ * Devuelve { valor } con un entero >= 1, o { error } con el mensaje a mostrar.
+ * Si no se envía nada, se asume el valor por defecto de 3 (comportamiento previo).
+ * @param {*} cantidad
+ * @returns {{valor: number}|{error: string}}
+ */
+function normalizarCantidadEvaluadores(cantidad) {
+    if (cantidad === undefined || cantidad === null || String(cantidad).trim() === '') {
+        return { valor: 3 };
+    }
+    const n = Number(cantidad);
+    if (!Number.isInteger(n) || n < 1) {
+        return { error: 'La cantidad de evaluadores debe ser un número entero mayor o igual a 1' };
+    }
+    return { valor: n };
+}
+
 /** Middleware: exige sesión de maestro y el permiso indicado de la matriz. */
 function requirePermiso(permiso, mensaje = 'No tienes permisos para realizar esta acción') {
     return (req, res, next) => {
@@ -570,15 +588,17 @@ app.get('/admin/inicio/resumen', requireAuth, async (req, res) => {
             `SELECT
                 COUNT(*)::int AS total_proyectos,
                 COUNT(*) FILTER (WHERE total_evals >= 1)::int AS proyectos_evaluados,
-                COUNT(*) FILTER (WHERE total_evals >= 3)::int AS proyectos_completos,
+                COUNT(*) FILTER (WHERE total_evals >= requeridos)::int AS proyectos_completos,
                 AVG(nota_final) FILTER (WHERE total_evals >= 1)::numeric(4,2) AS promedio_general,
                 COALESCE(SUM(total_evals), 0)::int AS total_evaluaciones,
                 COUNT(DISTINCT p.grado_id)::int AS grados_con_proyectos
             FROM (
                 SELECT p.proyecto_id, p.grado_id,
                        COUNT(ev.evaluacion_id)::int AS total_evals,
-                       AVG(ev.nota_evaluacion)::numeric(4,2) AS nota_final
+                       AVG(ev.nota_evaluacion)::numeric(4,2) AS nota_final,
+                       COALESCE(MAX(n.cantidad_evaluadores), 3)::int AS requeridos
                 FROM evaluaciones.proyectos p
+                JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
                 LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id
                 ${filtroGrado}
                 GROUP BY p.proyecto_id, p.grado_id
@@ -1073,7 +1093,7 @@ app.get('/grados/secciones/:numNivel/:ano/:bachId', async (req, res) => {
 /**
  * Devuelve proyectos para nivel + año de estudio + bachillerato_id + sección.
  * :ano = principal.niveles_estudios_id (id del año de estudio)
- * Solo proyectos con menos de 3 evaluaciones.
+ * Solo proyectos que aún no alcanzan la cantidad de evaluadores que exige su rúbrica.
  */
 app.get('/proyectos/:numNivel/:ano/:bachId/:seccion', async (req, res) => {
     const numNivel = Number(req.params.numNivel);
@@ -1083,6 +1103,9 @@ app.get('/proyectos/:numNivel/:ano/:bachId/:seccion', async (req, res) => {
     if (!numNivel || !ano || !bachId || !seccion) {
         return res.status(400).json({ mensaje: 'Parámetros no válidos' });
     }
+    // Proyectos que este evaluador ya confirmó (confirmo_nota = true) no deben
+    // volver a aparecerle para calificar.
+    const evaluadorId = req.session.datosEvaluador?.id || null;
     try {
         const { rows } = await pool.query(
             `SELECT p.proyecto_id,
@@ -1096,12 +1119,20 @@ app.get('/proyectos/:numNivel/:ano/:bachId/:seccion', async (req, res) => {
                  FROM evaluaciones.evaluaciones
                  GROUP BY proyecto_id
              ) e ON p.proyecto_id = e.proyecto_id
+             JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
              WHERE p.nivel_id = $1
                AND g.niveles_estudio_id = $2
                AND g.bachillerato_id = $3
                AND s.letra = $4
-               AND (e.cnt IS NULL OR e.cnt < 3)`,
-            [numNivel, ano, bachId, seccion],
+               AND (e.cnt IS NULL OR e.cnt < n.cantidad_evaluadores)
+               AND NOT EXISTS (
+                   SELECT 1
+                     FROM evaluaciones.evaluaciones ev
+                    WHERE ev.proyecto_id = p.proyecto_id
+                      AND ev.evaluador_id = $5
+                      AND ev.confirmo_nota = true
+               )`,
+            [numNivel, ano, bachId, seccion, evaluadorId],
         );
         res.json({ proyectos: rows });
     } catch (err) {
@@ -1176,12 +1207,16 @@ app.get('/estudiantes/:proyectoId', async (req, res) => {
     }
     try {
         const { rows: cntRows } = await pool.query(
-            `SELECT COUNT(*)::int AS cnt
-             FROM evaluaciones.evaluaciones
-             WHERE proyecto_id = $1`,
+            `SELECT COUNT(ev.evaluacion_id)::int AS cnt,
+                    COALESCE(n.cantidad_evaluadores, 3)::int AS requeridos
+             FROM evaluaciones.proyectos p
+             JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
+             LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id
+             WHERE p.proyecto_id = $1
+             GROUP BY p.proyecto_id, n.cantidad_evaluadores`,
             [proyectoId],
         );
-        if (cntRows[0].cnt >= 3) {
+        if (cntRows.length > 0 && cntRows[0].cnt >= cntRows[0].requeridos) {
             return res.json({ estudiantes: [], evaluacionesCompletas: true });
         }
         const { rows } = await pool.query(
@@ -1245,6 +1280,22 @@ app.post('/guardar-evaluacion', async (req, res) => {
     try {
         await client.query('BEGIN');
 
+        // Bloqueo: si este evaluador YA confirmó la nota de este proyecto
+        // (confirmo_nota = true en /resumen) no puede volver a calificarlo.
+        const { rows: confirmadas } = await client.query(
+            `SELECT 1
+               FROM evaluaciones.evaluaciones
+              WHERE evaluador_id = $1 AND proyecto_id = $2 AND confirmo_nota = true
+              LIMIT 1`,
+            [evaluadorId, proyectoId],
+        );
+        if (confirmadas.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({
+                mensaje: 'Ya confirmaste la nota de este proyecto y no puedes volver a calificarlo.',
+            });
+        }
+
         // Eliminar evaluación previa del mismo evaluador para el mismo proyecto
         await client.query(
             `DELETE FROM evaluaciones.evaluacion_criterios
@@ -1298,15 +1349,20 @@ app.post('/guardar-evaluacion', async (req, res) => {
             );
         }
 
-        // Si ya hay 3 evaluaciones, calcular promedio y actualizar proyecto
+        // Si ya se alcanzó la cantidad de evaluadores que exige la rúbrica,
+        // calcular el promedio y actualizar la nota final del proyecto.
         const { rows: cntRows } = await client.query(
-            `SELECT COUNT(*)::int AS cnt,
-                    AVG(nota_evaluacion)::numeric(4,2) AS prom
-             FROM evaluaciones.evaluaciones
-             WHERE proyecto_id = $1`,
+            `SELECT COUNT(ev.evaluacion_id)::int AS cnt,
+                    AVG(ev.nota_evaluacion)::numeric(4,2) AS prom,
+                    COALESCE(n.cantidad_evaluadores, 3)::int AS requeridos
+             FROM evaluaciones.proyectos p
+             JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
+             LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id
+             WHERE p.proyecto_id = $1
+             GROUP BY p.proyecto_id, n.cantidad_evaluadores`,
             [proyectoId],
         );
-        if (cntRows[0].cnt >= 3) {
+        if (cntRows.length > 0 && cntRows[0].cnt >= cntRows[0].requeridos) {
             await client.query(`UPDATE evaluaciones.proyectos SET nota = $1 WHERE proyecto_id = $2`, [
                 cntRows[0].prom,
                 proyectoId,
@@ -1324,6 +1380,51 @@ app.post('/guardar-evaluacion', async (req, res) => {
         return res.status(500).json({ mensaje: 'Error al guardar evaluación' });
     } finally {
         client.release();
+    }
+});
+
+/**
+ * Confirmación de la nota final desde /resumen.
+ * Marca confirmo_nota = true en la evaluación de la sesión. Tras confirmar:
+ *   - el evaluador ya no puede volver a calificar ese proyecto
+ *     (/guardar-evaluacion lo rechaza y /proyectos/... deja de listarlo).
+ * Solo se confirma una vez: si ya está confirmada, responde sin error
+ * (idempotente) para no romper el flujo si se recarga la página.
+ */
+app.post('/confirmar-evaluacion', async (req, res) => {
+    const evaluacionId = req.session.evaluacionId;
+    const evaluadorId = req.session.datosEvaluador?.id;
+
+    if (!evaluacionId || !evaluadorId) {
+        return res.status(400).json({ mensaje: 'No hay una evaluación en curso para confirmar' });
+    }
+
+    try {
+        const { rows } = await pool.query(
+            `UPDATE evaluaciones.evaluaciones
+                SET confirmo_nota = true
+              WHERE evaluacion_id = $1 AND evaluador_id = $2
+              RETURNING evaluacion_id, proyecto_id, confirmo_nota`,
+            [evaluacionId, evaluadorId],
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ mensaje: 'Evaluación no encontrada' });
+        }
+
+        // Limpieza de la sesión de evaluación para que no pueda reintentar
+        // sobre el mismo proyecto desde /resumen o /evaluacion.
+        delete req.session.evaluacionId;
+        delete req.session.idProyecto;
+        delete req.session.nombreProyecto;
+
+        res.json({
+            mensaje: 'Nota confirmada correctamente',
+            redirect: '/seleccion?nota=confirmada',
+        });
+    } catch (err) {
+        console.error('Error confirmar-evaluacion:', err);
+        return res.status(500).json({ mensaje: 'Error al confirmar la evaluación' });
     }
 });
 
@@ -1492,8 +1593,8 @@ app.get('/admin/grados/:gradoId/proyectos', requireAuth, async (req, res) => {
 
 /**
  * Proyectos evaluados. Solo proyectos que ya tienen al menos 1 evaluación.
- *  - completos (3 evaluaciones): nota = promedio ya guardado en proyectos.nota
- *  - parciales (1-2 evaluaciones): nota = promedio de las evaluaciones existentes
+ *  - completos (alcanzan la cantidad_evaluadores de su rúbrica): nota = promedio guardado en proyectos.nota
+ *  - parciales (aún sin alcanzarla): nota = promedio de las evaluaciones existentes
  * Los tres roles ven todos; el filtro por grados asignados queda latente en la
  * matriz de permisos.
  */
@@ -1513,7 +1614,8 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
              b.nombre            AS bachillerato,
              s.letra             AS seccion,
              COUNT(ev.evaluacion_id)::int          AS total_evaluaciones,
-             AVG(ev.nota_evaluacion)::numeric(4,2) AS nota_promedio
+             AVG(ev.nota_evaluacion)::numeric(4,2) AS nota_promedio,
+             COALESCE(n.cantidad_evaluadores, 3)::int AS requeridos
       FROM evaluaciones.proyectos     p
       JOIN principal.grados           g  ON p.grado_id              = g.grado_id
       JOIN evaluaciones.niveles       n  ON p.nivel_id              = n.nivel_id
@@ -1525,7 +1627,7 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
         const groupBy = `
       GROUP BY p.proyecto_id, p.nombre, p.nota, p.grado_id, g.anio,
                n.nivel_id, n.nombre, ne.nombre,
-               b.bachillerato_id, b.nombre, s.letra
+               b.bachillerato_id, b.nombre, s.letra, n.cantidad_evaluadores
       HAVING COUNT(ev.evaluacion_id) >= 1
     `;
         // Filtro por grado: solo se aplica a roles con alcance restringido (hoy
@@ -1545,7 +1647,8 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
 
         const proyectos = rows.map((r) => {
             const total = Number(r.total_evaluaciones) || 0;
-            const completa = total === 3;
+            const requeridos = Number(r.requeridos) || 3;
+            const completa = total >= requeridos;
             const notaProyecto = r.nota !== null && r.nota !== undefined ? Number(r.nota) : null;
             let displayName = '';
             try {
@@ -1574,7 +1677,7 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
 
 /**
  * Detalle de las evaluaciones de un proyecto: quién evaluó, nota y hora.
- * Devuelve entre 1 y 3 evaluaciones según las registradas.
+ * Devuelve todas las evaluaciones registradas del proyecto.
  */
 app.get('/admin/evaluaciones/proyectos/:proyectoId/evaluaciones', requireAuth, async (req, res) => {
     const proyectoId = Number(req.params.proyectoId);
@@ -1660,11 +1763,13 @@ app.get('/admin/evaluaciones/grado/:gradoId', requireAuth, async (req, res) => {
                     p.nota,
                     p.grado_id,
                     COUNT(ev.evaluacion_id)::int                  AS total_evaluaciones,
-                    AVG(ev.nota_evaluacion)::numeric(4,2)         AS nota_promedio
+                    AVG(ev.nota_evaluacion)::numeric(4,2)         AS nota_promedio,
+                    COALESCE(n.cantidad_evaluadores, 3)::int      AS requeridos
              FROM evaluaciones.proyectos p
+             JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
              LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id = ev.proyecto_id
              WHERE p.grado_id = $1
-             GROUP BY p.proyecto_id, p.nombre, p.nota, p.grado_id
+             GROUP BY p.proyecto_id, p.nombre, p.nota, p.grado_id, n.cantidad_evaluadores
              ORDER BY p.nombre`,
             [gradoId],
         );
@@ -1727,7 +1832,8 @@ app.get('/admin/evaluaciones/grado/:gradoId', requireAuth, async (req, res) => {
                 }));
 
             const total = Number(p.total_evaluaciones) || 0;
-            const completa = total === 3;
+            const requeridos = Number(p.requeridos) || 3;
+            const completa = total >= requeridos;
             return {
                 ...p,
                 displayName: gradoNombre,
@@ -2368,7 +2474,7 @@ app.delete('/admin/orientadores/:id', requireDirector, async (req, res) => {
 app.get('/admin/niveles-evaluacion', requireAuth, async (req, res) => {
     try {
         const { rows } = await pool.query(
-            'SELECT nivel_id, nombre, descripcion FROM evaluaciones.niveles ORDER BY nivel_id DESC',
+            'SELECT nivel_id, nombre, descripcion, cantidad_evaluadores FROM evaluaciones.niveles ORDER BY nivel_id DESC',
         );
         res.json({ niveles: rows });
     } catch (err) {
@@ -2378,16 +2484,20 @@ app.get('/admin/niveles-evaluacion', requireAuth, async (req, res) => {
 
 /** Crear un nivel de evaluación (rúbrica). Solo Dirección y Administración. */
 app.post('/admin/niveles-evaluacion', requireRubricas, evitarSubmitDuplicado(), async (req, res) => {
-    const { nombre, descripcion } = req.body;
+    const { nombre, descripcion, cantidad_evaluadores } = req.body;
     if (!nombre) {
         return res.status(400).json({ mensaje: 'nombre es requerido' });
     }
+    const cantidad = normalizarCantidadEvaluadores(cantidad_evaluadores);
+    if (cantidad.error) {
+        return res.status(400).json({ mensaje: cantidad.error });
+    }
     try {
         const { rows } = await pool.query(
-            `INSERT INTO evaluaciones.niveles (nombre, descripcion)
-             VALUES ($1, $2)
-             RETURNING nivel_id, nombre, descripcion`,
-            [nombre, descripcion || null],
+            `INSERT INTO evaluaciones.niveles (nombre, descripcion, cantidad_evaluadores)
+             VALUES ($1, $2, $3)
+             RETURNING nivel_id, nombre, descripcion, cantidad_evaluadores`,
+            [nombre, descripcion || null, cantidad.valor],
         );
         res.status(201).json({ nivel: rows[0] });
     } catch (err) {
@@ -2399,9 +2509,16 @@ app.post('/admin/niveles-evaluacion', requireRubricas, evitarSubmitDuplicado(), 
 /** Actualizar nombre y/o descripción de un nivel. Solo Dirección y Administración. */
 app.put('/admin/niveles-evaluacion/:id', requireRubricas, async (req, res) => {
     const nivelId = Number(req.params.id);
-    const { nombre, descripcion } = req.body;
+    const { nombre, descripcion, cantidad_evaluadores } = req.body;
     if (!nivelId) {
         return res.status(400).json({ mensaje: 'nivelId no válido' });
+    }
+    let cantidadNormalizada = null;
+    if (cantidad_evaluadores !== undefined) {
+        cantidadNormalizada = normalizarCantidadEvaluadores(cantidad_evaluadores);
+        if (cantidadNormalizada.error) {
+            return res.status(400).json({ mensaje: cantidadNormalizada.error });
+        }
     }
     try {
         const sets = [];
@@ -2415,6 +2532,10 @@ app.put('/admin/niveles-evaluacion/:id', requireRubricas, async (req, res) => {
             sets.push(`descripcion = $${idx++}`);
             values.push(descripcion);
         }
+        if (cantidadNormalizada !== null) {
+            sets.push(`cantidad_evaluadores = $${idx++}`);
+            values.push(cantidadNormalizada.valor);
+        }
         if (sets.length === 0) {
             return res.status(400).json({ mensaje: 'Nada que actualizar' });
         }
@@ -2423,7 +2544,7 @@ app.put('/admin/niveles-evaluacion/:id', requireRubricas, async (req, res) => {
             `UPDATE evaluaciones.niveles
              SET ${sets.join(', ')}
              WHERE nivel_id = $${idx}
-             RETURNING nivel_id, nombre, descripcion`,
+             RETURNING nivel_id, nombre, descripcion, cantidad_evaluadores`,
             values,
         );
         if (rows.length === 0) {

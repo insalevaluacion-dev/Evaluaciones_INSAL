@@ -133,6 +133,13 @@ section{
     height: fit-content;
 }
 
+.ponderacion{
+    display: block;
+    color: var(--texto-color);
+    font-size: var(--fs-md);
+    margin-top: 4px;
+}
+
 .material-symbols-rounded {
     transition: all .5s ease;
 }
@@ -144,7 +151,6 @@ section{
 .estudiante-checkbox {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 8px;
     padding: 8px;
     cursor: pointer;
@@ -201,25 +207,11 @@ main.main_document .proyecto-header {
     cursor: not-allowed;
 }
 
-#boton-regresar > #mensaje1-regresar,
-#boton-enviar > #mensaje1-enviar {
-    display: none;
-}
-
-#boton-regresar.cargando > #mensaje1-regresar,
-#boton-enviar.cargando > #mensaje1-enviar {
-    display: flex;
-}
-
-#boton-regresar.cargando > #mensaje2-regresar,
-#boton-enviar.cargando > #mensaje2-enviar {
-    display: none;
-}
-
 /* ── Feedback active / focus en botones ── */
 #boton-regresar,
 #boton-enviar {
     transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+    margin-bottom: 20px;
 }
 
 /* Estado presionado (solo si no está cargando) */
@@ -244,8 +236,8 @@ main.main_document .proyecto-header {
 }
 
 /* ── Espaciado icono/texto en botones (gap-btn no está cargado aquí) ── */
-#boton-regresar [id^="mensaje"],
-#boton-enviar [id^="mensaje"] {
+#boton-regresar .submit-states > *,
+#boton-enviar .submit-states > * {
     gap: 8px;
 }
 
@@ -300,8 +292,12 @@ main.main_document .proyecto-header {
 }
 
 .campo-nota__input:focus{
-    border-color: var(--principal-color);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+    border-color: color-mix(in srgb, var(--principal-color) 45%, var(--border));
+    box-shadow: none;
+}
+
+.campo-nota .campo-nota__input:focus-visible{
+    outline: none;
 }
 
 .campo-nota__supporting{
@@ -338,7 +334,18 @@ main.main_document .proyecto-header {
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     padding: 20px;
-    overflow-y: auto;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+html.modal-open,
+body.modal-open {
+    overflow: hidden;
+}
+
+body.modal-open {
+    position: fixed;
+    width: 100%;
 }
 
 .modal.active {
@@ -349,8 +356,12 @@ main.main_document .proyecto-header {
 .modal-content {
     margin: auto;
     position: relative;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     max-width: 500px;
+    max-height: calc(100dvh - 40px);
+    overflow: hidden;
     background: var(--font-color-secondary, #ffffff);
     border-radius: 20px;
     padding: 20px;
@@ -408,6 +419,8 @@ main.main_document .proyecto-header {
 #formulario-asistencia {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
     gap: 10px;
     margin: 0;
     padding: 0;
@@ -424,6 +437,8 @@ main.main_document .proyecto-header {
     padding: 10px;
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
     gap: 8px;
     background: var(--font-color);
     border-radius: 15px;
@@ -454,6 +469,12 @@ main.main_document .proyecto-header {
     border-radius: 12px;
     cursor: pointer;
     transition: background 0.2s ease;
+}
+
+.estudiante-checkbox md-checkbox {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
 }
 
 .estudiante-checkbox:hover {
@@ -513,6 +534,7 @@ main.main_document .proyecto-header {
 @media (max-width: 520px) {
     .main_document {
         gap: 14px;
+        padding-top: 5px;
     }
 
     .container1 {
@@ -552,4 +574,3 @@ main.main_document .proyecto-header {
         max-height: 55dvh;
     }
 }
-

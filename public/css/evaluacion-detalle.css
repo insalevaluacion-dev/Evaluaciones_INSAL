@@ -71,12 +71,16 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* ── Contenedor ── */
+section.contenedor-criterios > section.container2 {
+    border-radius: 0;
+}
+
 .evaluacion-detalle__card {
     display: flex;
     flex-direction: column;
     width: 100%;
     background: var(--font-color-secondary);
-    border: 1.5px solid var(--border);
+    border: none;
     border-radius: 14px;
     overflow: hidden;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -101,6 +105,11 @@
     font-family: Poppins, sans-serif;
     appearance: none;
     -webkit-appearance: none;
+}
+
+.evaluacion-detalle__head:active {
+    transform: none;
+    filter: none;
 }
 
 .evaluacion-detalle__head:focus-visible {
@@ -775,4 +784,3 @@
         transition: none;
     }
 }
-

@@ -9,12 +9,16 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/circular-progress.css">
     <link rel="stylesheet" href="/css/notificaciones.css">
+    <link rel="stylesheet" href="/css/input-fields.css">
+    <link rel="stylesheet" href="/css/ripple.css">
     <script type="module">
         import 'https://esm.run/@material/web/all.js'
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
     <script src="/js/descripcion.js" defer></script>
+    <script src="/js/buttonFeedback.js" defer></script>
     <script src="/js/evaluacion.js" defer></script>
+    <script type="module" src="/js/ripple.js"></script>
     <script type="module" src="/js/notificaciones.js"></script>
     <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
     <script src="/js/native-app.js" defer></script>
@@ -36,21 +40,25 @@
         </section>
         <section class="container2">
             <form id="formulario-evaluacion">
-                <button type="button" class="btn centrar" id="boton-regresar" onclick="limpiarSeleccion()">
-                    <div class="centrar gap-btn" id="mensaje1-regresar">
-                        <p>Regresando...</p>
-                        <div class="boton-spinner" style="background: var(--font-color-important);">
-                            <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
-                                <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
-                                <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
-                            </svg>
+                <button type="button" class="btn centrar" id="boton-regresar" onclick="limpiarSeleccion()" data-ripple data-submit>
+                    <div class="submit-states">
+                        <div class="centrar gap-btn mostrar" data-normal-content>
+                            <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
+                            <span>Regresar a la pagina de evaluacion de proyecto</span>
                         </div>
-                    </div>
-                    <div class="centrar gap-btn" id="mensaje2-regresar">
-                        <span class="material-symbols-rounded">
-                            arrow_back
-                        </span>
-                        Regresar a la pagina de evaluacion de proyecto
+                        <div class="centrar gap-btn quitar" data-loading-content>
+                            <p>Regresando...</p>
+                            <div class="boton-spinner" style="background: var(--font-color-important);">
+                                <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                    <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                    <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="centrar gap-btn quitar" data-success-content>
+                            <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+                            <span>Listo</span>
+                        </div>
                     </div>
                 </button>
                 <div class="instrucciones">

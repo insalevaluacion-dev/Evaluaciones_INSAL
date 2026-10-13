@@ -258,7 +258,7 @@ El arranque indica el estado con `✅ Conexión exitosa a PostgreSQL (TLS: sí)`
 | `GET`  | `/grados/anos/:numNivel`                     | Años escolares por nivel                          |
 | `GET`  | `/grados/nombres/:numNivel/:ano`             | Bachilleratos por nivel y año                     |
 | `GET`  | `/grados/secciones/:numNivel/:ano/:bachId`   | Secciones disponibles                             |
-| `GET`  | `/proyectos/:numNivel/:ano/:bachId/:seccion` | Proyectos del grado (con menos de 3 evaluaciones) |
+| `GET`  | `/proyectos/:numNivel/:ano/:bachId/:seccion` | Proyectos del grado (sin alcanzar la cantidad de evaluadores de su rúbrica) |
 | `POST` | `/guardar-proyecto`                          | Seleccionar proyecto para evaluar                 |
 | `GET`  | `/obtener-evaluador`                         | Obtener datos del evaluador en sesión             |
 | `GET`  | `/criterios`                                 | Criterios del nivel seleccionado                  |
@@ -336,7 +336,7 @@ La base de datos se organiza en dos esquemas PostgreSQL.
 
 - Cada criterio tiene una ponderación (1-100 %).
 - La nota de cada evaluación se calcula como el promedio ponderado de las puntuaciones de sus criterios, con un máximo de 10.
-- Cuando un proyecto acumula 3 evaluaciones, la nota final del proyecto se calcula como el promedio de las tres notas y se guarda en `proyectos.nota`.
+- Cuando un proyecto acumula la cantidad de evaluadores configurada en su rúbrica (`niveles.cantidad_evaluadores`), la nota final se calcula como el promedio de esas notas y se guarda en `proyectos.nota`.
 
 ## Autenticación y seguridad
 
@@ -444,7 +444,7 @@ Para probar el flujo del evaluador:
 - Registro de evaluadores invitados.
 - Navegación y selección de proyectos.
 - Sistema de evaluación con criterios y ponderaciones.
-- Cálculo automático de notas (promedio de 3 evaluaciones).
+- Cálculo automático de notas (promedio de las evaluaciones definidas por la rúbrica).
 - Gestión completa de proyectos (CRUD).
 - Gestión de maestros y orientadores.
 - Catálogo de niveles, criterios, roles, bachilleratos y turnos.

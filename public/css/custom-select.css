@@ -134,36 +134,54 @@ body.custom-select-locked {
    buscador ancle en el borde REAL del panel (el padding-top limitaría el
    sticky y dejaría una franja por donde se asoman las opciones al scroll). */
 .custom-select__dropdown:has(.custom-select__search-wrap) {
-    padding-top: 0;
+    padding: 20px;
+    border-radius: 7px;
+    overflow: hidden;
 }
 
-/* Scrollbar integrado: por defecto el navegador pinta una barra ancha que
-   "se sale" de la caja y no respeta las esquinas redondeadas ni el padding
-   del panel. Se aplica el mismo look sutil que el resto de la app, pero vía
-   ::-webkit-scrollbar (thumb fino, redondeado e "inset", con track
-   transparente). IMPORTANTE: NO usar scrollbar-width/scrollbar-color aquí:
-   al estar activas, Chromium ignora los pseudo-elementos ::-webkit-scrollbar
-   y vuelve a la barra estándar gruesa. El thumb se encoge (border transparente
-   + background-clip: content-box) para no tocar bordes ni esquinas. */
-.custom-select__dropdown::-webkit-scrollbar {
-    width: 7px;
+.custom-select__dropdown:has(.custom-select__search-wrap).is-open,
+.custom-select.is-open .custom-select__dropdown:has(.custom-select__search-wrap),
+.custom-select__dropdown:has(.custom-select__search-wrap).is-closing {
+    display: flex;
+    flex-direction: column;
 }
 
-.custom-select__dropdown::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 0 12px 12px 0;
+.custom-select__options {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 250px;
+    margin: 10px 0 0;
+    padding: 0 5px 0 0;
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--principal-color, #03a2e6) #f1f3f5;
 }
 
-.custom-select__dropdown::-webkit-scrollbar-thumb {
-    background: var(--hover-color);
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: content-box;
+.custom-select__options::-webkit-scrollbar {
+    width: 8px;
 }
 
-.custom-select__dropdown::-webkit-scrollbar-thumb:hover {
-    background: var(--text-color);
-    background-clip: content-box;
+.custom-select__options::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.custom-select__options::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 999px;
+}
+
+.custom-select__options::-webkit-scrollbar-thumb {
+    min-height: 28px;
+    background: var(--principal-color, #03a2e6);
+    border-radius: 999px;
+}
+
+.custom-select__options::-webkit-scrollbar-thumb:hover {
+    background: var(--azul-med, #1a6bc7);
 }
 
 /* Abrir hacia arriba cuando no hay espacio debajo (evita que salga de pantalla) */
@@ -224,19 +242,30 @@ body.custom-select-locked {
    Estilo tipo "select-menu" (CodingNepal): borde azul prominente siempre
    visible, esquinas redondeadas y placeholder gris. */
 .custom-select__search-wrap {
-    position: sticky;
+    position: relative;
     top: 0;                       /* pegado al borde del dropdown al hacer scroll */
     z-index: 2;                   /* queda por encima de las opciones */
     display: flex;                /* input + botón cerrar en la misma fila */
     align-items: center;
     gap: 6px;
-    /* Edge-to-edge: anula el padding lateral del dropdown para que no queden
-       huecos por donde se asomen las opciones */
-    width: calc(100% + 12px);
-    margin: 0 -6px 6px;
-    padding: 6px 6px 0;
+    /* Edge-to-edge: extiende el fondo hasta el borde del panel para cubrir las
+       opciones mientras el panel se desplaza. */
+    width: 100%;
+    margin: 0;
+    padding: 0;
     background: #ffffff;          /* fondo opaco: oculta lo que pasa por debajo */
     box-sizing: border-box;
+}
+
+.custom-select__search-icon {
+    position: absolute;
+    top: 25px;
+    left: 17px;
+    color: var(--hover-color);
+    font-size: 20px;
+    line-height: 1;
+    pointer-events: none;
+    transform: translateY(-50%);
 }
 
 .custom-select__search {
@@ -245,13 +274,14 @@ body.custom-select-locked {
     box-sizing: border-box;
     display: block;
     margin: 0;
-    padding: 10px 12px;
+    min-height: 50px;
+    padding: 10px 12px 10px 44px;
     font-family: inherit;
     font-size: var(--fs-md);
     color: var(--texto-color, #0d1e35);
     background: #ffffff;
     border: 2px solid var(--principal-color, #03a2e6);
-    border-radius: 10px;
+    border-radius: 5px;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -264,6 +294,10 @@ body.custom-select-locked {
 .custom-select__search:focus {
     border-color: var(--principal-color, #03a2e6);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color, #03a2e6) 25%, transparent);
+}
+
+.custom-select__options .custom-select__option {
+    padding-right: 6px;
 }
 
 /* Botón para cerrar el panel a pantalla completa en móvil (oculto en desktop) */
@@ -293,8 +327,12 @@ body.custom-select-locked {
 
 /* Cada opción entra con un pequeño retardo escalonado */
 .custom-select__option {
-    padding: 10px 14px;
-    border-radius: 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 50px;
+    padding: 0 13px;
+    border-radius: 5px;
     cursor: pointer;
     color: var(--text-color);
     font-size: var(--fs-lg);
@@ -304,6 +342,19 @@ body.custom-select-locked {
     /* Stagger con tope: en listas largas el retardo no se acumula
        (máx. 6 pasos = 72ms) para que las últimas opciones no lleguen tarde. */
     animation-delay: calc(min(var(--i, 0), 6) * 12ms);
+}
+
+.custom-select__option::before {
+    position: absolute;
+    left: 5px;
+    width: 3px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--principal-color, #03a2e6);
+    content: "";
+    opacity: 0;
+    transform: scaleY(0.6);
+    transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 @keyframes customOptionIn {
@@ -331,6 +382,12 @@ body.custom-select-locked {
     background: var(--font-color-important);
     color: #000;
     font-weight: 600;
+}
+
+.custom-select__option.is-selected::before,
+.custom-select__option:hover::before {
+    opacity: 1;
+    transform: scaleY(1);
 }
 
 /* Estado deshabilitado (se sincroniza con el <select> nativo) */
@@ -410,24 +467,33 @@ select.custom-select__native {
         box-shadow: none;
         max-height: none;
         transform-origin: top center;
-        overflow-y: auto;
+        overflow: hidden;
+    }
+
+    .custom-select.is-mobile-dialog .custom-select__options {
+        max-height: none;
     }
 
     /* El buscador queda fijo arriba: teclear sin que el teclado lo tape.
        Se anula el edge-to-edge (width calc + márgenes negativos) porque a
        pantalla completa ya no hay huecos que tapar y evitaría overflow. */
     .custom-select.is-mobile-dialog .custom-select__search-wrap {
-        position: sticky;
-        top: 0;
+        position: relative;
         z-index: 2;
         width: 100%;
-        margin: 0 0 6px;
-        padding: 6px 6px 0;
+        margin: 0;
+        padding: 0;
         background: #ffffff;
+    }
+
+    .custom-select.is-mobile-dialog .custom-select__search-icon {
+        top: 25px;
+        left: 17px;
     }
 
     /* Opciones más altas y tocables en móvil */
     .custom-select.is-mobile-dialog .custom-select__option {
+        min-height: 50px;
         padding: 14px 16px;
     }
 }

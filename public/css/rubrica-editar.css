@@ -1445,81 +1445,6 @@
 }
 
 /* Contenedor del menú contextual */
-#menu__rubrica{
-    position: fixed;
-    z-index: 1100;
-    top: 0;
-    right: 0;
-    opacity: 0;
-    visibility: hidden;
-    transform: scale(0.95);
-    transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0.15s ease-out;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--sh-float);
-    padding: 6px 0;
-    min-width: 180px;
-}
-
-#menu__rubrica.show{
-    opacity: 1;
-    visibility: visible;
-    transform: scale(1);
-}
-
-#menu__rubrica .boton-menu__list{
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-#menu__rubrica .boton-menu__item{
-    border: none;
-    background: none;
-    width: 100%;
-    color: var(--txt);
-    font-family: Poppins, sans-serif;
-    font-size: var(--fs-sm);
-    font-weight: 500;
-    padding: 10px 16px;
-    text-align: left;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.15s ease;
-}
-
-#menu__rubrica .boton-menu__item .material-symbols-rounded{
-    font-size: var(--fs-lg);
-    font-weight: 500;
-}
-
-#menu__rubrica .boton-menu__item:hover{
-    background: var(--azul-lite);
-    color: var(--azul);
-}
-
-#menu__rubrica .boton-menu__item:active{
-    transform: scale(0.98);
-    background: color-mix(in srgb, var(--azul) 8%, transparent);
-}
-
-/* Opción destructiva */
-#menu__rubrica .boton-menu__item--peligro{
-    color: #b3261e;
-}
-
-#menu__rubrica .boton-menu__item--peligro:hover{
-    background: color-mix(in srgb, #b3261e 12%, transparent);
-    color: #b3261e;
-}
-
-
 /* ═══════════════════════════════════════════════════════════════
    Mensajes de error de campos — patrón login (solo campos vacíos)
    ═══════════════════════════════════════════════════════════════ */
@@ -1579,4 +1504,3 @@
     border: 2px solid #ff6b6b !important;
     transition: border-color 0.3s ease;
 }
-

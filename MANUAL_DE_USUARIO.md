@@ -131,7 +131,7 @@ Los docentes **asignados como orientadores** tienen a su cargo el seguimiento di
 
 En el lado izquierdo encontrarás las siguientes opciones principales:
 
-- **Inicio:** Resumen visual rápido del instituto, con cuatro tarjetas: _Proyectos_ registrados, _Evaluados_ (con al menos una evaluación), _Completos_ (con las 3 evaluaciones) y _Evaluaciones_ totales; debajo aparece la lista de **Últimas evaluaciones** recibidas.
+- **Inicio:** Resumen visual rápido del instituto, con cuatro tarjetas: _Proyectos_ registrados, _Evaluados_ (con al menos una evaluación), _Completos_ (con todas las evaluaciones que exige su rúbrica) y _Evaluaciones_ totales; debajo aparece la lista de **Últimas evaluaciones** recibidas.
 - **Proyectos:** Lista detallada de proyectos de todos los grados, con su sección y rúbrica.
 - **Evaluaciones:** Lista de calificaciones por proyecto, con su estado (Parcial o Completo), el detalle de cada evaluación y las descargas de notas.
 - **Rúbricas:** Consulta de los criterios y ponderaciones con los que se califica cada evento (la edición de las rúbricas es exclusiva de Dirección y Administración).
@@ -148,8 +148,8 @@ En el lado izquierdo encontrarás las siguientes opciones principales:
 1. Entra a la sección **"Evaluaciones"**.
 2. Podrás verificar en tiempo real:
    - Qué proyectos ya fueron evaluados por los jurados.
-   - Cuántas evaluaciones lleva cada proyecto (el sistema solicita 3 evaluaciones independientes para promediar la nota final).
-   - Qué proyectos tienen estado **"Parcial"** (1 o 2 evaluaciones) y cuáles están **"Completos"** (3 evaluaciones concluidas).
+   - Cuántas evaluaciones lleva cada proyecto (el sistema solicita la cantidad de evaluadores independientes definida en la rúbrica del proyecto para promediar la nota final).
+   - Qué proyectos tienen estado **"Parcial"** (aún sin alcanzar las evaluaciones requeridas) y cuáles están **"Completos"** (con todas las evaluaciones requeridas concluidas).
 3. Al hacer clic sobre cualquier proyecto podrás revisar el desglose detallado de los comentarios y puntajes otorgados por cada evaluador.
 4. Estos listados abarcan **todos los grados del instituto**, igual que para Dirección y Administración: tu cuenta de Docente tiene el mismo alcance y solo se diferencia en que las rúbricas son de consulta.
 
@@ -286,10 +286,10 @@ Para asegurar una evaluación justa, confiable y libre de subjetividades:
 
 1. Cada evaluador califica los criterios en una escala de **1.0 a 10.0**, con un solo decimal.
 2. El sistema calcula la nota del evaluador multiplicando cada puntaje por su porcentaje respectivo.
-3. La nota final del proyecto se obtiene promediando las evaluaciones de **3 evaluadores distintos** (si llegaran a existir más de tres, se promedian todas las registradas).
+3. La nota final del proyecto se obtiene promediando las evaluaciones de la cantidad de evaluadores distintos definida en su rúbrica (si llegaran a existir más, se promedian todas las registradas).
 4. **Estados del proyecto:**
-   - **Parcial:** El proyecto tiene 1 o 2 evaluaciones registradas. Se muestra el promedio acumulado hasta el momento.
-   - **Completo:** El proyecto ya cuenta con las 3 evaluaciones requeridas y su nota final queda cerrada. Si por alguna razón se registrara una cuarta evaluación, el proyecto volvería a mostrarse como _Parcial_ con el promedio actualizado.
+   - **Parcial:** El proyecto aún no alcanza la cantidad de evaluaciones requeridas por su rúbrica. Se muestra el promedio acumulado hasta el momento.
+   - **Completo:** El proyecto ya cuenta con las evaluaciones requeridas y su nota final queda cerrada.
 
 ### 8.2 Búsqueda y filtrado de notas
 

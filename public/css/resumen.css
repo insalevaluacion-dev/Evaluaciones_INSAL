@@ -182,18 +182,6 @@ li{
     cursor: not-allowed;
 }
 
-#boton-regresar > #mensaje1-regresar {
-    display: none;
-}
-
-#boton-regresar.cargando > #mensaje1-regresar {
-    display: flex;
-}
-
-#boton-regresar.cargando > #mensaje2-regresar {
-    display: none;
-}
-
 #boton-regresar {
     font-size: var(--fs-sm);
     padding: 8px 16px;
@@ -215,18 +203,6 @@ li{
 }
 
 /* ── Feedback del botón Calificar ── */
-#boton-calificar > #mensaje1-calificar {
-    display: none;
-}
-
-#boton-calificar.cargando > #mensaje1-calificar {
-    display: flex;
-}
-
-#boton-calificar.cargando > #mensaje2-calificar {
-    display: none;
-}
-
 #boton-calificar {
     transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
 }
@@ -309,8 +285,8 @@ li{
     outline: none;
 }
 /* ── Espaciado icono/texto en botones (gap-btn no está cargado aquí) ── */
-#boton-regresar [id^="mensaje"],
-#boton-calificar [id^="mensaje"],
+#boton-regresar .submit-states > *,
+#boton-calificar .submit-states > *,
 #boton-confirmar [id^="mensaje"] {
     gap: 8px;
 }

@@ -271,6 +271,7 @@ function createRubricaElement(nivel) {
     // Datos en data-* para ordenar/filtrar sin tener que leer el DOM
     elementoDiv.dataset.nombre = (nivel.nombre || '').trim();
     elementoDiv.dataset.descripcion = (nivel.descripcion || '').trim();
+    elementoDiv.dataset.cantidadEvaluadores = nivel.cantidad_evaluadores != null ? String(nivel.cantidad_evaluadores) : '3';
 
     return elementoDiv;
 }
@@ -405,10 +406,12 @@ function abrirDialogoEditarRubrica() {
 
     const nombreInput = document.getElementById('editar-nombre');
     const descInput = document.getElementById('editar-descripcion');
+    const evaluadoresInput = document.getElementById('editar-evaluadores');
     const item = document.querySelector(`.list-item[data-item-id="${currentRubricaId}"]`);
 
     if (nombreInput) nombreInput.value = item?.dataset.nombre || '';
     if (descInput) descInput.value = item?.dataset.descripcion || '';
+    if (evaluadoresInput) evaluadoresInput.value = item?.dataset.cantidadEvaluadores || '3';
 
     setTimeout(() => nombreInput?.focus(), 30);
     dialogo.showModal();
@@ -429,8 +432,10 @@ async function guardarEdicionRubrica() {
 
     const nombreInput = document.getElementById('editar-nombre');
     const descInput = document.getElementById('editar-descripcion');
+    const evaluadoresInput = document.getElementById('editar-evaluadores');
     const nombre = nombreInput ? nombreInput.value.trim() : '';
     const descripcion = descInput ? descInput.value.trim() : '';
+    const evaluadores = evaluadoresInput ? evaluadoresInput.value.trim() : '';
 
     if (!nombre) {
         mostrarNotificacion('El nombre de la rúbrica es requerido', 'error');
@@ -438,10 +443,17 @@ async function guardarEdicionRubrica() {
         throw new Error('Campo vacío');
     }
 
+    const cantNum = Number(evaluadores);
+    if (!Number.isInteger(cantNum) || cantNum < 1) {
+        mostrarNotificacion('La cantidad de evaluadores debe ser un número entero mayor o igual a 1', 'error');
+        evaluadoresInput?.focus();
+        throw new Error('Campo vacío');
+    }
+
     const res = await fetch(`/admin/niveles-evaluacion/${currentRubricaId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, descripcion }),
+        body: JSON.stringify({ nombre, descripcion, cantidad_evaluadores: cantNum }),
     });
 
     const data = await res.json();
@@ -449,6 +461,7 @@ async function guardarEdicionRubrica() {
 
     const newNombre = data.nivel?.nombre || nombre;
     const newDesc = data.nivel?.descripcion || descripcion || 'Sin descripción';
+    const newCant = data.nivel?.cantidad_evaluadores ?? cantNum;
 
     // Actualizar el ítem en pantalla sin recargar toda la lista
     const item = document.querySelector(`.list-item[data-item-id="${currentRubricaId}"]`);
@@ -459,6 +472,7 @@ async function guardarEdicionRubrica() {
         if (descEl) descEl.textContent = newDesc;
         item.dataset.nombre = newNombre.trim();
         item.dataset.descripcion = (data.nivel?.descripcion || descripcion || '').trim();
+        item.dataset.cantidadEvaluadores = String(newCant);
     }
 
     // El nombre de la rúbrica cambió: invalidar los cachés de otros módulos
@@ -602,8 +616,10 @@ function initRubricaFormHandler() {
         onSubmit: async () => {
             const nombreInput = document.getElementById('rubrica');
             const descripcionInput = document.getElementById('rubrica-descripcion');
+            const evaluadoresInput = document.getElementById('rubrica-evaluadores');
             const nombre = nombreInput ? nombreInput.value.trim() : '';
             const descripcion = descripcionInput ? descripcionInput.value.trim() : '';
+            const evaluadores = evaluadoresInput ? evaluadoresInput.value.trim() : '';
 
             if (!nombre) {
                 mostrarNotificacion('Por favor complete el nombre de la rúbrica', 'error');
@@ -615,10 +631,17 @@ function initRubricaFormHandler() {
                 throw new Error('Campo vacío');
             }
 
+            const cantNum = Number(evaluadores);
+            if (!Number.isInteger(cantNum) || cantNum < 1) {
+                mostrarNotificacion('La cantidad de evaluadores debe ser un número entero mayor o igual a 1', 'error');
+                evaluadoresInput?.focus();
+                throw new Error('Campo vacío');
+            }
+
             const response = await fetch('/admin/niveles-evaluacion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, descripcion })
+                body: JSON.stringify({ nombre, descripcion, cantidad_evaluadores: cantNum })
             });
 
             const data = await response.json();

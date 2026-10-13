@@ -27,6 +27,18 @@
                 <span class="char-counter" data-for="rubrica-descripcion">0/160</span>
             </div>
             <span class="error-message" id="error-rubrica-descripcion"></span>
+            <div class="campo-nota">
+                <label for="rubrica-evaluadores" class="campo-nota__label">
+                    Cantidad de evaluadores <span class="requerido">*</span>
+                </label>
+                <div class="campo-nota__input-wrap">
+                    <input type="number" min="1" step="1" value="3" autocomplete="off"
+                        placeholder="Ej. 3" class="campo-nota__input" name="cantidad_evaluadores"
+                        id="rubrica-evaluadores">
+                </div>
+                <span class="error-message" id="error-rubrica-evaluadores"></span>
+            </div>
+            <p class="dialog-add-rubrica__hint">Número de evaluadores que deben calificar un proyecto para considerar su nota completa.</p>
             <button type="submit" class="centrar boton gap-btn btn-opcion" data-submit>
                 <div class="submit-states">
                     <!-- Estado normal -->
@@ -165,6 +177,13 @@
                         maxlength="500" placeholder="Describe el propósito de la rúbrica"></textarea>
                 </div>
             </div>
+            <div class="field-group">
+                <label for="editar-evaluadores">Cantidad de evaluadores <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <input type="number" min="1" step="1" autocomplete="off" id="editar-evaluadores"
+                        class="campo-nota__input" placeholder="Ej. 3">
+                </div>
+            </div>
         </div>
         <div class="dialogo-editar-rubrica-actions">
             <button type="button" class="boton-cancelar" id="btn-cancelar-editar-rubrica" data-ripple>
@@ -197,7 +216,7 @@
 <section id="rubricas__container" class="list-container">
     <!-- Barra de herramientas: búsqueda + ordenar + filtros -->
     <div class="list-toolbar">
-        <div class="search-wrapper" onclick="focusSearchBar(this)">
+        <div class="search-wrapper">
             <span class="material-symbols-rounded icon" aria-hidden="true">
                 search
             </span>

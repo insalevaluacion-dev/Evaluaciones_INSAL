@@ -129,6 +129,47 @@ function getContainer() {
     return document.getElementById('proyectos__container');
 }
 
+function initMobileProjectFilters(container) {
+    const toolbar = container.querySelector('.list-toolbar');
+    const toggle = toolbar?.querySelector('.list-toolbar__filters-toggle');
+    const count = toggle?.querySelector('.list-toolbar__filters-count');
+    if (!toolbar || !toggle || !count || toggle.dataset.initialized === 'true') return;
+
+    const mobileQuery = window.matchMedia('(max-width: 640px)');
+    const filterIds = [
+        'filtro-anio-proyectos',
+        'filtro-grado-proyectos',
+        'filtro-seccion-proyectos',
+        'filtro-rubrica-proyectos',
+    ];
+
+    const updateActiveFilterCount = () => {
+        const activeCount = filterIds.reduce((total, id) => {
+            const select = container.querySelector(`#${id}`);
+            return total + (select?.value ? 1 : 0);
+        }, 0);
+        count.textContent = String(activeCount);
+        count.hidden = activeCount === 0;
+    };
+
+    const setExpanded = (expanded) => {
+        toolbar.classList.toggle('is-filters-expanded', mobileQuery.matches && expanded);
+        toggle.setAttribute('aria-expanded', String(!mobileQuery.matches || expanded));
+    };
+
+    toggle.dataset.initialized = 'true';
+    toggle.addEventListener('click', () => {
+        if (!mobileQuery.matches) return;
+        setExpanded(!toolbar.classList.contains('is-filters-expanded'));
+    });
+    filterIds.forEach((id) => {
+        container.querySelector(`#${id}`)?.addEventListener('change', updateActiveFilterCount);
+    });
+    mobileQuery.addEventListener('change', () => setExpanded(false));
+    setExpanded(false);
+    updateActiveFilterCount();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // HELPERS — Animaciones de lista
 // ═══════════════════════════════════════════════════════════════
@@ -1301,6 +1342,8 @@ function initProyectosHandlers() {
     if (!container) return;
     const menulist = getMenuList();
     if (!menulist) return;
+
+    initMobileProjectFilters(container);
 
     // Mantener estadoFiltros al día con los cambios de la toolbar (se
     // recuerdan al salir/entrar de la vista de edición) y restaurar en la

@@ -55,16 +55,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 function mostrarNotaFinal() {
     const botonCalificar = document.getElementById('boton-calificar');
     const restaurarBoton = () => {
-        if (botonCalificar) {
-            botonCalificar.classList.remove('cargando');
-            botonCalificar.disabled = false;
-        }
+        window.setButtonFeedbackState(botonCalificar, 'normal');
     };
 
-    if (botonCalificar) {
-        botonCalificar.classList.add('cargando');
-        botonCalificar.disabled = true;
-    }
+    window.setButtonFeedbackState(botonCalificar, 'loading');
 
     const modal = document.getElementById('modal-nota-final');
     modal.style.display = 'block';
@@ -96,8 +90,10 @@ function mostrarNotaFinal() {
                         notaFinal = notaFinal > 10 ? 10 : notaFinal;
                         document.getElementById('nota-final').textContent = `${notaFinal.toFixed(2)}`;
                         document.getElementById('modal-nota-final').style.display = 'block';
+                        window.setButtonFeedbackState(botonCalificar, 'success');
+                    } else {
+                        restaurarBoton();
                     }
-                    restaurarBoton();
                 })
                 .catch(err => {
                     console.error('Error al calcular la nota final:', err);
@@ -126,15 +122,38 @@ function confirmarEvaluacion() {
         botonConfirmar.classList.add('cargando');
         botonConfirmar.disabled = true;
     }
-    window.location.href = '/seleccion';
+
+    fetch('/confirmar-evaluacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) {
+                throw new Error(data.mensaje || 'Error al confirmar la evaluación');
+            }
+            // La notificación de éxito se muestra al cargar /seleccion
+            // (vía query param) porque esta navegación recarga la página
+            // entera y cualquier toast creado aquí desaparecería al instante.
+            window.location.href = data.redirect || '/seleccion';
+        })
+        .catch(err => {
+            console.error('Error al confirmar la evaluación:', err);
+            mostrarNotificacion(err.message || 'Error al confirmar la evaluación', 'error');
+            if (botonConfirmar) {
+                botonConfirmar.classList.remove('cargando');
+                botonConfirmar.disabled = false;
+            }
+        });
 }
 
 function volverEvaluacion() {
     const botonRegresar = document.getElementById('boton-regresar');
-    if (botonRegresar) {
-        botonRegresar.classList.add('cargando');
-        botonRegresar.disabled = true;
-    }
-
-    window.location.href = '/evaluacion';
+    window.setButtonFeedbackState(botonRegresar, 'loading');
+    setTimeout(() => {
+        window.setButtonFeedbackState(botonRegresar, 'success', { resetAfter: false });
+        setTimeout(() => {
+            window.location.href = '/evaluacion';
+        }, 300);
+    }, 200);
 }

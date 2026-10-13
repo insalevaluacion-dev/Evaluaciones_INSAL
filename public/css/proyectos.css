@@ -217,7 +217,7 @@
    --font-color-important (#C3E8FF) del botón. Se usa un azul más saturado con
    texto blanco para que los botones se distingan claramente del fondo. */
 #main__container .btn-opcion {
-    background: #3d9bde;
+    background: #cc7a00;
     color: #ffffff !important;
 
     p {
@@ -225,7 +225,7 @@
     }
 
     &:hover {
-        background: #2f87c9;
+        background: #b36b00;
         color: #ffffff !important;
 
         p {
@@ -234,7 +234,7 @@
     }
 
     &:active {
-        background: var(--azul-dark);
+        background: #9a5a00;
         color: #ffffff !important;
         transform: scale(0.95);
 
@@ -377,38 +377,50 @@
     top: 0;
     z-index: 2;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
 
-    /* Icono de búsqueda */
-    .icon {
-        color: var(--azul-med);
-        font-size: var(--fs-xl);
-        display: flex;
-        cursor: default;
-        flex-shrink: 0;
-    }
+.search-wrapper .icon {
+    color: var(--azul-med);
+    font-size: var(--fs-xl);
+    display: flex;
+    cursor: default;
+    flex-shrink: 0;
+}
 
-    /* Campo de texto */
-    .search-input {
-        flex: 1;
-        min-width: 0;
-        border: none;
-        outline: none;
-        background: transparent;
-        font-family: 'Poppins', sans-serif;
-        font-size: var(--fs-md);
-        color: var(--texto-color);
-    }
+.search-wrapper .search-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0;
+    border: none;
+    outline: none;
+    appearance: none;
+    background: transparent;
+    font-family: 'Poppins', sans-serif;
+    font-size: var(--fs-md);
+    line-height: 1.4;
+    color: var(--texto-color);
+    caret-color: var(--azul-med);
+}
 
-    .search-input::placeholder {
-        color: var(--secundario-texto-color);
-        opacity: 0.55;
-    }
+.search-wrapper .search-input::placeholder {
+    color: var(--secundario-texto-color);
+    opacity: 0.55;
+}
 
-    /* Foco dentro del buscador */
-    &:focus-within {
-        border-color: var(--azul-med);
-        box-shadow: 0 0 0 4px rgba(26, 107, 199, 0.15);
-    }
+.search-wrapper:focus-within {
+    border-color: var(--azul-med);
+    box-shadow: 0 0 0 4px rgba(26, 107, 199, 0.15);
+}
+
+.search-wrapper:active {
+    transform: none !important;
+    filter: none !important;
+}
+
+.search-wrapper .search-input:active {
+    transform: none !important;
+    filter: none !important;
 }
 
 /* Botón de limpiar (✕) — visible solo al escribir */
@@ -477,24 +489,70 @@
     padding: 12px;
     margin-bottom: 12px;
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: var(--sh-sm);
+    box-shadow: var(--sh-sm), 0 4px 6px -1px rgba(15, 90, 171, 0.12);
     flex-shrink: 0;
     position: sticky;
     top: 0;
     z-index: 3;
 }
 
+.list-toolbar__search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* El buscador dentro de la toolbar adopta un campo integrado */
 .list-toolbar .search-wrapper {
     position: static;
+    flex: 1 1 auto;
+    min-width: 0;
     margin-bottom: 0;
-    min-height: 38px;
-    padding: 0 12px;
-    border-radius: 10px;
-    background: var(--font-color-tercero);
+    min-height: 44px;
+    padding: 0 14px;
+    border: 2px solid color-mix(in srgb, var(--bg2) 68%, var(--azul-med));
+    border-bottom-width: 6px;
+    border-radius: 12px;
+    background: transparent;
     box-shadow: none;
+    cursor: text;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.list-toolbar .search-wrapper .icon {
+    color: var(--secundario-texto-color);
+    transition: color 0.2s ease;
+}
+
+.list-toolbar .search-wrapper:hover {
+    border-color: var(--azul-med);
+    border-bottom-width: 6px;
+}
+
+.list-toolbar .search-wrapper:hover .icon {
+    color: var(--azul-med);
+}
+
+.list-toolbar .search-wrapper:focus-within {
+    border-color: var(--azul-med);
+    border-bottom-width: 6px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.list-toolbar .search-wrapper:focus-within .icon {
+    color: var(--azul-med);
+}
+
+#proyectos__container .list-toolbar .search-wrapper,
+#proyectos__container .list-toolbar .search-wrapper:hover,
+#proyectos__container .list-toolbar .search-wrapper:focus-within {
+    border-color: rgb(61, 155, 217);
+}
+
+.list-toolbar__filters-toggle {
+    display: none;
 }
 
 .toolbar-opciones {
@@ -602,6 +660,100 @@
     .toolbar-control {
         flex: 1 1 auto;
         width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    #proyectos__container .list-toolbar {
+        gap: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+
+    #proyectos__container .list-toolbar__filters-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 10px;
+        border: 1px solid color-mix(in srgb, var(--bg2) 68%, var(--azul-med));
+        border-radius: 10px;
+        background: var(--bg2);
+        color: var(--texto-color);
+        font: inherit;
+        font-size: var(--fs-sm);
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    #proyectos__container .list-toolbar__filters-toggle > .material-symbols-rounded {
+        color: var(--azul-med);
+        font-size: var(--fs-lg);
+    }
+
+    .list-toolbar__filters-count:not([hidden]) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        border-radius: 10px;
+        background: var(--azul-med);
+        color: #fff;
+        font-size: var(--fs-xs);
+        line-height: 1;
+    }
+
+    #proyectos__container .toolbar-opciones {
+        display: none;
+    }
+
+    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-opciones {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-content: center;
+        gap: 2px;
+        width: auto;
+        min-width: 0;
+        min-height: 58px;
+        padding: 5px 8px;
+    }
+
+    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control > .material-symbols-rounded {
+        display: none;
+    }
+
+    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control__label {
+        overflow: hidden;
+        font-size: var(--fs-xs);
+        text-overflow: ellipsis;
+    }
+
+    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control .custom-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control .custom-select__trigger {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control .custom-select__trigger-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
 
@@ -800,6 +952,16 @@
     color: #e04040;
 }
 
+/* Texto de ayuda bajo un campo del modal "Nueva rúbrica" */
+.dialog-add-rubrica__hint {
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-2xs);
+    color: var(--texto-color);
+    opacity: 0.6;
+    margin: -6px 0 14px;
+    line-height: 1.3;
+}
+
 /* ── Modales de proyecto (crear y editar): misma estructura y apariencia ──
    Ambos usan el sistema base .app-dialog--sm + .dialog-inner (dialog.css). */
 #dialog-add-proyecto,
@@ -945,10 +1107,13 @@
     opacity: 0.5;
 }
 
+#dialog-add-proyecto .campo-nota__input:hover,
+#dialogo-editar-proyecto .campo-nota__input:hover,
 #dialog-add-proyecto .campo-nota__input:focus,
 #dialogo-editar-proyecto .campo-nota__input:focus {
-    border-color: var(--principal-color);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+    border-color: var(--azul-med, #1a6bc7);
+    border-bottom-width: 6px;
+    box-shadow: none;
 }
 
 /* Los <select> nativos ocultos del custom-select NO deben heredar el ancho de
@@ -1079,8 +1244,9 @@
 #dialogo-editar-proyecto .custom-select__dropdown {
     background: #ffffff;
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 6px;
+    border-radius: 7px;
+    padding: 20px;
+    overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35),
         0 18px 44px rgba(0, 0, 0, 0.32);
 }
@@ -1088,90 +1254,14 @@
 #dialog-add-proyecto .custom-select__option,
 #dialogo-editar-proyecto .custom-select__option {
     font-size: var(--fs-lg);
-    padding: 9px 12px;
+    min-height: 50px;
+    padding: 0 13px;
 }
 
 #dialog-add-proyecto .custom-select__search,
 #dialogo-editar-proyecto .custom-select__search {
     font-size: var(--fs-md);
 }
-/* ============================================================
-   Estados del botón submit (data-submit) - submitHandler.js
-   ============================================================ */
-/* Estado saliente: se desliza hacia arriba y se desvanece */
-@keyframes slideOutUp {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-100%);
-    }
-}
-
-/* Estado entrante: viene desde abajo deslizándose */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Contenedor del botón: overflow oculto para que el slide funcione */
-button[data-submit] {
-    position: relative;
-    overflow: hidden;
-    /* Aseguramos que los estados apilados no expandan el botón */
-    min-height: 50px;
-}
-
-/* Wrapper grid que apila todos los estados uno sobre otro */
-button[data-submit] .submit-states {
-    display: grid;
-    grid-template-areas: "stack";
-    width: 100%;
-}
-
-button[data-submit] .submit-states > * {
-    grid-area: stack;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    flex-direction: row;
-    /* Colapsado por defecto (invisible + sin tamaño) */
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0s 9999s; /* Transición infinita para mantener oculto */
-}
-
-/* Estado visible: se muestra normalmente */
-button[data-submit] .submit-states > .mostrar {
-    opacity: 1;
-    pointer-events: auto;
-    transition: none;
-    position: relative;
-}
-
-/* Animación de salida (el que se oculta sube) */
-button[data-submit] .submit-states > .btn-exit {
-    opacity: 1;
-    pointer-events: none;
-    animation: slideOutUp 200ms ease-in forwards;
-}
-
-/* Animación de entrada (el que aparece sube desde abajo) */
-button[data-submit] .submit-states > .btn-enter {
-    opacity: 1;
-    pointer-events: auto;
-    animation: slideInUp 200ms ease-out forwards;
-}
-
 /* ============================================================
 Elementos de lista
 ============================================================ */
@@ -1183,7 +1273,6 @@ Elementos de lista
     justify-content: space-between;
     gap: 10px;
     background: var(--card);
-    border: 1px solid var(--border);
     box-shadow: var(--sh-sm);
     border-radius: 10px;
     padding: 20px;
@@ -1215,8 +1304,8 @@ Elementos de lista
 
 /* Icono con acento azul (tarjeta clara) */
 .list-item__content > .material-symbols-rounded {
-    color: var(--azul);
-    background: var(--azul-lite);
+    color: #cc7a00;
+    background: #fff5e0;
     border-radius: 10px;
     padding: 8px;
     font-size: var(--fs-2xl);
@@ -1277,24 +1366,34 @@ Elementos de lista
    ============================================================ */
 .boton-menu {
     position: fixed;
-    z-index: 1100;
+    z-index: 1000;
     /* top/right se aplican dinámicamente desde JS */
     opacity: 0;
-    visibility: hidden;
     transform: scale(0.95);
-    transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0.15s ease-out;
+    transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--sh-float);
-    padding: 6px 0;
+    border-radius: 15px;
+    box-shadow: 0 2px 6px rgba(60, 64, 67, 0.3);
+    padding: 8px;
+    width: auto;
     min-width: 180px;
+    overflow: hidden;
+    justify-content: start !important;
+}
+
+/* Fija las esquinas redondeadas en los menús contextuales compartidos,
+   incluso si una hoja de estilos específica de la página redefine el menú. */
+#menu__list.boton-menu,
+#menu__rubrica.boton-menu {
+    border-radius: 15px;
 }
 
 .boton-menu.show {
     opacity: 1;
-    visibility: visible;
     transform: scale(1);
+    pointer-events: auto;
 }
 
 .boton-menu__list {
@@ -1312,9 +1411,11 @@ Elementos de lista
     width: 100%;
     color: var(--txt);
     font-family: Poppins, sans-serif;
-    font-size: var(--fs-sm);
+    font-size: 1.25rem;
+    line-height: 1.4;
     font-weight: 500;
-    padding: 10px 16px;
+    padding: 8px 16px;
+    border-radius: 10px;
     text-align: left;
     cursor: pointer;
     display: flex;
@@ -1324,13 +1425,19 @@ Elementos de lista
 }
 
 .boton-menu__item .material-symbols-rounded {
-    font-size: var(--fs-lg);
+    font-size: 1.25rem;
+    line-height: 1;
     font-weight: 500;
 }
 
 .boton-menu__item:hover {
     background: var(--azul-lite);
     color: var(--azul);
+}
+
+.boton-menu__item:active {
+    transform: scale(0.98);
+    background: color-mix(in srgb, var(--azul) 8%, transparent);
 }
 
 /* Opción destructiva */

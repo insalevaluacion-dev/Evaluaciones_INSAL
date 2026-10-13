@@ -1,3 +1,19 @@
+let posicionScrollAntesDeModal = 0;
+
+function bloquearScrollDeFondo() {
+    posicionScrollAntesDeModal = window.scrollY;
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+    document.body.style.top = `-${posicionScrollAntesDeModal}px`;
+}
+
+function restaurarScrollDeFondo() {
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    document.body.style.top = '';
+    window.scrollTo(0, posicionScrollAntesDeModal);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const nombreProyectoElement = document.getElementById('nombre-proyecto');
     const modalAsistencia = document.getElementById('modal-asistencia');
@@ -48,7 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div><p>(${criterio.porcentaje}%)</p></div>
             </div>
             <p for="criterio-${criterio.criterio_id}" class="descripcion">
-                ${criterio.descripcion} (${criterio.porcentaje}%):
+                ${criterio.descripcion}
+                <span class="ponderacion">Ponderación: ${criterio.porcentaje}%.</span>
             </p>
             <div class="campo-nota">
                 <label for="criterio-${criterio.criterio_id}" class="campo-nota__label">
@@ -74,23 +91,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             contenedorCriterios.appendChild(div);
         });
         const submitButton = document.createElement('button');
-        submitButton.classList.add('btn');
-        submitButton.classList.add('centrar');
+        submitButton.classList.add('btn', 'centrar');
         submitButton.type = 'button';
         submitButton.id = 'boton-enviar';
+        submitButton.dataset.ripple = '';
+        submitButton.dataset.submit = '';
         submitButton.innerHTML = `
-            <div class="centrar gap-btn" id="mensaje1-enviar">
-                <p>Enviando...</p>
-                <div class="boton-spinner" style="background: var(--font-color-important);">
-                    <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
-                        <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
-                        <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
-                    </svg>
+            <div class="submit-states">
+                <div class="centrar gap-btn mostrar" data-normal-content>
+                    Enviar evaluación
+                    <span class="material-symbols-rounded" aria-hidden="true">send</span>
                 </div>
-            </div>
-            <div class="centrar gap-btn" id="mensaje2-enviar">
-                Enviar evaluación
-                <span class="material-symbols-rounded">send</span>
+                <div class="centrar gap-btn quitar" data-loading-content>
+                    <p>Enviando...</p>
+                    <div class="boton-spinner" style="background: var(--font-color-important);">
+                        <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                            <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                            <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="centrar gap-btn quitar" data-success-content>
+                    <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+                    <span>Guardado</span>
+                </div>
             </div>
         `;
         submitButton.onclick = () => guardarEvaluacion();
@@ -105,8 +129,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // `nivelData.evaluacionId` = req.session.evaluacionId, es decir, la
     // evaluación que guardó EL MISMO evaluador actual para este proyecto.
     //
-    // Esto NO rompe el sistema de "3 evaluaciones para la nota final":
-    //   - La nota final = promedio de 3 evaluaciones de 3 evaluadores DISTINTOS.
+    // Esto NO rompe el sistema de "N evaluaciones para la nota final"
+    // (N = cantidad_evaluadores configurada en la rúbrica):
+    //   - La nota final = promedio de N evaluaciones de N evaluadores DISTINTOS.
     //   - En /guardar-evaluacion, antes de insertar, se BORRA la evaluación
     //     previa del mismo evaluador (mismo evaluador_id + proyecto_id) y se
     //     reemplaza por la nueva.
@@ -160,6 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             listaEstudiantes.appendChild(li);
         });
         modalAsistencia.style.display = 'flex';
+        bloquearScrollDeFondo();
         void modalAsistencia.offsetWidth;
         modalAsistencia.classList.add('active');
     } else {
@@ -224,14 +250,14 @@ function cerrarModalAsistencia() {
     modal.classList.remove('active');
     setTimeout(() => {
         modal.style.display = 'none';
+        restaurarScrollDeFondo();
     }, 300);
 }
 
 function setBotonEnviarFeedback(loading) {
     const btn = document.getElementById('boton-enviar');
     if (!btn) return;
-    btn.classList.toggle('cargando', loading);
-    btn.disabled = loading;
+    window.setButtonFeedbackState(btn, loading ? 'loading' : 'normal');
 }
 
 function guardarEvaluacion() {
@@ -322,19 +348,33 @@ function guardarEvaluacion() {
                         return;
                     }
                     mostrarNotificacion('Evaluación guardada correctamente', 'bien');
+                    window.setButtonFeedbackState(
+                        document.getElementById('boton-enviar'),
+                        'success',
+                        { resetAfter: !data.redirect }
+                    );
                     if (data.redirect) {
-                        window.location.href = data.redirect;
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 300);
                     }
+                })
+                .catch(err => {
+                    console.error('Error al guardar la evaluación:', err);
+                    mostrarNotificacion(err.message || 'Error al guardar la evaluación', 'error');
+                    setBotonEnviarFeedback(false);
                 });
+        })
+        .catch(err => {
+            console.error('Error al cargar los criterios:', err);
+            mostrarNotificacion('Error al cargar los criterios de evaluación.', 'error');
+            setBotonEnviarFeedback(false);
         });
 }
 
 function limpiarSeleccion() {
     const botonRegresar = document.getElementById('boton-regresar');
-    if (botonRegresar) {
-        botonRegresar.classList.add('cargando');
-        botonRegresar.disabled = true;
-    }
+    window.setButtonFeedbackState(botonRegresar, 'loading');
 
     fetch('/limpiar-sesion', {
         method: 'POST'
@@ -345,12 +385,17 @@ function limpiarSeleccion() {
             if (!response.ok) {
                 console.error('Error al limpiar la sesión:', data.mensaje);
                 mostrarNotificacion(data.mensaje || 'Error al limpiar la sesión', 'error');
-                if (botonRegresar) {
-                    botonRegresar.classList.remove('cargando');
-                    botonRegresar.disabled = false;
-                }
+                window.setButtonFeedbackState(botonRegresar, 'normal');
                 return;
             }
-            window.location.href = 'seleccion';
+            window.setButtonFeedbackState(botonRegresar, 'success', { resetAfter: false });
+            setTimeout(() => {
+                window.location.href = 'seleccion';
+            }, 300);
+        })
+        .catch(error => {
+            console.error('Error al limpiar la sesión:', error);
+            mostrarNotificacion('Ocurrió un error al regresar a la selección.', 'error');
+            window.setButtonFeedbackState(botonRegresar, 'normal');
         });
 }

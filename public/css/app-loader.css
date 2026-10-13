@@ -1,0 +1,64 @@
+.app-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 160ms ease, visibility 160ms ease;
+}
+
+.app-loader.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.app-loader__logo {
+    display: block;
+    width: 88px;
+    height: 90px;
+}
+
+.spa-route-loader {
+    display: grid;
+    flex: 1;
+    min-height: 0;
+    place-items: center;
+}
+
+.spa-route-loader__logo {
+    display: block;
+    width: 88px;
+    height: 90px;
+}
+
+.spa-route-error {
+    display: grid;
+    flex: 1;
+    min-height: 0;
+    place-content: center;
+    justify-items: center;
+    gap: 12px;
+    color: var(--texto-color);
+    text-align: center;
+}
+
+.spa-route-error__retry {
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--azul);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-loader {
+        transition: none;
+    }
+}

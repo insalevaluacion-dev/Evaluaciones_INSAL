@@ -113,6 +113,70 @@
     text-rendering: optimizeLegibility;
 }
 
+@keyframes slideOutUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+button[data-submit] {
+    position: relative;
+    overflow: hidden;
+}
+
+button[data-submit] .submit-states {
+    display: grid;
+    grid-template-areas: "stack";
+    width: 100%;
+}
+
+button[data-submit] .submit-states > * {
+    grid-area: stack;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-direction: row;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0s 9999s;
+}
+
+button[data-submit] .submit-states > .mostrar {
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+    position: relative;
+}
+
+button[data-submit] .submit-states > .btn-exit {
+    opacity: 1;
+    pointer-events: none;
+    animation: slideOutUp 200ms ease-in forwards;
+}
+
+button[data-submit] .submit-states > .btn-enter {
+    opacity: 1;
+    pointer-events: auto;
+    animation: slideInUp 200ms ease-out forwards;
+}
+
 body{
     background: #F8FAFD;
     color: var(--texto-color);

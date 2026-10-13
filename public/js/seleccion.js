@@ -1,4 +1,25 @@
+import { createSubmitHandler } from './submitHandler.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Si venimos de /resumen tras confirmar la nota, mostramos el toast de
+    // confirmación aquí (la navegación recarga la página, por eso no se puede
+    // mostrar desde resumen.js). Se limpia el query param de la URL.
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('nota') === 'confirmada') {
+            if (typeof window.mostrarNotificacion === 'function') {
+                window.mostrarNotificacion('Nota registrada y confirmada correctamente', 'bien');
+            }
+            params.delete('nota');
+            const nuevaUrl = window.location.pathname +
+                (params.toString() ? '?' + params.toString() : '') +
+                window.location.hash;
+            window.history.replaceState(null, '', nuevaUrl);
+        }
+    } catch (err) {
+        console.error('Error al mostrar la notificación de nota confirmada:', err);
+    }
+
     const selectTipo = document.getElementById('tipo-evaluacion');
     const selectAño = document.getElementById('año');
     const labelAño = document.getElementById('label-año');
@@ -7,6 +28,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const botonBuscar = document.getElementById('buscar-proyectos');
     const modalProyectos = document.getElementById('modal-proyectos');
     const contenedorProyectos = document.getElementById('contenedor-proyectos');
+    contenedorProyectos.addEventListener('click', (event) => {
+        const button = event.target instanceof Element
+            ? event.target.closest('[data-proyecto-id]')
+            : null;
+        if (!button || !contenedorProyectos.contains(button)) return;
+        guardarProyecto(button.dataset.proyectoId, button.dataset.proyectoNombre, button);
+    });
 
     // El value del tipo de evaluación es el nivel_id de evaluaciones.niveles
     // (cada nivel es a la vez evento y su rúbrica, relación 1:1).
@@ -148,35 +176,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    botonBuscar.addEventListener('click', async () => {
-        const numNivel = nivelSeleccionado();
-        const año = selectAño.value;
-        const nombre = selectNombre.value;
-        const seccion = selectSeccion.value;
-
-        // Mostrar feedback de carga en el botón
-        botonBuscar.classList.add('cargando');
-        botonBuscar.disabled = true;
-
-        try {
+    createSubmitHandler(document.getElementById('formulario-filtros'), {
+        onSubmit: async () => {
+            const numNivel = nivelSeleccionado();
+            const año = selectAño.value;
+            const nombre = selectNombre.value;
+            const seccion = selectSeccion.value;
             const respuestaProyectos = await fetch(`/proyectos/${numNivel}/${encodeURIComponent(año)}/${encodeURIComponent(nombre)}/${encodeURIComponent(seccion)}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
             const proyectosData = await respuestaProyectos.json();
             console.log('Respuesta /proyectos:', proyectosData);
+            if (!respuestaProyectos.ok) {
+                throw new Error(proyectosData.message || 'No se pudieron buscar los proyectos.');
+            }
+            return { success: true, proyectos: proyectosData.proyectos || [] };
+        },
+        onSuccess: ({ proyectos }) => {
             contenedorProyectos.innerHTML = '';
 
-            if (proyectosData.proyectos?.length > 0) {
-                const proyectosHTML = proyectosData.proyectos.map(proyecto => `
+            if (proyectos.length > 0) {
+                const proyectosHTML = proyectos.map(proyecto => `
                 <div class="grupo__element">
-                    <p>${proyecto.nombre}</p>
+                    <p>${escapeHtml(proyecto.nombre)}</p>
                     <div class="principal__element--button">
-                        <button class="btn centrar" onclick="guardarProyecto(${proyecto.proyecto_id}, '${proyecto.nombre}')">
-                            Evaluar
-                            <span class="material-symbols-rounded">
-                                arrow_right_alt
-                            </span>
+                        <button type="button" class="btn centrar" data-ripple data-submit data-proyecto-id="${escapeHtml(proyecto.proyecto_id)}" data-proyecto-nombre="${escapeHtml(proyecto.nombre)}">
+                            <div class="submit-states">
+                                <div class="centrar gap-btn mostrar" data-normal-content>
+                                    Evaluar
+                                    <span class="material-symbols-rounded" aria-hidden="true">arrow_right_alt</span>
+                                </div>
+                                <div class="centrar gap-btn quitar" data-loading-content>
+                                    Abriendo...
+                                    <div class="boton-spinner" style="background: var(--font-color-important);">
+                                        <svg class="svg-spinner girando" width="36" height="36" viewBox="0 0 36 36">
+                                            <circle class="arco-pista" cx="18" cy="18" r="13" stroke="var(--spinner-pista)" />
+                                            <circle class="arco-indicador indeterminado" cx="18" cy="18" r="13" stroke="var(--spinner-arco)" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="centrar gap-btn quitar" data-success-content>
+                                    <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+                                    <span>Listo</span>
+                                </div>
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -192,26 +236,44 @@ document.addEventListener('DOMContentLoaded', async () => {
                 void modalProyectos.offsetWidth;
                 modalProyectos.classList.add('active');
             }
-        } finally {
-            // Restaurar el botón
-            botonBuscar.classList.remove('cargando');
-            botonBuscar.disabled = false;
-        }
+        },
+        onError: (error) => {
+            console.error('Error al buscar proyectos:', error);
+            mostrarNotificacion(error.message || 'No se pudieron buscar los proyectos.', 'error');
+        },
     });
 });
 
-async function guardarProyecto(idProyecto, nombreProyecto) {
-    const response = await fetch('/guardar-proyecto', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idProyecto, nombreProyecto })
-    });
-    const result = await response.json();
-    if (response.ok) {
-        window.location.href = '/evaluacion';
-    } else {
-        console.error('Error al guardar el proyecto:', result.message);
-        mostrarNotificacion('Ocurrió un error al guardar el proyecto. Por favor, inténtelo de nuevo.', 'error');
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    })[character]);
+}
+
+async function guardarProyecto(idProyecto, nombreProyecto, button) {
+    window.setButtonFeedbackState(button, 'loading');
+    try {
+        const response = await fetch('/guardar-proyecto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idProyecto, nombreProyecto })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Ocurrió un error al guardar el proyecto.');
+        }
+        window.setButtonFeedbackState(button, 'success', { resetAfter: false });
+        setTimeout(() => {
+            window.location.href = '/evaluacion';
+        }, 300);
+    } catch (error) {
+        console.error('Error al guardar el proyecto:', error);
+        mostrarNotificacion(error.message || 'Ocurrió un error al guardar el proyecto. Por favor, inténtelo de nuevo.', 'error');
+        window.setButtonFeedbackState(button, 'normal');
     }
 }
 
@@ -228,3 +290,6 @@ function cerrarModalProyectos() {
         modal.classList.remove('cerrando');
     }, 300);
 }
+
+window.guardarProyecto = guardarProyecto;
+window.cerrarModalProyectos = cerrarModalProyectos;

@@ -10,11 +10,25 @@ const navigateTo = url => {
         return;
     }
     history.pushState(null, null, url);
-    router();
+    return router();
 };
 
 // Exponer globalmente para que otros módulos (como materias.js) puedan usarlo
 window.navigateTo = navigateTo;
+let navigationRequestId = 0;
+let initialViewLoaded = false;
+let pageResourcesLoaded = document.readyState === 'complete';
+
+const hideLoaderWhenReady = () => {
+    if (initialViewLoaded && pageResourcesLoaded) {
+        document.getElementById('app-loader')?.classList.remove('is-active');
+    }
+};
+
+window.addEventListener('load', () => {
+    pageResourcesLoaded = true;
+    hideLoaderWhenReady();
+}, { once: true });
 
 function matchRoute(pathname) {
     const patterns = [
@@ -51,6 +65,17 @@ function setActiveLink() {
 
 const router = async () => {
     const fetchUrl = matchRoute(location.pathname);
+    const currentNavigation = ++navigationRequestId;
+    const mainContainer = document.querySelector('#main__container');
+    const isInitialView = !initialViewLoaded;
+
+    if (!isInitialView && mainContainer) {
+        mainContainer.innerHTML = `
+            <div class="spa-route-loader" role="status" aria-label="Cargando vista">
+                <img class="spa-route-loader__logo" src="/assets/svg/Logo_SV_loader.svg" alt="">
+            </div>
+        `;
+    }
 
     try {
         const response = await fetch(fetchUrl, {
@@ -58,6 +83,8 @@ const router = async () => {
             // en lugar de un redirect a /login cuando la sesión expiró.
             headers: { 'X-Requested-With': 'fetch' },
         });
+
+        if (currentNavigation !== navigationRequestId) return false;
 
         // Sesión expirada: el server respondió 401 o el fetch terminó en otra
         // ruta (p. ej. siguió un redirect a /login). Salir del SPA con una
@@ -67,19 +94,20 @@ const router = async () => {
         const rutaEsperada = new URL(fetchUrl, window.location.origin).pathname;
         if (response.status === 401 || response.redirected || finalPath !== rutaEsperada) {
             window.location.href = finalPath.startsWith('/login') ? finalPath : '/login';
-            return;
+            return false;
         }
 
         const html = await response.text();
+        if (currentNavigation !== navigationRequestId) return false;
 
         // Defensa extra: si por cualquier otra vía se recibiera una página
         // completa (p. ej. la vista login), tampoco inyectarla aquí.
         if (/<html[\s>]/i.test(html)) {
             window.location.href = '/login';
-            return;
+            return false;
         }
 
-        document.querySelector('#main__container').innerHTML = html;
+        mainContainer.innerHTML = html;
 
         // Marcar la pestaña activa según la ruta
         setActiveLink();
@@ -88,8 +116,29 @@ const router = async () => {
         document.dispatchEvent(new CustomEvent('contentUpdated', {
             detail: { route: location.pathname }
         }));
+        return true;
     } catch (error) {
         console.error('Error al cargar la vista:', error);
+        if (currentNavigation === navigationRequestId && !isInitialView && mainContainer) {
+            mainContainer.innerHTML = `
+                <div class="spa-route-error" role="alert">
+                    <p>No se pudo cargar esta vista. Comprueba tu conexión e inténtalo de nuevo.</p>
+                    <button class="spa-route-error__retry" type="button">Reintentar</button>
+                </div>
+            `;
+            mainContainer.querySelector('.spa-route-error__retry')
+                .addEventListener('click', () => router());
+        }
+        return false;
+    } finally {
+        if (currentNavigation === navigationRequestId) {
+            if (!initialViewLoaded) {
+                initialViewLoaded = true;
+                hideLoaderWhenReady();
+            } else if (pageResourcesLoaded) {
+                document.getElementById('app-loader')?.classList.remove('is-active');
+            }
+        }
     }
 };
 

@@ -65,6 +65,9 @@
         const dropdown = document.createElement('ul');
         dropdown.className = 'custom-select__dropdown';
         dropdown.setAttribute('role', 'listbox');
+        const optionsList = document.createElement('ul');
+        optionsList.className = 'custom-select__options';
+        optionsList.setAttribute('role', 'presentation');
 
         container.appendChild(trigger);
 
@@ -116,6 +119,10 @@
             // quedan alrededor del input.
             const searchWrap = document.createElement('div');
             searchWrap.className = 'custom-select__search-wrap';
+            const searchIcon = document.createElement('span');
+            searchIcon.className = 'custom-select__search-icon material-symbols-rounded';
+            searchIcon.setAttribute('aria-hidden', 'true');
+            searchIcon.textContent = 'search';
             searchInput = document.createElement('input');
             searchInput.type = 'text';
             searchInput.className = 'custom-select__search';
@@ -124,6 +131,7 @@
             searchInput.setAttribute('aria-label', 'Buscar opciones');
             searchInput.setAttribute('autocomplete', 'off');
             searchInput.addEventListener('input', applyFilter);
+            searchWrap.appendChild(searchIcon);
             searchWrap.appendChild(searchInput);
 
             // Botón "cerrar" para el panel a pantalla completa en móvil: permite
@@ -141,25 +149,26 @@
 
             dropdown.appendChild(searchWrap);
         }
+        dropdown.appendChild(optionsList);
 
         // Filtra las opciones visibles según el texto del buscador.
         // Busca en el texto visible Y en data-search (p. ej. un ID/NIE oculto).
         function applyFilter() {
             if (!searchInput) return;
             const q = (searchInput.value || '').trim().toLowerCase();
-            Array.from(dropdown.children).forEach((c) => {
+            Array.from(optionsList.children).forEach((c) => {
                 if (!c.classList.contains('custom-select__option')) return;
                 const t = c.textContent.trim().toLowerCase();
                 const extra = (c.dataset.search || '').trim().toLowerCase();
                 const show = !q || t.includes(q) || extra.includes(q);
                 c.style.display = show ? '' : 'none';
             });
-            dropdown.scrollTop = 0;
+            optionsList.scrollTop = 0;
         }
 
         function buildOptions() {
             // Limpiar solo las <li> (opciones), conservando el buscador si existe.
-            Array.from(dropdown.children).forEach((c) => {
+            Array.from(optionsList.children).forEach((c) => {
                 if (c.classList.contains('custom-select__option')) c.remove();
             });
             let index = 0;
@@ -191,7 +200,7 @@
                     closeDropdown();
                     syncTrigger();
                 });
-                dropdown.appendChild(li);
+                optionsList.appendChild(li);
                 index++;
             });
             applyFilter();
@@ -203,7 +212,7 @@
             // Marca si el select tiene un valor elegido: sin valor (placeholder
             // "Selecciona …") el CSS atenúa el label en gris.
             container.classList.toggle('has-value', select.value !== '');
-            Array.from(dropdown.children).forEach((li) => {
+            Array.from(optionsList.children).forEach((li) => {
                 li.classList.toggle('is-selected', li.dataset.value === select.value);
             });
         }
@@ -301,6 +310,8 @@
             dropdown.style.height = 'auto';
             dropdown.style.right = 'auto';
             dropdown.style.zIndex = '';
+            dropdown.style.minWidth = '';
+            dropdown.style.maxWidth = '';
 
             const gap = 8;
             const maxH = 280;
@@ -335,9 +346,6 @@
             // NO se fuerza un mínimo que pueda desbordar el viewport.
             const available = openUp ? spaceAbove : spaceBelow;
             dropdown.style.maxHeight = Math.max(0, Math.min(maxH, available)) + 'px';
-
-            dropdown.style.width = rect.width + 'px';
-            dropdown.style.right = 'auto';
 
             if (insideDialog) {
                 // El <dialog> se centra con transform: translate(-50%,-50%), lo que
@@ -376,7 +384,27 @@
                 // con overflow:hidden auto) y permite ajustar la posición exacta sin que el
                 // menú se corte ni se salga de la pantalla.
                 dropdown.style.position = 'fixed';
-                dropdown.style.left = rect.left + 'px';
+                const fitOptions = !!anchorSel;
+                let dropdownWidth = rect.width;
+                if (fitOptions) {
+                    const maxWidth = Math.max(0, window.innerWidth - gap * 2);
+                    dropdown.style.width = 'max-content';
+                    dropdown.style.minWidth = rect.width + 'px';
+                    dropdown.style.maxWidth = maxWidth + 'px';
+                    dropdown.style.display = 'block';
+                    dropdown.style.visibility = 'hidden';
+                    dropdownWidth = dropdown.offsetWidth;
+                    dropdown.style.display = '';
+                    dropdown.style.visibility = '';
+                    dropdown.style.width = dropdownWidth + 'px';
+                } else {
+                    dropdown.style.width = rect.width + 'px';
+                }
+                dropdown.style.right = 'auto';
+                const left = fitOptions
+                    ? Math.max(gap, Math.min(rect.left, window.innerWidth - dropdownWidth - gap))
+                    : rect.left;
+                dropdown.style.left = left + 'px';
                 if (openUp) {
                     dropdown.style.top = 'auto';
                     dropdown.style.bottom = (vh - rect.top + gap) + 'px';
@@ -388,12 +416,20 @@
         }
 
         function syncDisabled() {
-            container.classList.toggle('is-disabled', select.disabled);
-            trigger.disabled = select.disabled;
+            // Un <select> está visualmente deshabilitado si está marcado como
+            // disabled o si no contiene opciones seleccionables (todo lo que
+            // queda es el placeholder oculto). En ambos casos usar la clase
+            // .is-disabled del custom-select para aplicar el estilo gris.
+            const hasOptions = Array.from(select.options).some(
+                (o) => !o.hidden && o.value !== ''
+            );
+            const disabled = select.disabled || !hasOptions;
+            container.classList.toggle('is-disabled', disabled);
+            trigger.disabled = disabled;
             // Si el select se deshabilita con el menú abierto (p. ej. al cambiar
             // el filtro padre se vacían las opciones), cerrarlo: un panel vacío
             // y deshabilitado no debe quedar flotando sobre la página.
-            if (select.disabled && container.classList.contains('is-open')) {
+            if (disabled && container.classList.contains('is-open')) {
                 closeDropdown();
             }
         }
