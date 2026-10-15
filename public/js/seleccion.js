@@ -40,6 +40,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     // (cada nivel es a la vez evento y su rúbrica, relación 1:1).
     const nivelSeleccionado = () => selectTipo.value;
 
+    /**
+     * Si el select tiene una sola opción real, la elige y avisa con change.
+     * El custom-select solo refresca el botón al oír change; asignar .value
+     * deja el texto en el placeholder.
+     */
+    function seleccionarSiUnica(select) {
+        const reales = [...select.options].filter((o) => o.value !== '' && !o.hidden);
+        if (reales.length !== 1) return;
+        select.disabled = false;
+        if (select.value !== reales[0].value) select.value = reales[0].value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        const texto = reales[0].textContent.trim();
+        const avisos = {
+            año: `Solo hay un año disponible: ${texto}. Se seleccionó automáticamente.`,
+            nombre: `Solo hay un grado disponible: ${texto}. Se seleccionó automáticamente.`,
+            seccion: `Solo hay una sección disponible: ${texto}. Se seleccionó automáticamente.`,
+        };
+        mostrarNotificacion(
+            avisos[select.id] || `Solo hay una opción disponible: ${texto}. Se seleccionó automáticamente.`,
+            'info',
+        );
+    }
+
     selectTipo.addEventListener('change', async () => {
         const numNivel = nivelSeleccionado();
         selectAño.disabled = true;
@@ -83,10 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     selectAño.appendChild(option);
                 });
                 selectAño.disabled = false;
-                if (años.length === 1) {
-                    selectAño.value = años[0].id;
-                    cargarNombres(numNivel, años[0].id);
-                }
+                seleccionarSiUnica(selectAño);
             } else {
                 // Sin proyectos para este nivel: avisar y no avanzar
                 mostrarNotificacion('No hay proyectos disponibles para este tipo de evaluación.', 'info');
@@ -131,6 +151,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     selectNombre.appendChild(option);
                 });
                 selectNombre.disabled = false;
+                seleccionarSiUnica(selectNombre);
             }
         } finally {
             customSelectSetLoading('nombre', false);
@@ -164,6 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     selectSeccion.appendChild(option);
                 });
                 selectSeccion.disabled = false;
+                seleccionarSiUnica(selectSeccion);
             }
         } finally {
             customSelectSetLoading('seccion', false);
@@ -262,9 +284,9 @@ async function guardarProyecto(idProyecto, nombreProyecto, button) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idProyecto, nombreProyecto })
         });
-        const result = await response.json();
+        const result = await response.json().catch(() => null);
         if (!response.ok) {
-            throw new Error(result.message || 'Ocurrió un error al guardar el proyecto.');
+            throw new Error(result?.mensaje || result?.message || 'Ocurrió un error al guardar el proyecto.');
         }
         window.setButtonFeedbackState(button, 'success', { resetAfter: false });
         setTimeout(() => {

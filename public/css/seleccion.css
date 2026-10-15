@@ -30,6 +30,69 @@
     transition: all 0.3s ease-in-out;
 }
 
+#dialogo-cerrar-sesion .dialogo-confirmar-actions > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 120px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-md, 1rem);
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+
+#dialogo-cerrar-sesion .boton-cancelar {
+    border: 1.5px solid var(--border, #d5dce5);
+    background: transparent;
+    color: var(--text-color-secondary, #526174);
+}
+
+#dialogo-cerrar-sesion .boton-cancelar:hover {
+    border-color: var(--principal-color, #315c9b);
+    background: color-mix(in srgb, var(--principal-color, #315c9b) 8%, transparent);
+    color: var(--principal-color, #315c9b);
+}
+
+#dialogo-cerrar-sesion .boton-confirmar {
+    border: none;
+    background: var(--principal-color, #315c9b);
+    color: var(--font-color, #fff);
+}
+
+#dialogo-cerrar-sesion .boton-confirmar:hover {
+    background: var(--azul-dark, #234878);
+}
+
+#dialogo-cerrar-sesion .dialogo-confirmar-actions > button:active {
+    transform: scale(0.97);
+}
+
+#dialogo-cerrar-sesion .dialogo-confirmar-actions > button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--principal-color, #315c9b) 35%, transparent);
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    #dialogo-cerrar-sesion .dialogo-confirmar-actions {
+        width: 100%;
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    #dialogo-cerrar-sesion .dialogo-confirmar-actions > button {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+    }
+}
+
 .modal.active .modal-content {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;

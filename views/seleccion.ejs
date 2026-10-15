@@ -2,11 +2,38 @@
 <html lang="es">
 
 <head>
+    <!-- Capa de red robusta: DEBE cargar primero y de forma síncrona (sin defer,
+         sin type="module") para envolver window.fetch ANTES de que cualquier
+         módulo del flujo lo use. Aporta timeout + reintentos + aviso
+         "Reconectando…" + keep-alive frente a los cold starts de Render/Railway
+         en capa gratuita. -->
+    <script src="/js/fetchRobusto.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Selección de Proyecto</title>
+    <!-- Loader de marca del flujo de evaluadores. El <style> crítico posiciona
+         el overlay desde el primer pintado (antes de app-loader.css) con el
+         fondo claro de main.css para que no haya destello. -->
+    <style>
+        #app-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: grid;
+            place-items: center;
+            background: #F8FAFD;
+        }
+
+        #app-loader img {
+            display: block;
+            width: 88px;
+            height: 90px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/app-loader.css">
     <link rel="stylesheet" href="/css/seleccion.css">
     <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dialog.css">
     <link rel="stylesheet" href="/css/selector.css">
     <link rel="stylesheet" href="/css/custom-select.css">
     <link rel="stylesheet" href="/css/circular-progress.css">
@@ -14,7 +41,11 @@
     <link rel="stylesheet" href="/css/notificaciones.css">
     <link rel="stylesheet" href="/css/input-fields.css">
     <link rel="stylesheet" href="/css/ripple.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
+    <link rel="stylesheet" href="/css/cerrar-sesion-evaluador.css">
     <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
     <script src="/js/custom-select.js" defer></script>
     <script src="/js/buttonFeedback.js" defer></script>
@@ -26,9 +57,31 @@
     <script src="/js/native-app.js" defer></script>
 </head>
 
-<body>
+<body data-flujo="evaluador">
+    <div id="app-loader" class="app-loader is-active" role="status" aria-label="Cargando">
+        <img src="/assets/svg/Logo_SV_loader.svg" alt="" class="app-loader__logo">
+    </div>
+    <script type="module" src="/js/cerrarSesionEvaluador.js"></script>
+    <script type="module" src="/js/app-loader.js"></script>
+    <script>
+        // La visibilidad del loader la gestiona app-loader.js (cargado antes);
+        // no usamos aquí un timeout fijo de 8000 ms que oculta el overlay a
+        // medias aunque la fuente de iconos aún esté cargando.
+
+    </script>
     <section class="content">
         <main class="principal">
+            <header class="evaluador-perfil">
+                <span class="material-symbols-rounded evaluador-perfil__icono" aria-hidden="true">account_circle</span>
+                <div class="evaluador-perfil__datos">
+                    <p class="evaluador-perfil__nombre"><%= evaluador.nombreEvaluador %></p>
+                    <p class="evaluador-perfil__correo"><%= evaluador.email %></p>
+                </div>
+                <button type="button" id="btn-cerrar-sesion-evaluador" title="Cerrar sesión" aria-label="Cerrar sesión" data-ripple>
+                    <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                    <span>Salir</span>
+                </button>
+            </header>
             <form id="formulario-filtros" class="form" novalidate>
                 <p class="principal__element--text">
                     <span class="material-symbols-rounded principal__element--icon">manage_search</span>
@@ -83,6 +136,24 @@
                 </button>
             </div>
         </div>
+
+        <dialog id="dialogo-cerrar-sesion" class="app-dialog--xs dialogo-confirmar" aria-labelledby="dialogo-cerrar-sesion-titulo">
+            <form method="dialog" class="dialog-inner">
+                <span class="material-symbols-rounded dialogo-confirmar__icono" aria-hidden="true">logout</span>
+                <h2 class="dialogo-confirmar-title" id="dialogo-cerrar-sesion-titulo">¿Cerrar sesión?</h2>
+                <p class="dialogo-confirmar-subtitle">Podrás volver a entrar con tu nombre y correo.</p>
+                <div class="dialogo-confirmar-actions">
+                    <button type="button" class="boton-cancelar" data-cerrar-sesion-cancelar data-ripple>
+                        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                        <span>Cancelar</span>
+                    </button>
+                    <button type="button" class="boton-confirmar" data-cerrar-sesion-confirmar data-ripple>
+                        <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                        <span>Cerrar sesión</span>
+                    </button>
+                </div>
+            </form>
+        </dialog>
     </section>
 </body>
 </html>

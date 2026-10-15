@@ -6,7 +6,7 @@
             data-ripple>
             <span class="material-symbols-rounded">menu</span>
         </button>
-        <a href="/menu/proyectos" class="back-link" data-link>
+        <a href="/menu/proyectos" class="back-link" id="btn-atras-proyecto">
             <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
             <p>Atras</p>
         </a>
@@ -50,6 +50,11 @@
                     <span>Alumnos</span>
                     <span id="contador-alumnos" class="proyecto-tab__badge">0</span>
                 </button>
+                <button type="button" role="tab" id="tab-actividad" class="proyecto-tab" data-tab="actividad"
+                    aria-controls="panel-actividad" aria-selected="false" data-ripple>
+                    <span class="material-symbols-rounded" aria-hidden="true">history</span>
+                    <span>Actividad</span>
+                </button>
             </div>
 
             <div class="proyecto-tabs__content">
@@ -65,8 +70,8 @@
                                 <label for="editar-proyecto-nombre">Nombre del proyecto <span
                                         class="requerido">*</span></label>
                                 <input type="text" required autocomplete="off" placeholder="Nombre del proyecto"
-                                    class="campo-nota__input" name="nombre" id="editar-proyecto-nombre" maxlength="80">
-                                <span class="char-counter" data-for="editar-proyecto-nombre">0/80</span>
+                                    class="campo-nota__input" name="nombre" id="editar-proyecto-nombre" maxlength="40">
+                                <span class="char-counter" data-for="editar-proyecto-nombre">0/40</span>
                             </div>
                             <div class="proyecto-editar__grid">
                                 <div class="field-group">
@@ -75,6 +80,14 @@
                                     <select id="editar-proyecto-nivel" name="nivel_id" class="campo-nota__input"
                                         data-custom data-searchable required>
                                         <option value="" selected disabled hidden>Cargando rúbricas…</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="editar-proyecto-materia">Materia <span
+                                            class="requerido">*</span></label>
+                                    <select id="editar-proyecto-materia" name="materia_id" class="campo-nota__input"
+                                        data-custom data-searchable required>
+                                        <option value="" selected disabled hidden>Cargando materias…</option>
                                     </select>
                                 </div>
                                 <div class="field-group">
@@ -113,16 +126,47 @@
                             <span class="material-symbols-rounded" aria-hidden="true">group</span>
                             <span>Alumnos</span>
                         </p>
-                        <div class="alumnos-agregar">
-                            <select id="select-agregar-alumno" class="campo-nota__input" data-custom data-searchable
-                                data-search-placeholder="Buscar por nombre o NIE…" disabled>
-                                <option value="" selected disabled hidden>Cargando alumnos…</option>
-                            </select>
-                            <button type="button" id="btn-agregar-alumno" class="boton-confirmar alumnos-agregar__btn"
+                        <div class="alumnos-agregar" id="alumnos-multi">
+                            <button type="button" class="alumnos-multi__trigger" id="alumnos-multi-trigger"
+                                aria-haspopup="listbox" aria-expanded="false" aria-controls="alumnos-multi-panel"
                                 data-ripple disabled>
-                                <span class="material-symbols-rounded" aria-hidden="true">person_add</span>
-                                <span>Agregar</span>
+                                <span class="material-symbols-rounded alumnos-multi__icon" aria-hidden="true">person_add</span>
+                                <span class="alumnos-multi__label" id="alumnos-multi-label">Cargando alumnos…</span>
+                                <span class="alumnos-multi__badge" id="alumnos-multi-badge" hidden>0</span>
+                                <span class="alumnos-multi__arrow" aria-hidden="true"></span>
                             </button>
+                            <p class="alumnos-agregar__ayuda" id="alumnos-multi-ayuda">
+                                Marca uno o varios alumnos del grado. Entran a la lista y se guardan con «Guardar cambios».
+                            </p>
+                            <div class="alumnos-multi__panel" id="alumnos-multi-panel" hidden>
+                                <div class="alumnos-multi__search-wrap">
+                                    <input type="search" id="alumnos-multi-buscar" class="campo-nota__input"
+                                        placeholder="Buscar por nombre o NIE…" autocomplete="off"
+                                        aria-label="Buscar alumnos por nombre o NIE">
+                                    <button type="button" class="alumnos-multi__close" id="alumnos-multi-cerrar"
+                                        aria-label="Cerrar">
+                                        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                                    </button>
+                                </div>
+                                <div class="alumnos-multi__toolbar">
+                                    <button type="button" class="alumnos-multi__todos" id="alumnos-multi-todos" hidden>
+                                        Quitar selección
+                                    </button>
+                                    <span class="alumnos-multi__resumen" id="alumnos-multi-resumen">0 seleccionados</span>
+                                </div>
+                                <ul class="alumnos-multi__lista" id="alumnos-multi-lista" role="listbox"
+                                    aria-multiselectable="true" aria-label="Alumnos disponibles"></ul>
+                                <p class="alumnos-multi__vacio" id="alumnos-multi-vacio" hidden>
+                                    Ningún alumno coincide con la búsqueda.
+                                </p>
+                                <div class="alumnos-multi__footer">
+                                    <button type="button" id="btn-agregar-alumno"
+                                        class="boton-confirmar alumnos-multi__agregar" data-ripple disabled>
+                                        <span class="material-symbols-rounded" aria-hidden="true">person_add</span>
+                                        <span id="alumnos-multi-agregar-texto">Agregar</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div id="alumnos-loader" class="criterios-loader" role="status" aria-label="Cargando alumnos">
                             <div class="progreso-lineal indeterminado">
@@ -130,6 +174,23 @@
                             </div>
                         </div>
                         <div id="alumnos-lista" class="criterios-lista"></div>
+                    </div>
+                </section>
+
+                <!-- Panel: Actividad / historial de cambios del proyecto -->
+                <section class="proyecto-panel" data-panel="actividad" id="panel-actividad" role="tabpanel"
+                    aria-labelledby="tab-actividad">
+                    <div class="proyecto-panel__scroll">
+                        <p class="form-cabecera">
+                            <span class="material-symbols-rounded" aria-hidden="true">history</span>
+                            <span>Historial de cambios</span>
+                        </p>
+                        <div id="actividad-loader" class="criterios-loader" role="status" aria-label="Cargando actividad">
+                            <div class="progreso-lineal indeterminado">
+                                <div class="progreso-indicador"></div>
+                            </div>
+                        </div>
+                        <div id="actividad-lista" class="actividad-lista"></div>
                     </div>
                 </section>
             </div>
@@ -197,6 +258,40 @@
                         <span>Confirmando…</span>
                     </div>
                     <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal de advertencia: salir sin alumnos inscritos en el proyecto -->
+<dialog id="dialogo-proyecto-sin-alumnos" class="app-dialog--xs dialogo-confirmar" aria-labelledby="dialogo-proyecto-sin-alumnos-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-proyecto-sin-alumnos-form">
+        <button type="button" class="dialog-close-btn" data-accion="cancelar" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <span class="material-symbols-rounded dialogo-confirmar__icono" aria-hidden="true">warning</span>
+        <h2 class="dialogo-confirmar-title" id="dialogo-proyecto-sin-alumnos-titulo" data-dialogo-titulo>Proyecto sin alumnos</h2>
+        <p class="dialogo-confirmar-subtitle" id="dialogo-proyecto-sin-alumnos-mensaje" data-dialogo-mensaje></p>
+        <div class="dialogo-confirmar-actions">
+            <button type="button" class="boton-cancelar" data-accion="cancelar" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Seguir editando</span>
+            </button>
+            <button type="button" class="boton-confirmar" data-accion="confirmar" data-ripple data-submit>
+                <div class="submit-states">
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">check</span>
+                        <span>Salir igual</span>
+                    </div>
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Saliendo…</span>
+                    </div>
                     <div class="centrar gap-btn quitar" data-success-content>
                         <span class="material-symbols-rounded">check_circle</span>
                         <span>¡Hecho!</span>

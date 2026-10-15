@@ -24,7 +24,6 @@
 .modal-content{
     max-height: 95dvh;
     scrollbar-gutter: stable;
-    scrollbar-track-color: var(--font-color-secondary);
 }
 
 #contenedor-proyectos {

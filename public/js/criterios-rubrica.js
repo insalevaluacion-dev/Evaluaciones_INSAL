@@ -4,7 +4,7 @@
 
 import { mostrarNotificacion } from './notificaciones.js';
 import { createSubmitHandler } from './submitHandler.js';
-import { cerrarDialogoAnimado } from './menu.js';
+import { cerrarDialogoAnimado, posicionarMenuFlotante } from './menu.js';
 import { confirmarAccion } from './editar-criterios.js';
 import { animarEntrada, animarSalida } from './listAnimations.js';
 import { puedeEditarRubricas } from './permisos.js';
@@ -268,6 +268,28 @@ function createRubricaElement(nivel) {
     elementoDiv.querySelector('.rubrica-nombre').textContent = nivel.nombre || 'Sin nombre';
     elementoDiv.querySelector('.rubrica-descripcion').textContent = nivel.descripcion || 'Sin descripción';
 
+    // Estado de ponderación: porcentaje junto a Editar/Ver, mismo lenguaje que
+    // el botón contiguo (borde fino). El texto largo vive en title/aria-label
+    // y el número no entra en la búsqueda (data-search-ignore).
+    const total = Number(nivel.ponderacion_total ?? NaN);
+    if (Number.isFinite(total)) {
+        const completa = total === 100;
+        const acciones = elementoDiv.querySelector('.gap-row');
+        if (acciones) {
+            const estado = document.createElement('span');
+            estado.className = `rubrica-estado ${completa ? 'rubrica-estado--ok' : 'rubrica-estado--borrador'}`;
+            estado.dataset.searchIgnore = '';
+            estado.textContent = `${total}%`;
+            estado.title = completa
+                ? 'Ponderación completa (100%): puede asignarse a proyectos'
+                : `Borrador (${total}%): complétala al 100% para usarla en proyectos`;
+            estado.setAttribute('aria-label', estado.title);
+            acciones.insertBefore(estado, acciones.firstChild);
+        }
+        elementoDiv.dataset.ponderacionTotal = String(total);
+        elementoDiv.dataset.rubricaCompleta = completa ? 'true' : 'false';
+    }
+
     // Datos en data-* para ordenar/filtrar sin tener que leer el DOM
     elementoDiv.dataset.nombre = (nivel.nombre || '').trim();
     elementoDiv.dataset.descripcion = (nivel.descripcion || '').trim();
@@ -325,11 +347,8 @@ function initRubricasHandlers() {
 
             menuVisible = !menuVisible;
 
-            const rect = menuBtn.getBoundingClientRect();
-            menulist.style.top = rect.bottom + 8 + 'px';
-            menulist.style.right = (window.innerWidth - rect.right) + 'px';
-
             if (menuVisible) {
+                posicionarMenuFlotante(menulist, menuBtn);
                 menulist.classList.add('show');
             } else {
                 menulist.classList.remove('show');
@@ -412,6 +431,8 @@ function abrirDialogoEditarRubrica() {
     if (nombreInput) nombreInput.value = item?.dataset.nombre || '';
     if (descInput) descInput.value = item?.dataset.descripcion || '';
     if (evaluadoresInput) evaluadoresInput.value = item?.dataset.cantidadEvaluadores || '3';
+    nombreInput?.dispatchEvent(new Event('input'));
+    descInput?.dispatchEvent(new Event('input'));
 
     setTimeout(() => nombreInput?.focus(), 30);
     dialogo.showModal();
@@ -440,6 +461,12 @@ async function guardarEdicionRubrica() {
     if (!nombre) {
         mostrarNotificacion('El nombre de la rúbrica es requerido', 'error');
         nombreInput?.focus();
+        throw new Error('Campo vacío');
+    }
+
+    if (!descripcion) {
+        mostrarNotificacion('La descripción de la rúbrica es requerida', 'error');
+        descInput?.focus();
         throw new Error('Campo vacío');
     }
 
@@ -504,6 +531,20 @@ function initDialogoEditarRubrica() {
             // El submit se dispara via createSubmitHandler; simplemente evitamos
             // el comportamiento por defecto del Enter para que no cierre el dialog
         }
+    });
+
+    dialogo.querySelectorAll('.char-counter').forEach(counter => {
+        const input = document.getElementById(counter.dataset.for);
+        if (!input) return;
+        const max = parseInt(input.getAttribute('maxlength'), 10) || 0;
+        const update = () => {
+            const len = input.value.length;
+            counter.textContent = `${len}/${max}`;
+            counter.classList.toggle('char-counter--warn', len >= max * 0.8 && len < max);
+            counter.classList.toggle('char-counter--limit', len >= max);
+        };
+        input.addEventListener('input', update);
+        update();
     });
 
     // ── Conectar createSubmitHandler al formulario de edición ──

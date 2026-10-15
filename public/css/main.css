@@ -21,6 +21,11 @@
     --naranja-drk: #d97507;
     --naranja-clr: #ffaa33;
     --naranja-bg: #fff5e0;
+    /* Scrollbars: carril gris celeste y pulgar gris más oscuro. */
+    --scrollbar-thumb: #5f6b78;
+    --scrollbar-thumb-hover: #4a5562;
+    --scrollbar-thumb-active: #3b4550;
+    --scrollbar-track: #d4dee8;
     --dorado: #c9942a;
     --rojo: #d62b0f;
     --rojo-clr: #e73719;
@@ -111,6 +116,73 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+}
+
+/* En Chromium (Chrome, Edge, Electron) scrollbar-color y scrollbar-width
+   anulan ::-webkit-scrollbar y Windows vuelve a pintar las flechas.
+   El color va solo por los pseudo-elementos. Firefox no los entiende. */
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+}
+
+*::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:single-button,
+*::-webkit-scrollbar-button:double-button,
+*::-webkit-scrollbar-button:vertical:decrement,
+*::-webkit-scrollbar-button:vertical:increment,
+*::-webkit-scrollbar-button:horizontal:decrement,
+*::-webkit-scrollbar-button:horizontal:increment,
+*::-webkit-scrollbar-button:vertical:start:decrement,
+*::-webkit-scrollbar-button:vertical:end:increment,
+*::-webkit-scrollbar-button:vertical:start:increment,
+*::-webkit-scrollbar-button:vertical:end:decrement,
+*::-webkit-scrollbar-button:horizontal:start:decrement,
+*::-webkit-scrollbar-button:horizontal:end:increment,
+*::-webkit-scrollbar-button:horizontal:start:increment,
+*::-webkit-scrollbar-button:horizontal:end:decrement {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+    background-image: none;
+    appearance: none;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track-piece {
+    background: var(--scrollbar-track);
+    border-radius: 999px;
+    background-clip: border-box;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+    /* El borde del color del carril deja el pulgar más estrecho dentro de la pista. */
+    border: 3px solid var(--scrollbar-track);
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:active {
+    background: var(--scrollbar-thumb-active);
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
 }
 
 @keyframes slideOutUp {

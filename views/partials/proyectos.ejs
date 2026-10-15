@@ -14,9 +14,9 @@
             <div class="field-group">
                 <label for="proyecto-nombre">Nombre <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
-                    <input type="text" required autocomplete="off" placeholder="Nombre del proyecto" class="campo-nota__input campo-nombre__input" name="nombre" id="proyecto-nombre" maxlength="80">
+                    <input type="text" required autocomplete="off" placeholder="Nombre del proyecto" class="campo-nota__input campo-nombre__input" name="nombre" id="proyecto-nombre" maxlength="40">
                 </div>
-                <span class="char-counter" data-for="proyecto-nombre">0/80</span>
+                <span class="char-counter" data-for="proyecto-nombre">0/40</span>
                 <span class="error-message" id="error-proyecto-nombre"></span>
             </div>
             <div class="field-group">
@@ -26,6 +26,15 @@
                         <option value="" selected disabled hidden>Selecciona un tipo de evaluación</option>
                     </select>
                     <input type="hidden" id="proyecto-nivel-id" name="nivel_id">
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="proyecto-materia">Materia <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="proyecto-materia" name="materia_nombre" class="campo-nota__input" data-custom data-searchable required>
+                        <option value="" selected disabled hidden>Selecciona una materia</option>
+                    </select>
+                    <input type="hidden" id="proyecto-materia-id" name="materia_id">
                 </div>
             </div>
             <div class="field-group">
@@ -130,6 +139,30 @@
         <% } %>
     </ul>
 </div>
+<dialog id="dialogo-acciones-proyecto" aria-labelledby="dialogo-acciones-proyecto-titulo">
+    <div class="project-actions-sheet">
+        <button type="button" class="dialog-close-btn" data-cerrar-acciones-proyecto aria-label="Cerrar acciones">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <span class="material-symbols-rounded project-actions-sheet__icon" aria-hidden="true">folder_open</span>
+        <h2 id="dialogo-acciones-proyecto-titulo">Acciones del proyecto</h2>
+        <p class="project-actions-sheet__name" data-proyecto-nombre></p>
+        <a class="project-actions-sheet__action" data-accion-movil="abrir" data-link href="#">
+            <span class="material-symbols-rounded" aria-hidden="true">open_in_new</span>
+            <span>Abrir proyecto</span>
+        </a>
+        <button type="button" class="project-actions-sheet__action" data-accion-movil="editar">
+            <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+            <span>Editar proyecto</span>
+        </button>
+        <% if (puedeEliminarProyectos) { %>
+        <button type="button" class="project-actions-sheet__action project-actions-sheet__action--danger" data-accion-movil="eliminar">
+            <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+            <span>Eliminar proyecto</span>
+        </button>
+        <% } %>
+    </div>
+</dialog>
 <% if (puedeEliminarProyectos) { %>
 <dialog id="dialogo-eliminar-proyecto" class="app-dialog--xs" aria-labelledby="dialogo-eliminar-proyecto-titulo">
     <form method="dialog" class="dialog-inner">
@@ -183,8 +216,9 @@
                 <label for="editar-nombre">Nombre <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
                     <input type="text" id="editar-nombre" class="campo-nota__input" required
-                        maxlength="100" placeholder="Nombre del proyecto">
+                        maxlength="40" placeholder="Nombre del proyecto">
                 </div>
+                <span class="char-counter" data-for="editar-nombre">0/40</span>
             </div>
             <div class="field-group">
                     <label for="editar-nivel">Tipo de evaluación <span class="requerido">*</span></label>
@@ -193,6 +227,15 @@
                             <option value="" selected disabled hidden>Selecciona un tipo de evaluación</option>
                     </select>
                     <input type="hidden" id="editar-nivel-id">
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="editar-materia">Materia <span class="requerido">*</span></label>
+                <div class="campo-nota__input-wrap">
+                    <select id="editar-materia" class="campo-nota__input" data-custom data-searchable required>
+                        <option value="" selected disabled hidden>Selecciona una materia</option>
+                    </select>
+                    <input type="hidden" id="editar-materia-id">
                 </div>
             </div>
             <div class="field-group">
@@ -268,51 +311,78 @@
             </button>
         </div>
 
-        <div class="toolbar-opciones" id="proyectos-toolbar-opciones">
-            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por año escolar">
-                <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
-                <span class="toolbar-control__label">Año:</span>
-                <select id="filtro-anio-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="anio" data-custom data-dropdown-anchor=".toolbar-control--filter">
-                    <option value="" selected>Todos</option>
-                </select>
-            </label>
-            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por grado">
-                <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
-                <span class="toolbar-control__label">Grado:</span>
-                <select id="filtro-grado-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="gradoKey" data-custom data-dropdown-anchor=".toolbar-control--filter">
-                    <option value="" selected>Todos</option>
-                </select>
-            </label>
-            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por sección">
-                <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
-                <span class="toolbar-control__label">Sección:</span>
-                <select id="filtro-seccion-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="seccion" data-custom data-dropdown-anchor=".toolbar-control--filter">
-                    <option value="" selected>Todas</option>
-                </select>
-            </label>
-            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por rúbrica">
-                <span class="material-symbols-rounded" aria-hidden="true">library_books</span>
-                <span class="toolbar-control__label">Rúbrica:</span>
-                <select
-                    id="filtro-rubrica-proyectos"
-                    class="toolbar-select"
-                    data-filter
-                    data-filter-key="rubrica"
-                    data-custom
-                    data-dropdown-anchor=".toolbar-control--filter"
-                >
-                    <option value="">Todas</option>
-                </select>
-            </label>
-            <label class="toolbar-control toolbar-control--sort" aria-label="Ordenar proyectos">
-                <span class="material-symbols-rounded" aria-hidden="true">swap_vert</span>
-                <span class="toolbar-control__label">Ordenar por:</span>
-                <select id="orden-proyectos" class="toolbar-select" data-sort data-custom data-dropdown-anchor=".toolbar-control--sort">
-                    <option value="id-desc" selected>Más recientes</option>
-                    <option value="id-asc">Más antiguos</option>
-                </select>
-            </label>
-        </div>
+        <dialog id="dialogo-filtros-proyectos" aria-labelledby="dialogo-filtros-proyectos-titulo">
+            <div class="toolbar-opciones" id="proyectos-toolbar-opciones">
+                <div class="project-filters-heading">
+                    <h2 id="dialogo-filtros-proyectos-titulo">Filtrar proyectos</h2>
+                    <button type="button" class="project-filters-close" aria-label="Cerrar filtros">
+                        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por año escolar">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                    <span class="toolbar-control__label">Año:</span>
+                    <select id="filtro-anio-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="anio" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="" selected>Todos</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por grado">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                    <span class="toolbar-control__label">Grado:</span>
+                    <select id="filtro-grado-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="gradoKey" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="" selected>Todos</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por sección">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                    <span class="toolbar-control__label">Sección:</span>
+                    <select id="filtro-seccion-proyectos" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="seccion" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="" selected>Todas</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por rúbrica">
+                    <span class="material-symbols-rounded" aria-hidden="true">library_books</span>
+                    <span class="toolbar-control__label">Rúbrica:</span>
+                    <select
+                        id="filtro-rubrica-proyectos"
+                        class="toolbar-select"
+                        data-filter
+                        data-filter-key="rubrica"
+                        data-custom
+                        data-dropdown-anchor=".toolbar-control--filter"
+                    >
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por materia">
+                    <span class="material-symbols-rounded" aria-hidden="true">menu_book</span>
+                    <span class="toolbar-control__label">Materia:</span>
+                    <select
+                        id="filtro-materia-proyectos"
+                        class="toolbar-select"
+                        data-filter
+                        data-filter-key="materiaId"
+                        data-custom
+                        data-dropdown-anchor=".toolbar-control--filter"
+                    >
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--sort" aria-label="Ordenar proyectos">
+                    <span class="material-symbols-rounded" aria-hidden="true">swap_vert</span>
+                    <span class="toolbar-control__label">Ordenar por:</span>
+                    <select id="orden-proyectos" class="toolbar-select" data-sort data-custom data-dropdown-anchor=".toolbar-control--sort">
+                        <option value="id-desc" selected>Más recientes</option>
+                        <option value="id-asc">Más antiguos</option>
+                    </select>
+                </label>
+                <button type="button" class="project-filters-reset" aria-label="Limpiar búsqueda y filtros">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_alt_off</span>
+                    <span>Limpiar</span>
+                </button>
+                <button type="button" class="project-filters-done">Ver proyectos</button>
+            </div>
+        </dialog>
     </div>
     <!-- Loader: siempre visible por defecto; se oculta al cargar datos -->
     <div class="section-loader">

@@ -1,0 +1,194 @@
+/* Perfil del evaluador en /seleccion: nombre, correo de la sesión y salir. */
+
+.principal:has(.evaluador-perfil) {
+    justify-content: flex-start;
+    padding-top: 16px;
+}
+
+.principal:has(.evaluador-perfil) .form {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.evaluador-perfil {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    align-self: stretch;
+    width: 100%;
+    min-height: 66px;
+    margin: 0 0 8px;
+    padding: 8px 8px 8px 12px;
+    box-sizing: border-box;
+    background: var(--font-color, #f0eff4);
+    border-radius: 20px;
+}
+
+.evaluador-perfil__icono {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--font-color-important, #c3e8ff);
+    color: var(--text-color-prioritary, #045a7e);
+    font-family: 'Material Symbols Rounded';
+    font-weight: 500;
+    font-style: normal;
+    font-size: 26px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.evaluador-perfil__datos {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.evaluador-perfil__nombre,
+.evaluador-perfil__correo {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evaluador-perfil__nombre {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text-color-secondary, #000);
+    line-height: 1.25;
+}
+
+.evaluador-perfil__correo {
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    color: var(--text-color, #47464b);
+    line-height: 1.25;
+}
+
+/* Misma píldora que .boton.btn-opcion del dashboard. */
+#btn-cerrar-sesion-evaluador {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-shrink: 0;
+    margin: 0 0 0 auto;
+    height: 50px;
+    padding: 5px 16px;
+    border: none;
+    border-radius: 25px;
+    background: var(--font-color-important, #c3e8ff);
+    color: var(--text-color-prioritary, #045a7e);
+    cursor: pointer;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+}
+
+#btn-cerrar-sesion-evaluador:hover {
+    background: #7ee5f7;
+    color: var(--text-color-prioritary, #045a7e);
+}
+
+#btn-cerrar-sesion-evaluador:active {
+    background: var(--azul-med, #1a6bc7);
+    color: #ffffff;
+    transform: scale(0.95);
+}
+
+#btn-cerrar-sesion-evaluador:focus {
+    outline: none;
+}
+
+#btn-cerrar-sesion-evaluador:focus-visible {
+    outline: 2px solid var(--azul-med, #1a6bc7);
+    outline-offset: 2px;
+}
+
+#btn-cerrar-sesion-evaluador .material-symbols-rounded {
+    font-family: 'Material Symbols Rounded';
+    font-weight: 500;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    color: inherit;
+    pointer-events: none;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+@media (max-width: 768px) {
+    .evaluador-perfil {
+        gap: 10px;
+        min-height: 60px;
+        padding: 8px;
+        border-radius: 16px;
+    }
+
+    .evaluador-perfil__icono {
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+    }
+}
+
+/* Igual que los botones de acción del dashboard: en pantallas pequeñas
+   queda solo el icono, con área de toque de 44px. */
+@media (max-width: 480px) {
+    .principal:has(.evaluador-perfil) {
+        padding-top: 10px;
+    }
+
+    .evaluador-perfil {
+        gap: 8px;
+        min-height: 56px;
+        margin-bottom: 4px;
+        padding: 6px 6px 6px 8px;
+    }
+
+    .evaluador-perfil__icono {
+        width: 36px;
+        height: 36px;
+        font-size: 22px;
+    }
+
+    .evaluador-perfil__nombre {
+        font-size: var(--fs-xs);
+    }
+
+    .evaluador-perfil__correo {
+        font-size: var(--fs-2xs);
+    }
+
+    #btn-cerrar-sesion-evaluador {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border-radius: 22px;
+    }
+
+    #btn-cerrar-sesion-evaluador span:last-child {
+        display: none;
+    }
+}

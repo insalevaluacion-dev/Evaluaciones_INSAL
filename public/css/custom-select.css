@@ -114,7 +114,7 @@ body.custom-select-locked {
     padding: 6px;
     list-style: none;
     background: #ffffff;
-    border-radius: 16px;
+    border-radius: 14px;
     /* Sombra más fuerte y concentrada para que el menú parezca elevado sobre el resto */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35),
         0 18px 44px rgba(0, 0, 0, 0.32);
@@ -147,7 +147,11 @@ body.custom-select-locked {
 }
 
 .custom-select__options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     flex: 1 1 auto;
+    min-width: 0;
     min-height: 0;
     max-height: 250px;
     margin: 10px 0 0;
@@ -155,33 +159,6 @@ body.custom-select-locked {
     list-style: none;
     overflow-y: auto;
     overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: var(--principal-color, #03a2e6) #f1f3f5;
-}
-
-.custom-select__options::-webkit-scrollbar {
-    width: 8px;
-}
-
-.custom-select__options::-webkit-scrollbar-button {
-    display: none;
-    width: 0;
-    height: 0;
-}
-
-.custom-select__options::-webkit-scrollbar-track {
-    background: #f1f3f5;
-    border-radius: 999px;
-}
-
-.custom-select__options::-webkit-scrollbar-thumb {
-    min-height: 28px;
-    background: var(--principal-color, #03a2e6);
-    border-radius: 999px;
-}
-
-.custom-select__options::-webkit-scrollbar-thumb:hover {
-    background: var(--azul-med, #1a6bc7);
 }
 
 /* Abrir hacia arriba cuando no hay espacio debajo (evita que salga de pantalla) */
@@ -330,18 +307,35 @@ body.custom-select-locked {
     position: relative;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
     min-height: 50px;
-    padding: 0 13px;
-    border-radius: 5px;
+    padding: 10px 13px;
+    /* El hover solo cambia el fondo: el padding no se mueve, así el salto de
+       línea queda fijo y la fila no crece al pasar el cursor. */
+    white-space: normal;
+    overflow: hidden;
+    border-radius: 9px;
     cursor: pointer;
     color: var(--text-color);
     font-size: var(--fs-lg);
     list-style: none;
-    transition: background 0.12s ease, color 0.15s ease, padding-left 0.15s ease;
+    transition: background 0.12s ease, color 0.15s ease;
     animation: customOptionIn 0.12s cubic-bezier(0.25, 0.1, 0.25, 1) both;
     /* Stagger con tope: en listas largas el retardo no se acumula
        (máx. 6 pasos = 72ms) para que las últimas opciones no lleguen tarde. */
     animation-delay: calc(min(var(--i, 0), 6) * 12ms);
+}
+
+.custom-select__option-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.35;
 }
 
 .custom-select__option::before {
@@ -371,7 +365,6 @@ body.custom-select-locked {
 .custom-select__option:hover {
     background: var(--font-color-tercero);
     color: #000;
-    padding-left: 18px;
 }
 
 .custom-select__option:active {
@@ -440,6 +433,12 @@ select.custom-select__native {
     display: block;
 }
 
+/* Mientras el menú móvil está abierto, el diálogo no recorta el panel
+   que se extiende hasta los bordes de la pantalla. */
+dialog.custom-select-mobile-host {
+    overflow: visible;
+}
+
 /* ── Móvil: el desplegable se convierte en un panel a pantalla completa ──
    El JS lo re-ancla al visual viewport (top/height). Aquí solo se redefine el
    look para que ocupe el 100% de la pantalla, quede fijo (sin animación de
@@ -458,11 +457,13 @@ select.custom-select__native {
         animation: none;
     }
 
-    .custom-select.is-mobile-dialog .custom-select__dropdown {
+    .custom-select.is-mobile-dialog .custom-select__dropdown,
+    :is(#dialog-add-proyecto, #dialogo-editar-proyecto, #dialogo-filtros-proyectos, #formulario-filtros) .custom-select.is-mobile-dialog .custom-select__dropdown {
         top: 0;
         left: 0;
         width: 100%;
         margin: 0;
+        border: none;
         border-radius: 0;
         box-shadow: none;
         max-height: none;

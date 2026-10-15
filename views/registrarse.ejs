@@ -2,14 +2,44 @@
 <html lang="es">
 
 <head>
+    <!-- Capa de red robusta: DEBE cargar primero y de forma síncrona (sin defer,
+         sin type="module") para envolver window.fetch ANTES de que cualquier
+         módulo del flujo lo use. Aporta timeout + reintentos + aviso
+         "Reconectando…" + keep-alive frente a los cold starts de Render/Railway
+         en capa gratuita. -->
+    <script src="/js/fetchRobusto.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Inicia sesión</title>
+    <!-- Loader de marca del flujo de evaluadores. El <style> crítico posiciona
+         el overlay desde el primer pintado (antes de app-loader.css) y usa el
+         mismo fondo oscuro del body para que no haya destello. -->
+    <style>
+        #app-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: grid;
+            place-items: center;
+            background: #000;
+        }
+
+        #app-loader img {
+            display: block;
+            width: 88px;
+            height: 90px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/app-loader.css">
     <link rel="stylesheet" href="/css/notificaciones.css" />
     <link rel="stylesheet" href="/css/circular-progress.css">
     <link rel="stylesheet" href="/css/ripple.css">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/assets/svg/Logo_SV.svg" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/login.css">
     <link rel="stylesheet" href="/css/default-rules.css">
@@ -18,11 +48,31 @@
     <script type="module">
         import 'https://esm.run/@material/web/all.js'
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
     <script src="/js/native-app.js" defer></script>
 </head>
 
 <body>
+    <div id="app-loader" class="app-loader is-active" role="status" aria-label="Cargando">
+        <img src="/assets/svg/Logo_SV_loader.svg" alt="" class="app-loader__logo">
+    </div>
+    <script type="module" src="/js/app-loader.js"></script>
+    <script>
+        // La visibilidad del loader la gestiona app-loader.js (cargado antes);
+        // no usamos aquí un timeout fijo de 8000 ms que oculta el overlay a
+        // medias aunque la fuente de iconos aún esté cargando.
+
+
+        // ── Anti "página fantasma" al volver con la flecha ATRÁS ──────────────
+        // Igual que en login: si esta pantalla se restaura del back-forward cache
+        // del navegador (flecha ATRÁS), recargamos para que el servidor (que manda
+        // no-store) evalúe la sesión REAL y redirija a /menu o /seleccion. Evita
+        // quedar en un registro que ya no corresponde a la sesión activa.
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                window.location.reload();
+            }
+        });
+    </script>
     <main class="main__container">
         <section class="content">
             <div class="centrar logo_empresa">
@@ -31,6 +81,10 @@
             </div>
             <h1 class="title">Registrarse</h1>
             <p>Ingresaras en modo solo evaluación</p>
+            <p class="hint__correo">
+                <span class="material-symbols-rounded hint__correo-icono" aria-hidden="true">info</span>
+                <span>Si ya te registraste antes, usa el <strong>mismo nombre y correo</strong> para continuar.</span>
+            </p>
             <form class="form-registrar" id="form-registrar" novalidate>
                 <label for="nombre">Nombre</label>
                 <input placeholder="Nombre" class="input__text" type="text" name="nombre" id="nombre"
@@ -42,7 +96,7 @@
                 <span class="error-message" id="error-correo"></span>
                 <p class="hint__correo" style="display: none;">
                     <span class="material-symbols-rounded hint__correo-icono">error</span>
-                    <span>Recuerda siempre usar tu correo @clases.edu.sv</span>
+                    <span>Recuerda usar tu nombre y el correo @clases.edu.sv</span>
                 </p>
                 <button type="submit" class="centrar enviar" id="botonEnviar" data-ripple>
                     <div class="centrar gap-btn" id="mensaje1">

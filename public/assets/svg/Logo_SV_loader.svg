@@ -54,20 +54,20 @@
       #path2124, #path2128 {
         animation: estrella-destello 1.4s ease-in-out infinite;
       }
-      #path2076 { animation-delay: 0ms; }
-      #path2080 { animation-delay: -100ms; }
-      #path2084 { animation-delay: -200ms; }
-      #path2088 { animation-delay: -300ms; }
-      #path2092 { animation-delay: -400ms; }
-      #path2096 { animation-delay: -500ms; }
-      #path2100 { animation-delay: -600ms; }
-      #path2104 { animation-delay: -700ms; }
-      #path2108 { animation-delay: -800ms; }
-      #path2112 { animation-delay: -900ms; }
-      #path2116 { animation-delay: -1000ms; }
-      #path2120 { animation-delay: -1100ms; }
-      #path2124 { animation-delay: -1200ms; }
-      #path2128 { animation-delay: -1300ms; }
+      #path2076 { animation-delay: -1300ms; }
+      #path2080 { animation-delay: -1200ms; }
+      #path2084 { animation-delay: -1100ms; }
+      #path2088 { animation-delay: -1000ms; }
+      #path2092 { animation-delay: -900ms; }
+      #path2096 { animation-delay: -800ms; }
+      #path2100 { animation-delay: -700ms; }
+      #path2104 { animation-delay: -600ms; }
+      #path2108 { animation-delay: -500ms; }
+      #path2112 { animation-delay: -400ms; }
+      #path2116 { animation-delay: -300ms; }
+      #path2120 { animation-delay: -200ms; }
+      #path2124 { animation-delay: -100ms; }
+      #path2128 { animation-delay: 0ms; }
       @media (prefers-reduced-motion: reduce) {
         #path2076, #path2080, #path2084, #path2088, #path2092, #path2096,
         #path2100, #path2104, #path2108, #path2112, #path2116, #path2120,

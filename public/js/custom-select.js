@@ -180,7 +180,11 @@
                 li.className = 'custom-select__option';
                 li.setAttribute('role', 'option');
                 li.dataset.value = opt.value;
-                li.textContent = opt.textContent;
+                li.title = opt.textContent.trim();
+                const label = document.createElement('span');
+                label.className = 'custom-select__option-text';
+                label.textContent = opt.textContent;
+                li.appendChild(label);
                 if (opt.dataset.search) li.dataset.search = opt.dataset.search;
                 li.style.setProperty('--i', index);
                 if (opt.value === select.value) {
@@ -240,6 +244,12 @@
             }
         }
 
+        function releaseMobileHost() {
+            if (container.classList.contains('is-open')) return;
+            container.classList.remove('is-mobile-dialog');
+            select.closest('dialog')?.classList.remove('custom-select-mobile-host');
+        }
+
         function closeDropdown() {
             if (!container.classList.contains('is-open')) return;
             unlockBodyScroll();
@@ -257,6 +267,7 @@
             setTimeout(() => {
                 container.classList.remove('is-closing');
                 dropdown.classList.remove('is-closing');
+                releaseMobileHost();
             }, closeMs);
         }
 
@@ -282,28 +293,54 @@
         function positionMobileDialog() {
             const vv = window.visualViewport;
             const vh = vv ? vv.height : window.innerHeight;
+            const vw = vv ? vv.width : window.innerWidth;
             const vvTop = vv ? vv.offsetTop : 0;
+            const vvLeft = vv ? vv.offsetLeft : 0;
             container.classList.add('is-mobile-dialog');
-            dropdown.style.position = 'fixed';
             dropdown.style.zIndex = '1000';
-            dropdown.style.top = vvTop + 'px';
-            dropdown.style.left = '0';
-            dropdown.style.right = '0';
+            dropdown.style.right = 'auto';
             dropdown.style.bottom = 'auto';
-            dropdown.style.width = 'auto';
+            dropdown.style.minWidth = '0';
+            dropdown.style.maxWidth = 'none';
             dropdown.style.height = vh + 'px';
             dropdown.style.maxHeight = vh + 'px';
+            const options = dropdown.querySelector('.custom-select__options');
+            if (options) options.style.maxHeight = 'none';
+
+            const ownerDialog = insideDialog ? select.closest('dialog') : null;
+            if (ownerDialog) {
+                // El diálogo usa transform, así que position:fixed queda relativo
+                // a él y overflow:hidden lo recorta. Se deja ver el desborde y
+                // se ancla el panel al viewport visual.
+                ownerDialog.classList.add('custom-select-mobile-host');
+                const rect = ownerDialog.getBoundingClientRect();
+                const style = getComputedStyle(ownerDialog);
+                const borderTop = parseFloat(style.borderTopWidth) || 0;
+                const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+                dropdown.style.position = 'absolute';
+                dropdown.style.top = (vvTop - rect.top - borderTop) + 'px';
+                dropdown.style.left = (vvLeft - rect.left - borderLeft) + 'px';
+                dropdown.style.width = vw + 'px';
+                return;
+            }
+
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = vvTop + 'px';
+            dropdown.style.left = '0';
+            dropdown.style.width = 'auto';
+            dropdown.style.right = '0';
         }
 
         // Ajusta la dirección (hacia abajo o hacia arriba) y la altura del menú
         // para que nunca salga de la pantalla ni active el scroll del body.
         function positionDropdown() {
             // En móvil, y solo si hay buscador (el caso que sufre con el teclado),
-            // el panel va a pantalla completa. Fuera de un <dialog>.
-            if (!insideDialog && isMobile() && searchInput) {
+            // el panel va a pantalla completa, también dentro de un <dialog>.
+            if (isMobile() && searchInput) {
                 positionMobileDialog();
                 return;
             }
+            select.closest('dialog')?.classList.remove('custom-select-mobile-host');
             // Fuera del modo móvil: limpiar los estilos del panel a pantalla
             // completa (posición/altura del visual viewport) y reponer el look.
             container.classList.remove('is-mobile-dialog');
@@ -327,33 +364,32 @@
             const spaceBelow = vh - rect.bottom - gap;
             const spaceAbove = rect.top - gap;
 
-            // Elegir la dirección con más espacio disponible:
-            //  1. Si cabe el máximo hacia abajo, abrir hacia abajo.
-            //  2. Si no, y cabe hacia arriba, abrir hacia arriba.
-            //  3. Si en ambos lados hay poco espacio, abrir hacia el lado con más hueco.
-            let openUp;
-            if (spaceBelow >= maxH) {
-                openUp = false;
-            } else if (spaceAbove >= maxH) {
-                openUp = true;
-            } else {
-                openUp = spaceAbove > spaceBelow;
-            }
+            // Abrir hacia el lado con más espacio real para evitar desperdiciar
+            // viewport y recortar listas largas cuando el selector está abajo.
+            const openUp = spaceAbove > spaceBelow;
             container.classList.toggle('is-open-up', openUp);
             dropdown.classList.toggle('is-open-up', openUp);
 
             // Altura máxima = espacio real disponible en la dirección elegida.
             // NO se fuerza un mínimo que pueda desbordar el viewport.
             const available = openUp ? spaceAbove : spaceBelow;
-            dropdown.style.maxHeight = Math.max(0, Math.min(maxH, available)) + 'px';
+            const ownerDialog = insideDialog ? select.closest('dialog') : null;
+            const anchorToViewport = ownerDialog?.id === 'dialogo-filtros-proyectos';
+            const maxDropdownHeight = Math.max(0, Math.min(maxH, available));
+            dropdown.style.maxHeight = maxDropdownHeight + 'px';
+            if (ownerDialog?.id === 'dialogo-filtros-proyectos') {
+                const options = dropdown.querySelector('.custom-select__options');
+                if (options) {
+                    options.style.maxHeight = Math.max(0, Math.min(250, maxDropdownHeight - 24)) + 'px';
+                }
+            }
 
-            if (insideDialog) {
+            if (insideDialog && !anchorToViewport) {
                 // El <dialog> se centra con transform: translate(-50%,-50%), lo que
                 // crea un "containing block" para sus descendientes con position:fixed
                 // (pasan a ser relativos al diálogo transformado, no al viewport).
                 // Por eso, dentro de un diálogo el menú se ancla con position:absolute
                 // respecto al padding box del diálogo (sin transform).
-                const ownerDialog = select.closest('dialog');
                 const scrollContainer =
                     ownerDialog.querySelector('.dialogo-add__contenido') ||
                     ownerDialog.querySelector('.dialog-inner') ||

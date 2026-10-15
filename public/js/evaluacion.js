@@ -1,5 +1,14 @@
 let posicionScrollAntesDeModal = 0;
 
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function bloquearScrollDeFondo() {
     posicionScrollAntesDeModal = window.scrollY;
     document.documentElement.classList.add('modal-open');
@@ -14,7 +23,18 @@ function restaurarScrollDeFondo() {
     window.scrollTo(0, posicionScrollAntesDeModal);
 }
 
+function aplicarTextoShimmer(el, texto) {
+    if (!el) return;
+    const valor = texto == null ? '' : String(texto);
+    el.classList.add('t-shimmer');
+    el.dataset.text = valor;
+    el.textContent = valor;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Retiene el loader de marca hasta que los datos estén pintados (ver
+    // app-loader.js). Evita revelar la vista con el contenido a medio cargar.
+    if (typeof window.__appLoaderHold === 'function') window.__appLoaderHold();
     const nombreProyectoElement = document.getElementById('nombre-proyecto');
     const modalAsistencia = document.getElementById('modal-asistencia');
     const listaEstudiantes = document.getElementById('lista-estudiantes');
@@ -40,9 +60,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Obtener y mostrar el nombre del proyecto
     const respuestaProyecto = await fetch(`/proyecto/${proyectoId}`);
     const proyectoData = await respuestaProyecto.json();
-    nombreProyectoElement.textContent = proyectoData.nombre
-        ? proyectoData.nombre
-        : 'No disponible';
+    aplicarTextoShimmer(
+        nombreProyectoElement,
+        proyectoData.nombre ? proyectoData.nombre : 'No disponible'
+    );
 
     const respuestaCriterios = await fetch('/criterios', {
         method: 'GET',
@@ -55,27 +76,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         criteriosData.criterios.forEach(criterio => {
             const div = document.createElement('div');
             div.classList.add('criterio');
+            const idCriterio = escapeHtml(criterio.criterio_id);
             div.innerHTML = `
             <div class="titulo__criterio" onclick="AbrirDescripcion(this)">
-                ${criterio.nombre}
+                ${escapeHtml(criterio.nombre)}
                 <span class="material-symbols-rounded flecha">
                     stat_minus_1
                 </span>
-                <div><p>(${criterio.porcentaje}%)</p></div>
+                <div><p>(${escapeHtml(criterio.porcentaje)}%)</p></div>
             </div>
-            <p for="criterio-${criterio.criterio_id}" class="descripcion">
-                ${criterio.descripcion}
-                <span class="ponderacion">Ponderación: ${criterio.porcentaje}%.</span>
+            <p for="criterio-${idCriterio}" class="descripcion">
+                ${escapeHtml(criterio.descripcion)}
+                <span class="ponderacion">Ponderación: ${escapeHtml(criterio.porcentaje)}%.</span>
             </p>
             <div class="campo-nota">
-                <label for="criterio-${criterio.criterio_id}" class="campo-nota__label">
+                <label for="criterio-${idCriterio}" class="campo-nota__label">
                     Nota asignada <span class="requerido">*</span>
                 </label>
                 <div class="campo-nota__input-wrap">
                     <input
                         type="number"
-                        id="criterio-${criterio.criterio_id}"
-                        name="criterio-${criterio.criterio_id}"
+                        id="criterio-${idCriterio}"
+                        name="criterio-${idCriterio}"
                         min="1.0"
                         max="10.0"
                         step="0.1"
@@ -176,10 +198,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <label class="estudiante-checkbox">
                     <md-checkbox 
                         name="estudiante" 
-                        value="${estudiante.estudiante_id}"
+                        value="${escapeHtml(estudiante.estudiante_id)}"
                         touch-target="wrapper">
                     </md-checkbox>
-                    <span class="estudiante-checkbox__nombre">${estudiante.nombre}</span>
+                    <span class="estudiante-checkbox__nombre">${escapeHtml(estudiante.nombre)}</span>
                 </label>
             `;
             listaEstudiantes.appendChild(li);
@@ -192,6 +214,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         modalAsistencia.style.display = 'none';
         console.log('No hay estudiantes disponibles o las asistencias ya están completas.');
     }
+
+    // Datos pintados: libera el loader de marca (junto a la fuente lista).
+    if (typeof window.__appLoaderDataReady === 'function') window.__appLoaderDataReady();
 });
 
 // Evitar que la rueda del mouse cambie el valor de los campos numéricos

@@ -68,26 +68,6 @@ dialog.closing::backdrop {
     overflow-y: auto;
     overscroll-behavior: contain;
     border-radius: inherit;
-    scrollbar-width: thin;
-    scrollbar-color: var(--hover-color) transparent;
-}
-
-/* Scrollbar moderno dentro del diálogo (Chromium) */
-.dialog-inner::-webkit-scrollbar {
-    width: 8px;
-}
-
-.dialog-inner::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.dialog-inner::-webkit-scrollbar-thumb {
-    background: var(--hover-color);
-    border-radius: 10px;
-}
-
-.dialog-inner::-webkit-scrollbar-thumb:hover {
-    background: var(--text-color);
 }
 
 .dialogo-editar__icono {

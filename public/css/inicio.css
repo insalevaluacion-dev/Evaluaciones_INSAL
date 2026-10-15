@@ -16,21 +16,6 @@
     overflow-x: hidden;
     overscroll-behavior-y: contain;
     padding: 4px 4px 16px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.05);
-}
-
-.inicio-scroll::-webkit-scrollbar {
-    width: 6px;
-}
-
-.inicio-scroll::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 10px;
-}
-
-.inicio-scroll::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.03);
 }
 
 /* ------------------------------------------------------------

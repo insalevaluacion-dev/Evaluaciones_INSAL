@@ -1,3 +1,9 @@
+/* Hasta que el loader confirme el glifo, el nombre de la ligadura
+   ("school", "person"…) no debe verse si el overlay ya se está yendo. */
+html:not(.icons-ready) .material-symbols-rounded {
+    visibility: hidden;
+}
+
 .app-loader {
     position: fixed;
     inset: 0;

@@ -68,7 +68,7 @@
 }
 
 /* ── Diálogos de confirmación / eliminación (tamaño xs) ──────────────────── */
-#dialogo-confirmar,
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos),
 #dialogo-eliminar-rubrica{
     width: min(460px, calc(100vw - 32px)) !important;
     min-width: 0 !important;
@@ -78,7 +78,7 @@
     text-align: center;
 }
 
-#dialogo-confirmar .dialog-inner,
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) .dialog-inner,
 #dialogo-eliminar-rubrica .dialog-inner{
     align-items: center;
     text-align: center;
@@ -131,6 +131,12 @@
     align-items: stretch;
     text-align: left;
     max-height: calc(100dvh - 32px);
+    padding: 24px;
+    gap: 16px;
+}
+
+#dialogo-editar-rubrica .dialogo-editar-rubrica-form{
+    gap: 0;
 }
 
 /* ── Diálogo sm: editar rúbrica ──────────────────────────────────────────── */
@@ -167,7 +173,18 @@
     color: var(--text-color-secondary);
 }
 
-#dialogo-confirmar .dialog-title{
+#dialogo-editar-rubrica #editar-descripcion{
+    field-sizing: content;
+    height: auto;
+    max-height: 240px;
+    resize: none;
+}
+
+#dialogo-editar-rubrica .dialog-add-rubrica__hint{
+    margin: 8px 0 0;
+}
+
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) .dialog-title{
     margin: 0;
 }
 
@@ -175,7 +192,7 @@
     margin: 0;
 }
 
-#dialogo-confirmar .dialog-subtitle{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) .dialog-subtitle{
     margin: -8px 0 0;
 }
 
@@ -183,7 +200,7 @@
     margin: -8px 0 0;
 }
 
-#dialogo-confirmar .form-actions{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) .form-actions{
     justify-content: center;
     margin-top: 2px;
 }
@@ -250,27 +267,6 @@
     /* Reserva el espacio del scrollbar aunque no haya desbordamiento
        (evita el salto del contenido al aparecer) */
     scrollbar-gutter: stable;
-    /* Scrollbar moderno (Firefox) */
-    scrollbar-width: thin;
-    scrollbar-color: var(--hover-color) transparent;
-}
-
-/* Scrollbar moderno (WebKit: Chrome, Edge, Safari) */
-.container2::-webkit-scrollbar {
-    width: 8px;
-}
-
-.container2::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.container2::-webkit-scrollbar-thumb {
-    background: var(--hover-color);
-    border-radius: 10px;
-}
-
-.container2::-webkit-scrollbar-thumb:hover {
-    background: var(--text-color);
 }
 
 .criterio{
@@ -927,7 +923,7 @@
     }
 }
 
-/* Guardar deshabilitado cuando la suma ≠ 100% */
+/* Guardar deshabilitado cuando el total supera el 100% máximo */
 #btn-guardar-criterios:disabled{
     opacity: 0.55;
     cursor: not-allowed;
@@ -991,13 +987,13 @@
     animation:slideInUpEditar 200ms ease-out forwards;
 }
 
-/* ── Feedback visual del botón de confirmación en #dialogo-confirmar ──
+/* ── Feedback visual del botón de confirmación en los diálogos de confirmación ──
    El botón de confirmación NO usa createSubmitHandler; en su lugar
    confirmarAccion() (editar-criterios.js) aplica btn-enter/btn-exit
    manualmente. Necesita las reglas de animación slideInUp/slideOutUp
    que proyectos.css define para button[data-submit], pero aquí las
    reforzamos para asegurar que se apliquen dentro del diálogo. */
-#dialogo-confirmar [data-accion="confirmar"][data-submit]{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) [data-accion="confirmar"][data-submit]{
     position: relative;
     overflow: hidden;
     min-height: 50px;
@@ -1009,12 +1005,12 @@
     min-height: 50px;
     min-width: 120px;
 }
-#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) [data-accion="confirmar"][data-submit] .submit-states{
     display: grid;
     grid-template-areas: "stack";
     width: 100%;
 }
-#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > *{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) [data-accion="confirmar"][data-submit] .submit-states > *{
     grid-area: stack;
     display: flex;
     align-items: center;
@@ -1025,18 +1021,18 @@
     pointer-events: none;
     transition: opacity 0s 9999s;
 }
-#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > .mostrar{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) [data-accion="confirmar"][data-submit] .submit-states > .mostrar{
     opacity: 1;
     pointer-events: auto;
     transition: none;
     position: relative;
 }
-#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > .btn-exit{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) [data-accion="confirmar"][data-submit] .submit-states > .btn-exit{
     opacity: 1;
     pointer-events: none;
     animation: slideOutUp 200ms ease-in forwards;
 }
-#dialogo-confirmar [data-accion="confirmar"][data-submit] .submit-states > .btn-enter{
+:is(#dialogo-confirmar, #dialogo-rubrica-incompleta, #dialogo-proyecto-sin-alumnos) [data-accion="confirmar"][data-submit] .submit-states > .btn-enter{
     opacity: 1;
     pointer-events: auto;
     animation: slideInUp 200ms ease-out forwards;

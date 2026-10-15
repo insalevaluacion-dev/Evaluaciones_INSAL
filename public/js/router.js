@@ -17,18 +17,21 @@ const navigateTo = url => {
 window.navigateTo = navigateTo;
 let navigationRequestId = 0;
 let initialViewLoaded = false;
-let pageResourcesLoaded = document.readyState === 'complete';
 
-const hideLoaderWhenReady = () => {
-    if (initialViewLoaded && pageResourcesLoaded) {
+// Avisa al coordinador del loader (script crítico inline en menu.ejs, que corre
+// antes que este módulo) de que la vista inicial ya está en el DOM. El
+// coordinador oculta el loader cuando además esté lista la fuente de iconos
+// (Material Symbols) para no mostrar la vista con iconos sin pintar. Si el
+// coordinador no existiera, el fallback directo evita que el loader quede
+// colgado.
+const notifyViewReady = () => {
+    if (typeof window.__appLoaderViewReady === 'function') {
+        window.__appLoaderViewReady();
+    } else {
+        document.documentElement.classList.add('icons-ready');
         document.getElementById('app-loader')?.classList.remove('is-active');
     }
 };
-
-window.addEventListener('load', () => {
-    pageResourcesLoaded = true;
-    hideLoaderWhenReady();
-}, { once: true });
 
 function matchRoute(pathname) {
     const patterns = [
@@ -68,6 +71,10 @@ const router = async () => {
     const currentNavigation = ++navigationRequestId;
     const mainContainer = document.querySelector('#main__container');
     const isInitialView = !initialViewLoaded;
+
+    document.dispatchEvent(new CustomEvent('routeChanging', {
+        detail: { route: location.pathname },
+    }));
 
     if (!isInitialView && mainContainer) {
         mainContainer.innerHTML = `
@@ -119,7 +126,7 @@ const router = async () => {
         return true;
     } catch (error) {
         console.error('Error al cargar la vista:', error);
-        if (currentNavigation === navigationRequestId && !isInitialView && mainContainer) {
+        if (currentNavigation === navigationRequestId && mainContainer) {
             mainContainer.innerHTML = `
                 <div class="spa-route-error" role="alert">
                     <p>No se pudo cargar esta vista. Comprueba tu conexión e inténtalo de nuevo.</p>
@@ -132,12 +139,12 @@ const router = async () => {
         return false;
     } finally {
         if (currentNavigation === navigationRequestId) {
-            if (!initialViewLoaded) {
-                initialViewLoaded = true;
-                hideLoaderWhenReady();
-            } else if (pageResourcesLoaded) {
-                document.getElementById('app-loader')?.classList.remove('is-active');
-            }
+            if (!initialViewLoaded) initialViewLoaded = true;
+            // Avisar que la vista ya está en el DOM (éxito o error). El
+            // coordinador ocultará el loader cuando además esté lista la fuente
+            // de iconos (evita FOUC). Así nunca queda pantalla blanca: en error
+            // se muestra la UI de reintentar.
+            notifyViewReady();
         }
     }
 };

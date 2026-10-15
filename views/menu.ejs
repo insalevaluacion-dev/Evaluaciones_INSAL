@@ -2,6 +2,12 @@
 <html lang="es">
 
 <head>
+    <!-- Capa de red robusta: DEBE cargar primero y de forma síncrona (sin defer,
+         sin type="module") para envolver window.fetch ANTES de que cualquier
+         módulo del flujo lo use. Aporta timeout + reintentos + aviso
+         "Reconectando…" + keep-alive frente a los cold starts de Render/Railway
+         en capa gratuita. -->
+    <script src="/js/fetchRobusto.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dashboard</title>
@@ -21,6 +27,13 @@
             height: 90px;
         }
     </style>
+    <!-- Preconnect + fuente de iconos AL INICIO. display=block: mientras la
+         fuente carga, el navegador dibuja los iconos invisibles (nunca las
+         palabras "school", "person"…); el loader los tapa igual. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
     <link rel="stylesheet" href="/css/rubrica-editar.css">
     <link rel="stylesheet" href="/css/default-rules.css">
     <script type="module" src="/js/menu.js" defer></script>
@@ -59,8 +72,6 @@
     <script type="module">
         import 'https://esm.run/@material/web/all.js'
     </script>
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="/js/native-app.js" defer></script>
 </head>
 
@@ -68,6 +79,222 @@
     <div id="app-loader" class="app-loader is-active" role="status" aria-label="Cargando">
         <img src="/assets/svg/Logo_SV_loader.svg" alt="" class="app-loader__logo">
     </div>
+    <script>
+        // ── Loader crítico ────────────────────────────────────────────────
+        // Se ejecuta de forma síncrona justo después del #app-loader, antes de
+        // cualquier otro recurso. Decisión de diseño: NO usamos window.load
+        // porque espera también a CDNs de terceros que el dashboard ni necesita
+        // (driver.js, @material/web de esm.run); si uno cuelga, el loader se
+        // quedaba pegado (el "a veces falla" original).
+        //
+        // En su lugar, ocultamos el loader cuando la app esté lista para verse
+        // bien, es decir, cuando se cumplan las tres condiciones:
+        //   1. La vista inicial ya se inyectó en el DOM (lo avisa router.js).
+        //   2. La fuente de iconos (Material Symbols) está cargada → sin FOUC.
+        //   3. Los datos de la sección ya cargaron (sus loaders .section-loader
+        //      / .inicio-recientes__loader / .criterios-loader desaparecieron),
+        //      para no revelar barras de carga a medio llenar bajo el loader.
+        // Fallbacks para que NUNCA quede colgado:
+        //   - Si el fetch falla, router.js marca la condición 1 y pinta la UI
+        //     de error (se oculta el loader, nunca pantalla blanca).
+        //   - Deadlines en la espera de fuente (3 s) y de datos (8 s), más un
+        //     timeout duro global de 12 s por si algo se cuelga del todo.
+        (function () {
+            var loader = document.getElementById('app-loader');
+            var FONT_FACE = '700 24px "Material Symbols Rounded"';
+            var viewReady = false;
+            var fontsReady = false;
+            var fontWaitStarted = false;
+            var done = false;
+            var fallbackTimer = null;
+
+            var ICON_PROBE_WORD = 'settings';
+            var ICON_GLYPH_MAX_PX = 48;
+
+            function iconProbe() {
+                var probe = document.getElementById('app-loader-icon-probe');
+                if (probe) return probe;
+                probe = document.createElement('span');
+                probe.id = 'app-loader-icon-probe';
+                probe.setAttribute('aria-hidden', 'true');
+                probe.textContent = ICON_PROBE_WORD;
+                probe.style.cssText = [
+                    'position:absolute',
+                    'left:0',
+                    'top:0',
+                    'visibility:hidden',
+                    'pointer-events:none',
+                    'font-family:"Material Symbols Rounded"',
+                    'font-weight:700',
+                    'font-style:normal',
+                    'font-size:24px',
+                    'line-height:1',
+                    'letter-spacing:normal',
+                    'white-space:nowrap',
+                    'font-feature-settings:"liga"',
+                    '-webkit-font-feature-settings:"liga"',
+                    'font-variation-settings:"FILL" 0, "wght" 700, "GRAD" 0, "opsz" 48'
+                ].join(';');
+                document.body.appendChild(probe);
+                return probe;
+            }
+
+            function iconsArePainted() {
+                if (!document.body) return false;
+                var width = iconProbe().getBoundingClientRect().width;
+                return width > 0 && width <= ICON_GLYPH_MAX_PX;
+            }
+
+            function markIconsReady() {
+                var probe = document.getElementById('app-loader-icon-probe');
+                if (probe) probe.remove();
+                document.documentElement.classList.add('icons-ready');
+            }
+
+            function waitUntilIconsPainted(deadline) {
+                return new Promise(function (resolve) {
+                    (function poll() {
+                        if (iconsArePainted() || Date.now() > deadline) {
+                            requestAnimationFrame(function () { resolve(); });
+                            return;
+                        }
+                        setTimeout(poll, 50);
+                    })();
+                });
+            }
+
+            function finish() {
+                if (done) return;
+                done = true;
+                if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
+                markIconsReady();
+                if (!loader) return;
+                loader.classList.remove('is-active');
+                var cleanup = function () {
+                    loader.removeEventListener('transitionend', cleanup);
+                    loader.style.display = 'none';
+                };
+                loader.addEventListener('transitionend', cleanup);
+                // Red de seguridad por si la transición no dispara transitionend.
+                setTimeout(cleanup, 400);
+            }
+
+            function tryFinish() {
+                if (!viewReady || !fontsReady) return;
+                // Además de la vista y la fuente, esperamos a que terminen de
+                // cargarse los DATOS de la sección: cada parcial trae su propio
+                // loader (.section-loader, .inicio-recientes__loader,
+                // .criterios-loader) que se oculta cuando hideLoader() recibe la
+                // respuesta. Si reveláramos antes, se verían esas barras dando
+                // vueltas bajo el loader global ("se veía que seguía cargando").
+                waitForDataReady().then(finish);
+            }
+
+            // ¿Queda algún loader de sección visible en el contenido principal?
+            function hasActiveSectionLoaders() {
+                var loaders = document.querySelectorAll(
+                    '#main__container .section-loader, ' +
+                    '#main__container .inicio-recientes__loader, ' +
+                    '#main__container .criterios-loader'
+                );
+                for (var i = 0; i < loaders.length; i++) {
+                    // getClientRects() distingue visible de oculto sin importar
+                    // si se ocultó con display:none, visibility, etc.
+                    if (loaders[i].getClientRects().length) return true;
+                }
+                return false;
+            }
+
+            // Espera a que los loaders de sección desaparezcan (datos listos),
+            // con un deadline para no colgarse si un fetch tarda de más.
+            function waitForDataReady() {
+                return new Promise(function (resolve) {
+                    var deadline = Date.now() + 8000;
+                    (function poll() {
+                        if (!hasActiveSectionLoaders() || Date.now() > deadline) return resolve();
+                        setTimeout(poll, 100);
+                    })();
+                });
+            }
+
+            // Recopila el texto de los iconos actuales para forzar la carga de
+            // sus glifos concretos (Material Symbols usa ligaduras y sirve los
+            // glifos por subsets por unicode-range).
+            function collectIconText() {
+                var text = '';
+                var spans = document.querySelectorAll('.material-symbols-rounded');
+                for (var i = 0; i < spans.length; i++) {
+                    var t = (spans[i].textContent || '').trim();
+                    if (t) text += t;
+                }
+                return text || 'school';
+            }
+
+            // Aprovechamos `fonts.load`/`fonts.ready` como adelanto, pero el probe
+            // es la señal visual autorizatoria. No marcamos fontsReady si el
+            // probe no se pintó dentro del deadline, así el loader no se revela
+            // mientras el glifo (Material Symbols) aún no está aplicado.
+            function waitForIconFonts() {
+                if (fontWaitStarted) return;
+                fontWaitStarted = true;
+                var fonts = document.fonts;
+                var text = collectIconText() + ICON_PROBE_WORD;
+                var hasFontApi = !!(fonts && fonts.load);
+
+                var fontDone = new Promise(function (resolve) {
+                    if (!hasFontApi) { resolve(); return; }
+                    var load;
+                    try {
+                        load = fonts.load(FONT_FACE, text);
+                    } catch (e) { resolve(); return; }
+                    if (load && typeof load.then === 'function') {
+                        load.then(function () {
+                            try {
+                                if (typeof fonts.ready === 'undefined') { resolve(); }
+                                else { fonts.ready.then(resolve, resolve); }
+                            } catch (e) { resolve(); }
+                        }).catch(function () { resolve(); });
+                    } else { resolve(); }
+                });
+
+                var DEADLINE = Date.now() + 8000;
+                Promise.all([fontDone, waitUntilIconsPainted(DEADLINE)]).then(function () {
+                    if (iconsArePainted()) {
+                        fontsReady = true;
+                        tryFinish();
+                    }
+                });
+            }
+
+            // Lo llama router.js cuando la vista inicial está en el DOM (éxito
+            // o error). Ahora que el DOM tiene menú + vista, forzamos y
+            // esperamos la fuente de los iconos visibles antes de revelar.
+            window.__appLoaderViewReady = function () {
+                viewReady = true;
+                waitForIconFonts();
+            };
+
+            // Fallback manual para forzar el ocultado desde otros puntos.
+            window.hideAppLoader = finish;
+
+            // Pre-calentamiento: empieza a bajar la fuente base en paralelo,
+            // mientras el router hace el fetch de la vista inicial.
+            if (document.fonts && document.fonts.load) {
+                document.fonts.load(FONT_FACE).catch(function () { /* silencioso */ });
+            }
+
+            // Red de seguridad dura: nunca dejar la app bloqueada tras el
+            // loader, pero solo revelar el overlay una vez que la vista ya
+            // está en el DOM y la fuente de iconos está lista (lo mismo que
+            // tryFinish). Si se acaba el tiempo y aún no lo están, seguimos
+            // esperando (la pestaña no queda colgada de fondo).
+            fallbackTimer = setTimeout(function () {
+                if (viewReady && fontsReady) {
+                    finish();
+                }
+            }, 12000);
+        })();
+    </script>
     <div id="infoCard" class="info-card menu_contextual">
         <button class="menu-close-btn" onclick="closeAll()" aria-label="Cerrar" data-ripple>
             <span class="material-symbols-rounded">close</span>

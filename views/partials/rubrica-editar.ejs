@@ -5,7 +5,7 @@
         data-ripple>
         <span class="material-symbols-rounded">menu</span>
     </button>
-    <a href="/menu/rubrica" class="back-link" data-link>
+    <a href="/menu/rubrica" class="back-link" id="btn-atras-rubrica">
         <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
         <p>Atras</p>
     </a>
@@ -129,15 +129,17 @@
                 <label for="editar-nombre">Nombre <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
                     <input type="text" id="editar-nombre" class="campo-nota__input" required
-                        maxlength="100" placeholder="Nombre de la rúbrica">
+                        maxlength="80" placeholder="Nombre de la rúbrica">
                 </div>
+                <span class="char-counter" data-for="editar-nombre">0/80</span>
             </div>
             <div class="field-group">
-                <label for="editar-descripcion">Descripción</label>
+                <label for="editar-descripcion">Descripción <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
-                    <textarea id="editar-descripcion" class="campo-nota__input" rows="3"
-                        maxlength="500" placeholder="Describe el propósito de la rúbrica"></textarea>
+                    <textarea id="editar-descripcion" class="campo-nota__input" rows="1" required
+                        maxlength="160" placeholder="Describe el propósito de la rúbrica"></textarea>
                 </div>
+                <span class="char-counter" data-for="editar-descripcion">0/160</span>
             </div>
         </div>
         <div class="dialogo-editar-rubrica-actions">
@@ -205,13 +207,13 @@
             </div>
             <div class="campo-nota">
                 <label for="criterio-porcentaje" class="campo-nota__label">
-                    Ponderación (%) <span class="requerido">*</span>
+                    Ponderación (%) <span class="opcional">(opcional)</span>
                 </label>
                 <div class="campo-nota__input-wrap">
-                    <input type="number" id="criterio-porcentaje" name="porcentaje" min="1" max="100" step="1" required
-                        inputmode="numeric" placeholder="20" class="campo-nota__input">
+                    <input type="number" id="criterio-porcentaje" name="porcentaje" min="0" max="100" step="1"
+                        inputmode="numeric" placeholder="0 = sin ponderación" class="campo-nota__input">
                 </div>
-                <p class="campo-nota__supporting">Peso del criterio entre 1 y 100. La suma debe ser 100%.</p>
+                <p class="campo-nota__supporting">Peso del criterio entre 0 y 100. Vacío o 0 = sin ponderación (se guarda igual).</p>
                 <span class="error-message" id="error-criterio-porcentaje"></span>
             </div>
         </div>
@@ -256,6 +258,40 @@
                         <span>Confirmando…</span>
                     </div>
                     <!-- Estado éxito -->
+                    <div class="centrar gap-btn quitar" data-success-content>
+                        <span class="material-symbols-rounded">check_circle</span>
+                        <span>¡Hecho!</span>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal de advertencia: salir sin el 100% de ponderación asignada -->
+<dialog id="dialogo-rubrica-incompleta" class="app-dialog--xs dialogo-confirmar" aria-labelledby="dialogo-rubrica-incompleta-titulo">
+    <form method="dialog" class="dialog-inner" id="dialogo-rubrica-incompleta-form">
+        <button type="button" class="dialog-close-btn" data-accion="cancelar" aria-label="Cancelar">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+        <span class="material-symbols-rounded dialogo-confirmar__icono" aria-hidden="true">warning</span>
+        <h2 class="dialogo-confirmar-title" id="dialogo-rubrica-incompleta-titulo" data-dialogo-titulo>Rúbrica incompleta</h2>
+        <p class="dialogo-confirmar-subtitle" id="dialogo-rubrica-incompleta-mensaje" data-dialogo-mensaje></p>
+        <div class="dialogo-confirmar-actions">
+            <button type="button" class="boton-cancelar" data-accion="cancelar" data-ripple>
+                <span class="material-symbols-rounded">close</span>
+                <span>Seguir editando</span>
+            </button>
+            <button type="button" class="boton-confirmar" data-accion="confirmar" data-ripple data-submit>
+                <div class="submit-states">
+                    <div class="centrar gap-btn mostrar" data-submit-content>
+                        <span class="material-symbols-rounded">check</span>
+                        <span>Salir igual</span>
+                    </div>
+                    <div class="centrar gap-btn quitar" data-loading-content>
+                        <span class="material-symbols-rounded">hourglass_top</span>
+                        <span>Saliendo…</span>
+                    </div>
                     <div class="centrar gap-btn quitar" data-success-content>
                         <span class="material-symbols-rounded">check_circle</span>
                         <span>¡Hecho!</span>

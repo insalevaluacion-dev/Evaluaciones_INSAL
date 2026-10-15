@@ -2,9 +2,42 @@
 <html lang="es">
 
 <head>
+    <!-- Capa de red robusta: DEBE cargar primero y de forma síncrona (sin defer,
+         sin type="module") para envolver window.fetch ANTES de que cualquier
+         módulo del flujo lo use. Aporta timeout + reintentos + aviso
+         "Reconectando…" + keep-alive frente a los cold starts de Render/Railway
+         en capa gratuita. -->
+    <script src="/js/fetchRobusto.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Resumen de Evaluación</title>
+    <!-- Loader de marca del flujo de evaluadores. El <style> crítico posiciona
+         el overlay desde el primer pintado (antes de app-loader.css) con el
+         fondo claro de main.css para que no haya destello. Esta vista carga
+         datos por fetch, por eso el loader se retiene hasta pintarlos. -->
+    <style>
+        #app-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: grid;
+            place-items: center;
+            background: #F8FAFD;
+        }
+
+        #app-loader img {
+            display: block;
+            width: 88px;
+            height: 90px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/app-loader.css">
+    <!-- Esta vista carga datos por fetch: le pide al loader que espere la señal
+         __appLoaderDataReady() (resumen.js) antes de ocultarse, para no revelar
+         la página a medio pintar. Declarativo en HTML para evitar una carrera de
+         timing con el arranque del módulo app-loader.js. -->
+    <script>window.__appLoaderHoldData = true;</script>
+    <script type="module" src="/js/app-loader.js"></script>
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/resumen.css">
     <link rel="stylesheet" href="/css/circular-progress.css">
@@ -14,7 +47,10 @@
     <script type="module">
         import 'https://esm.run/@material/web/all.js'
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
     <script src="/js/descripcion.js" defer></script>
     <script src="/js/buttonFeedback.js" defer></script>
     <script src="/js/resumen.js" defer></script>
@@ -23,7 +59,16 @@
     <script src="/js/native-app.js" defer></script>
 </head>
 
-<body>
+<body data-flujo="evaluador">
+    <div id="app-loader" class="app-loader is-active" role="status" aria-label="Cargando">
+        <img src="/assets/svg/Logo_SV_loader.svg" alt="" class="app-loader__logo">
+    </div>
+    <script>
+        // La visibilidad del loader la gestiona app-loader.js (cargado antes);
+        // no usamos aquí un timeout fijo de 8000 ms que oculta el overlay a
+        // medias aunque la fuente de iconos aún esté cargando.
+
+    </script>
     <main class="main_document">
         <div class="resumen-header">
             <span class="material-symbols-rounded resumen-header__icon">summarize</span>

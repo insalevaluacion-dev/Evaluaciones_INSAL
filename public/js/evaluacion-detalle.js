@@ -7,6 +7,8 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { mostrarNotificacion } from './notificaciones.js';
+import { aplicarTextoShimmer } from './texto.js';
+import { animarEntrada, animarSalida } from './listAnimations.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ESTADO
@@ -92,25 +94,45 @@ function formatFecha(fecha) {
 }
 
 /**
- * Calcula la nota a mostrar para el proyecto:
- *  - La nota final (proyecto.nota) si ya está guardada.
- *  - El promedio de las evaluaciones registradas (nota parcial) si no.
+ * Calcula la nota a mostrar para el proyecto.
+ * La nota es completa cuando las evaluaciones confirmadas alcanzan la
+ * cantidad de evaluadores de la rúbrica (niveles.cantidad_evaluadores).
+ * No basta con que proyectos.nota esté vacía: esa columna solo se escribe
+ * al confirmar la evaluación que cruza el umbral, y queda desactualizada
+ * si después se baja la cantidad de evaluadores.
+ *  - Completa: la nota guardada, o el promedio de las confirmadas si aún no se persistió.
+ *  - Parcial: el promedio de las confirmadas, mientras falten evaluadores.
  */
 function calcularNotaProyecto(proyecto, evaluaciones) {
+    const evals = Array.isArray(evaluaciones) ? evaluaciones : [];
+    const requeridosRaw = proyecto?.cantidad_evaluadores;
+    const requeridosNum = Number(requeridosRaw);
+    const requeridos = Number.isInteger(requeridosNum) && requeridosNum >= 1 ? requeridosNum : 3;
+
     const notaRaw = proyecto?.nota;
     // Number(null) === 0, así que hay que descartar null/undefined/'' antes
     const notaFinal = notaRaw != null && notaRaw !== '' ? Number(notaRaw) : null;
 
-    if (Number.isFinite(notaFinal)) {
-        return { valor: formatNota(notaFinal), etiqueta: 'Nota completa' };
+    let promedio = null;
+    if (evals.length > 0) {
+        const suma = evals.reduce((acc, ev) => acc + Number(ev.nota), 0);
+        const prom = suma / evals.length;
+        if (Number.isFinite(prom)) promedio = prom;
     }
 
-    if (Array.isArray(evaluaciones) && evaluaciones.length > 0) {
-        const suma = evaluaciones.reduce((acc, ev) => acc + Number(ev.nota), 0);
-        const prom = suma / evaluaciones.length;
-        if (Number.isFinite(prom)) {
-            return { valor: formatNota(prom), etiqueta: 'Nota parcial' };
+    // Misma regla que GET /admin/evaluaciones/proyectos: completa si
+    // las evaluaciones confirmadas cubren lo que pide la rúbrica.
+    const completa = evals.length >= requeridos;
+
+    if (completa) {
+        const valor = Number.isFinite(notaFinal) ? notaFinal : promedio;
+        if (valor != null && Number.isFinite(valor)) {
+            return { valor: formatNota(valor), etiqueta: 'Nota completa' };
         }
+    }
+
+    if (promedio != null) {
+        return { valor: formatNota(promedio), etiqueta: 'Nota parcial' };
     }
 
     return { valor: null, etiqueta: '' };
@@ -163,8 +185,7 @@ async function cargarDetalle() {
     } catch (err) {
         console.error('Error al cargar detalle de evaluación:', err);
         hideLoader();
-        const nombreEl = qsDetalle('#detalle-proyecto-nombre');
-        if (nombreEl) nombreEl.textContent = 'No se pudo cargar';
+        aplicarTextoShimmer(qsDetalle('#detalle-proyecto-nombre'), 'No se pudo cargar');
         const subEl = qsDetalle('#detalle-proyecto-sub');
         if (subEl) subEl.textContent = 'Inténtalo de nuevo más tarde.';
         mostrarNotificacion(
@@ -183,9 +204,7 @@ function renderEncabezado(proyecto) {
     const nombreEl = qsDetalle('#detalle-proyecto-nombre');
     const subEl = qsDetalle('#detalle-proyecto-sub');
 
-    if (nombreEl) {
-        nombreEl.textContent = proyecto?.nombre || 'Proyecto';
-    }
+    aplicarTextoShimmer(nombreEl, proyecto?.nombre || 'Proyecto');
 
     if (!subEl) return;
 
@@ -206,8 +225,9 @@ function renderEncabezado(proyecto) {
 
 /**
  * Pinta el badge de nota del container1. Muestra:
- *  - La nota final (proyecto.nota) si ya está guardada.
- *  - El promedio de las evaluaciones registradas (nota parcial) si no.
+ *  - Nota completa si las evaluaciones confirmadas alcanzan
+ *    cantidad_evaluadores de la rúbrica.
+ *  - El promedio de las confirmadas (nota parcial) si aún faltan.
  *  - Se oculta si no hay nota ni evaluaciones.
  * Solo modifica el container de esta vista.
  */
@@ -236,63 +256,191 @@ function renderNota(proyecto, evaluaciones) {
  * GET /evaluacion-criterios/:evaluacionId (carga diferida).
  * Escribe dentro del contenedor `.evaluacion-detalle__criterios`.
  */
+function pulsarActualizado(el) {
+    if (!el) return;
+    el.classList.remove('list-item--refreshing');
+    el.classList.remove('list-item--updated');
+    void el.offsetWidth;
+    el.classList.add('list-item--updated');
+    const alTerminar = (ev) => {
+        if (ev.target !== el || ev.animationName !== 'pulseUpdate') return;
+        el.classList.remove('list-item--updated');
+        el.removeEventListener('animationend', alTerminar);
+    };
+    el.addEventListener('animationend', alTerminar);
+}
+
+function marcarSalida(el) {
+    if (!el) return Promise.resolve(false);
+    el.classList.remove('list-item--refreshing');
+    el.setAttribute('data-saliendo', '');
+    return animarSalida(el).then((completo) => {
+        if (completo !== false) el.remove();
+        return completo;
+    });
+}
+
+function insertarPorOrden(lista, nodo, ids, index, atributo, selectorItem) {
+    let ancla = null;
+    for (let i = index + 1; i < ids.length; i++) {
+        ancla = lista.querySelector(
+            `${selectorItem}[${atributo}="${CSS.escape(String(ids[i]))}"]:not([data-saliendo])`,
+        );
+        if (ancla) break;
+    }
+    if (ancla) lista.insertBefore(nodo, ancla);
+    else lista.appendChild(nodo);
+}
+
+function aporteCriterio(c) {
+    return (Number(c.puntuacion) * Number(c.porcentaje)) / 100;
+}
+
+function crearFilaCriterio(c) {
+    const fila = document.createElement('div');
+    fila.className = 'evaluacion-detalle__criterio';
+    fila.dataset.itemId = String(c.criterio_id);
+    const ponderado = aporteCriterio(c);
+    fila.innerHTML = `
+        <span class="evaluacion-detalle__criterio-nombre">${escapeHtml(c.nombre || 'Criterio')}</span>
+        <span class="evaluacion-detalle__criterio-col">${formatNota(c.puntuacion)}</span>
+        <span class="evaluacion-detalle__criterio-col">${Number(c.porcentaje)}%</span>
+        <span class="evaluacion-detalle__criterio-col evaluacion-detalle__criterio-aporte" title="Aporte a la nota final">+${formatNota(ponderado)}</span>`;
+    return fila;
+}
+
+function actualizarFilaCriterio(fila, c) {
+    const ponderado = aporteCriterio(c);
+    const nombre = fila.querySelector('.evaluacion-detalle__criterio-nombre');
+    if (nombre) nombre.textContent = c.nombre || 'Criterio';
+    const cols = fila.querySelectorAll('.evaluacion-detalle__criterio-col');
+    if (cols[0]) cols[0].textContent = formatNota(c.puntuacion);
+    if (cols[1]) cols[1].textContent = `${Number(c.porcentaje)}%`;
+    if (cols[2]) cols[2].textContent = `+${formatNota(ponderado)}`;
+}
+
+function asegurarLeyendaCriterios(contenedor) {
+    if (contenedor.querySelector('.evaluacion-detalle__criterios-leyenda')) return;
+    const leyenda = document.createElement('p');
+    leyenda.className = 'evaluacion-detalle__criterios-leyenda';
+    const fuerte = document.createElement('strong');
+    fuerte.textContent = 'aporte';
+    leyenda.append(
+        'El ',
+        fuerte,
+        ' es el puntaje del criterio multiplicado por su peso sobre la nota final.',
+    );
+    contenedor.appendChild(leyenda);
+}
+
+function pintarCriteriosInicial(contenedor, criterios) {
+    const tabla = document.createElement('div');
+    tabla.className = 'evaluacion-detalle__criterios-tabla';
+    const cabecera = document.createElement('div');
+    cabecera.className = 'evaluacion-detalle__criterios-cabecera';
+    cabecera.setAttribute('aria-hidden', 'true');
+    cabecera.innerHTML = '<span>Criterio</span><span>Puntaje</span><span>Peso</span><span>Aporte</span>';
+    tabla.appendChild(cabecera);
+    criterios.forEach((c) => tabla.appendChild(crearFilaCriterio(c)));
+    contenedor.replaceChildren(tabla);
+    asegurarLeyendaCriterios(contenedor);
+    tabla.querySelectorAll('.evaluacion-detalle__criterio').forEach((el, index) => animarEntrada(el, index * 60));
+}
+
+function pintarCriteriosVacio(contenedor) {
+    if (contenedor.querySelector('.evaluacion-detalle__criterios-vacio')) {
+        contenedor.querySelector('.evaluacion-detalle__criterios-tabla')?.remove();
+        contenedor.querySelector('.evaluacion-detalle__criterios-leyenda')?.remove();
+        return;
+    }
+    const vacio = document.createElement('p');
+    vacio.className = 'evaluacion-detalle__criterios-vacio';
+    vacio.textContent = 'Sin criterios registrados.';
+    contenedor.replaceChildren(vacio);
+}
+
 async function cargarCriteriosEvaluacion(evaluacionId, contenedor) {
     if (!contenedor) return;
 
+    if (contenedor.dataset.cargando === 'true') return;
+    contenedor.dataset.cargando = 'true';
+    contenedor.setAttribute('aria-busy', 'true');
+    const filasAnteriores = [...contenedor.querySelectorAll('.evaluacion-detalle__criterio:not([data-saliendo])')];
+    const vacio = contenedor.querySelector('.evaluacion-detalle__criterios-vacio');
+    const coldLoad = filasAnteriores.length === 0 && !vacio;
+    if (!coldLoad && filasAnteriores.length) {
+        filasAnteriores.forEach((el) => el.classList.add('list-item--refreshing'));
+    }
+    if (coldLoad) {
+        contenedor.innerHTML =
+            '<div class="progreso-lineal indeterminado"><div class="progreso-indicador"></div></div>';
+    }
+
     try {
         const data = await fetchJson(`/evaluacion-criterios/${evaluacionId}`);
-        const criterios = Array.isArray(data?.criterios) ? data.criterios : [];
+        const criterios = (Array.isArray(data?.criterios) ? data.criterios : [])
+            .filter((c) => c?.criterio_id != null);
 
-        // Guardar en caché para la descarga (Excel / PDF)
         criteriosCache.set(Number(evaluacionId), criterios);
+        contenedor.dataset.cargado = 'true';
 
-        if (criterios.length === 0) {
-            contenedor.innerHTML =
-                '<p class="evaluacion-detalle__criterios-vacio">Sin criterios registrados.</p>';
+        if (coldLoad || !contenedor.querySelector('.evaluacion-detalle__criterios-tabla')) {
+            if (criterios.length === 0) pintarCriteriosVacio(contenedor);
+            else pintarCriteriosInicial(contenedor, criterios);
             return;
         }
 
-        const filas = criterios
-            .map((c) => {
-                const ponderado = (Number(c.puntuacion) * Number(c.porcentaje)) / 100;
-                return `
-                <div class="evaluacion-detalle__criterio">
-                    <span class="evaluacion-detalle__criterio-nombre">${escapeHtml(c.nombre || 'Criterio')}</span>
-                    <span class="evaluacion-detalle__criterio-col">${formatNota(c.puntuacion)}</span>
-                    <span class="evaluacion-detalle__criterio-col">${Number(c.porcentaje)}%</span>
-                    <span class="evaluacion-detalle__criterio-col evaluacion-detalle__criterio-aporte" title="Aporte a la nota final">+${formatNota(ponderado)}</span>
-                </div>`;
-            })
-            .join('');
+        const idsNuevos = criterios.map((c) => String(c.criterio_id));
+        const setNuevos = new Set(idsNuevos);
+        const promesasSalida = filasAnteriores
+            .filter((el) => !setNuevos.has(el.dataset.itemId))
+            .map(marcarSalida);
 
-        contenedor.innerHTML = `
-            <div class="evaluacion-detalle__criterios-tabla">
-                <div class="evaluacion-detalle__criterios-cabecera" aria-hidden="true">
-                    <span>Criterio</span><span>Puntaje</span><span>Peso</span><span>Aporte</span>
-                </div>
-                ${filas}
-            </div>
-            <p class="evaluacion-detalle__criterios-leyenda">
-                El <strong>aporte</strong> es el puntaje del criterio multiplicado por su peso sobre la nota final.
-            </p>`;
+        if (criterios.length === 0) {
+            await Promise.all(promesasSalida);
+            pintarCriteriosVacio(contenedor);
+            return;
+        }
+
+        const tabla = contenedor.querySelector('.evaluacion-detalle__criterios-tabla');
+        contenedor.querySelector('.evaluacion-detalle__criterios-vacio')?.remove();
+        asegurarLeyendaCriterios(contenedor);
+        const existentes = new Map(filasAnteriores.map((el) => [el.dataset.itemId, el]));
+        criterios.forEach((c, index) => {
+            const id = String(c.criterio_id);
+            const existente = existentes.get(id);
+            if (existente) {
+                actualizarFilaCriterio(existente, c);
+                pulsarActualizado(existente);
+            } else {
+                const fila = crearFilaCriterio(c);
+                insertarPorOrden(tabla, fila, idsNuevos, index, 'data-item-id', '.evaluacion-detalle__criterio');
+                animarEntrada(fila, index * 60);
+            }
+        });
     } catch (err) {
         console.error('Error al cargar criterios de la evaluación:', err);
-        contenedor.innerHTML =
-            '<p class="evaluacion-detalle__criterios-vacio">No se pudieron cargar los criterios.</p>';
+        if (coldLoad) {
+            contenedor.innerHTML =
+                '<p class="evaluacion-detalle__criterios-vacio">No se pudieron cargar los criterios.</p>';
+        } else {
+            contenedor.querySelectorAll('.list-item--refreshing').forEach((el) => el.classList.remove('list-item--refreshing'));
+        }
         mostrarNotificacion(
             err?.message || 'Error al cargar los criterios de la evaluación',
             'error',
         );
+    } finally {
+        contenedor.querySelectorAll('.list-item--refreshing').forEach((el) => el.classList.remove('list-item--refreshing'));
+        delete contenedor.dataset.cargando;
+        contenedor.removeAttribute('aria-busy');
     }
 }
 
-/** Activa la carga diferida de criterios solo la primera vez que se abre esa pestaña. */
+/** Actualiza criterios al abrir la pestaña, conservando lo visible durante el fetch. */
 function cargarCriteriosSiFalta(ev, card) {
     const contenedor = card.querySelector('.evaluacion-detalle__criterios');
-    if (!contenedor || contenedor.dataset.cargado) return;
-    contenedor.dataset.cargado = 'true';
-    contenedor.innerHTML =
-        '<div class="progreso-lineal indeterminado"><div class="progreso-indicador"></div></div>';
+    if (!contenedor) return;
     cargarCriteriosEvaluacion(Number(ev.evaluacion_id), contenedor);
 }
 
@@ -318,14 +466,74 @@ function posicionarIndicador(card) {
     }
 }
 
+function escribirDatoEvaluacion(card, campo, valor, esNota = false) {
+    const dd = card.querySelector(`.evaluacion-detalle__dato[data-campo="${campo}"] dd`);
+    if (!dd) return;
+    if (!esNota) {
+        dd.textContent = valor;
+        return;
+    }
+    let strong = dd.querySelector('.evaluacion-detalle__nota-fuerte');
+    if (!strong) {
+        dd.replaceChildren();
+        strong = document.createElement('strong');
+        strong.className = 'evaluacion-detalle__nota-fuerte';
+        dd.append(strong, document.createTextNode(' / 10'));
+    }
+    strong.textContent = valor;
+}
+
+/** Cada fila de la ficha. El efecto va en .evaluacion-detalle__dato, no en el dl ni en el dd. */
+function superficiesDetalle(card) {
+    return [...card.querySelectorAll('.evaluacion-detalle__panel[data-panel="detalles"] .evaluacion-detalle__dato')];
+}
+
+/** Refresca la ficha de la evaluación conservando su tarjeta y pestaña activa. */
+async function refrescarFichaEvaluacion(ev, card) {
+    if (!proyectoId || card.dataset.refrescando === 'true') return ev;
+    card.dataset.refrescando = 'true';
+    card.setAttribute('aria-busy', 'true');
+    const valores = superficiesDetalle(card);
+    valores.forEach((el) => el.classList.add('list-item--refreshing'));
+    try {
+        const data = await fetchJson(`/admin/evaluaciones/proyectos/${proyectoId}/evaluaciones`);
+        const lista = Array.isArray(data?.evaluaciones) ? data.evaluaciones : [];
+        const id = String(ev.evaluacion_id);
+        const actualizado = lista.find((item) => String(item.evaluacion_id) === id);
+        if (!actualizado) return ev;
+        evaluacionesCache = lista;
+        const nota = formatNota(actualizado.nota);
+        escribirDatoEvaluacion(card, 'evaluador', actualizado.evaluador_nombre || 'Evaluador');
+        escribirDatoEvaluacion(card, 'correo', actualizado.evaluador_email || '—');
+        escribirDatoEvaluacion(card, 'fecha', formatFecha(actualizado.fecha_evaluacion));
+        escribirDatoEvaluacion(card, 'nota', nota, true);
+        const nombre = card.querySelector('.evaluacion-detalle__nombre');
+        if (nombre) nombre.textContent = actualizado.evaluador_nombre || 'Evaluador';
+        const notaCabecera = card.querySelector('.evaluacion-detalle__nota-valor');
+        if (notaCabecera) notaCabecera.textContent = nota;
+        valores.forEach((el) => pulsarActualizado(el));
+        return actualizado;
+    } catch (err) {
+        console.error('Error al refrescar la ficha de evaluación:', err);
+        mostrarNotificacion(err.message || 'Error al actualizar la evaluación', 'error');
+        return ev;
+    } finally {
+        delete card.dataset.refrescando;
+        card.removeAttribute('aria-busy');
+        card.querySelectorAll('.list-item--refreshing').forEach((el) => el.classList.remove('list-item--refreshing'));
+    }
+}
+
 /**
  * Crea la tarjeta de una evaluación con pestañas (Detalles / Criterios).
  * El panel "Detalles" es la ficha legible; "Criterios" se carga perezosamente
  * la primera vez que se abre.
  */
 function createEvaluacionCard(ev, index) {
+    let evaluacionActual = ev;
     const card = document.createElement('div');
     card.className = 'evaluacion-detalle__card evaluacion-entrada is-colapsado';
+    card.dataset.evaluacionId = String(ev.evaluacion_id);
     card.style.animationDelay = `${index * 80}ms`;
 
     const nota = formatNota(ev.nota);
@@ -372,19 +580,19 @@ function createEvaluacionCard(ev, index) {
             aria-labelledby="${idTabDetalles}" data-panel="detalles">
             <div class="evaluacion-detalle__panel-scroll">
                 <dl class="evaluacion-detalle__datos">
-                    <div class="evaluacion-detalle__dato">
+                    <div class="evaluacion-detalle__dato" data-campo="evaluador">
                         <dt>Evaluador</dt>
                         <dd>${evaluador}</dd>
                     </div>
-                    <div class="evaluacion-detalle__dato">
+                    <div class="evaluacion-detalle__dato" data-campo="correo">
                         <dt>Correo</dt>
                         <dd>${email}</dd>
                     </div>
-                    <div class="evaluacion-detalle__dato">
+                    <div class="evaluacion-detalle__dato" data-campo="fecha">
                         <dt>Fecha y hora</dt>
                         <dd>${escapeHtml(fecha)}</dd>
                     </div>
-                    <div class="evaluacion-detalle__dato">
+                    <div class="evaluacion-detalle__dato" data-campo="nota">
                         <dt>Nota</dt>
                         <dd><strong class="evaluacion-detalle__nota-fuerte">${nota}</strong> / 10</dd>
                     </div>
@@ -442,6 +650,10 @@ function createEvaluacionCard(ev, index) {
 
         if (tab.dataset.tab === 'criterios') {
             cargarCriteriosSiFalta(ev, card);
+        } else {
+            refrescarFichaEvaluacion(evaluacionActual, card).then((actualizado) => {
+                evaluacionActual = actualizado;
+            });
         }
 
         posicionarIndicador(card);

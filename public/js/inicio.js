@@ -315,8 +315,8 @@ function iniciarGuiaInicio() {
         },
         {
             ruta: '/menu/proyectos',
-            element: '#proyectos__container .list-toolbar',
-            readySelector: '#search-proyectos',
+            element: '#proyectos__container .list-toolbar:not([style*="display: none"]), #proyectos__container .section-empty:not([style*="display: none"])',
+            readySelector: '#proyectos__container .list-toolbar:not([style*="display: none"]), #proyectos__container .section-empty:not([style*="display: none"])',
             popover: {
                 title: 'Proyectos',
                 description: 'Busca proyectos y filtra la lista para encontrar rápidamente los que necesitas gestionar.',
@@ -326,8 +326,8 @@ function iniciarGuiaInicio() {
         },
         {
             ruta: '/menu/evaluaciones',
-            element: '#proyectos-evaluados__container .list-toolbar',
-            readySelector: '#search-proyectos-evaluados',
+            element: '#proyectos-evaluados__container .list-toolbar:not([style*="display: none"]), #proyectos-evaluados__container .section-empty:not([style*="display: none"])',
+            readySelector: '#proyectos-evaluados__container .list-toolbar:not([style*="display: none"]), #proyectos-evaluados__container .section-empty:not([style*="display: none"])',
             popover: {
                 title: 'Evaluaciones',
                 description: 'Consulta proyectos evaluados, filtra por estado y descarga reportes por grado.',
@@ -337,8 +337,8 @@ function iniciarGuiaInicio() {
         },
         {
             ruta: '/menu/rubrica',
-            element: '#rubricas__container .list-toolbar',
-            readySelector: '#search-rubrica',
+            element: '#rubricas__container .list-toolbar:not([style*="display: none"]), #rubricas__container .section-empty:not([style*="display: none"])',
+            readySelector: '#rubricas__container .list-toolbar:not([style*="display: none"]), #rubricas__container .section-empty:not([style*="display: none"])',
             popover: {
                 title: 'Rúbricas',
                 description: 'Busca y ordena las rúbricas que se usan para evaluar los proyectos.',
@@ -491,7 +491,11 @@ function iniciarGuiaInicio() {
         onDoneClick: (_element, _step, { driver }) => {
             driver.destroy();
         },
-        steps: pasos.map(({ element, popover }) => ({ element, popover })),
+        steps: pasos.map(({ element, popover }) => ({
+            element,
+            popover,
+            skipMissingElement: true,
+        })),
     });
 
     guia.drive();

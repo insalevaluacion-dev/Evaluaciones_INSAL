@@ -170,30 +170,45 @@ a{
 }
 
 .hint__correo{
+    /* Layout */
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    font-family: Poppins;
+    /* Sizing */
+    width: 100%;
+    box-sizing: border-box;
+    /* Spacing */
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    /* Style */
+    border: 1px solid color-mix(in srgb, var(--naranja) 25%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--naranja) 8%, transparent);
+    /* Typography */
+    font-family: Poppins, sans-serif;
     font-size: var(--fs-sm);
     font-weight: 400;
-    text-align: center;
-    width: 100%;
-    color: #ffb074;
-    background: rgba(255, 176, 116, 0.08);
-    border: 1px solid rgba(255, 176, 116, 0.25);
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin: 2px 0 10px;
     line-height: 1.4;
-    box-sizing: border-box;
+    text-align: center;
+    color: var(--naranja);
 }
 
-.hint__correo-icono{
-    color: var(--naranja);
-    font-size: var(--fs-xl);
-    line-height: 1.4;
+.hint__correo .material-symbols-rounded.hint__correo-icono{
     flex-shrink: 0;
+    display: inline-block;
+    white-space: nowrap;
+    font-family: 'Material Symbols Rounded';
+    font-weight: 400;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--naranja);
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 #mensaje1{

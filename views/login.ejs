@@ -2,9 +2,35 @@
 <html lang="es">
 
 <head>
+    <!-- Capa de red robusta: DEBE cargar primero y de forma síncrona (sin defer,
+         sin type="module") para envolver window.fetch ANTES de que cualquier
+         módulo del flujo lo use. Aporta timeout + reintentos + aviso
+         "Reconectando…" + keep-alive frente a los cold starts de Render/Railway
+         en capa gratuita. -->
+    <script src="/js/fetchRobusto.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Inicia sesión</title>
+    <!-- Loader de marca del flujo de evaluadores. El <style> crítico posiciona
+         el overlay desde el primer pintado (antes de app-loader.css) y usa el
+         mismo fondo oscuro del body para que no haya destello. -->
+    <style>
+        #app-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: grid;
+            place-items: center;
+            background: #000;
+        }
+
+        #app-loader img {
+            display: block;
+            width: 88px;
+            height: 90px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/app-loader.css">
     <link rel="stylesheet" href="/css/notificaciones.css" />
     <link rel="stylesheet" href="/css/circular-progress.css">
     <link rel="stylesheet" href="/css/ripple.css">
@@ -18,11 +44,38 @@
     <script type="module">
         import 'https://esm.run/@material/web/all.js'
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
     <script src="/js/native-app.js" defer></script>
 </head>
 
 <body>
+    <div id="app-loader" class="app-loader is-active" role="status" aria-label="Cargando">
+        <img src="/assets/svg/Logo_SV_loader.svg" alt="" class="app-loader__logo">
+    </div>
+    <script type="module" src="/js/app-loader.js"></script>
+    <script>
+        // La visibilidad del loader la gestiona app-loader.js (cargado antes);
+        // no usamos aquí un timeout fijo de 8000 ms que oculta el overlay a
+        // medias aunque la fuente de iconos aún esté cargando.
+
+
+        // ── Anti "página fantasma" al volver con la flecha ATRÁS ──────────────
+        // Caso: entras al dashboard (/menu), cierras o cambias de rol, y luego
+        // pulsas ATRÁS hasta esta pantalla. El navegador puede restaurarla desde
+        // su back-forward cache (event.persisted=true) mostrando el login aunque
+        // la sesión real ya sea otra. Forzamos una recarga para que el navegador
+        // consulte al servidor (que manda no-store) y éste redirija según la
+        // sesión REAL: a /menu si hay maestro, a /seleccion si hay evaluador.
+        // Así nunca quedas "atorado" en un login que ya no te corresponde.
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                window.location.reload();
+            }
+        });
+    </script>
     <main class="main__container">
         <section class="content">
             <div class="centrar logo_empresa">

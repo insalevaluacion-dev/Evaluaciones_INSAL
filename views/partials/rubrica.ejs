@@ -14,15 +14,15 @@
             <div class="campo-nota input-char-wrapper">
                 <label for="rubrica" class="campo-nota__label">Nombre <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
-                    <textarea required autocomplete="off" placeholder="Nombre de la rúbrica" class="campo-nota__input campo-nombre__input" name="rubrica" id="rubrica" rows="2" maxlength="80"></textarea>
+                    <input type="text" required autocomplete="off" placeholder="Nombre de la rúbrica" class="campo-nota__input" name="rubrica" id="rubrica" maxlength="80">
                 </div>
                 <span class="char-counter" data-for="rubrica">0/80</span>
             </div>
             <span class="error-message" id="error-rubrica"></span>
             <div class="campo-nota input-char-wrapper">
-                <label for="rubrica-descripcion" class="campo-nota__label">Descripción</label>
+                <label for="rubrica-descripcion" class="campo-nota__label">Descripción <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
-                    <textarea autocomplete="off" placeholder="Describe el propósito de la rúbrica" class="campo-nota__input campo-descripcion__input" name="descripcion" id="rubrica-descripcion" rows="3" required maxlength="160"></textarea>
+                    <textarea autocomplete="off" placeholder="Describe el propósito de la rúbrica" class="campo-nota__input campo-descripcion__input" name="descripcion" id="rubrica-descripcion" rows="1" required maxlength="160"></textarea>
                 </div>
                 <span class="char-counter" data-for="rubrica-descripcion">0/160</span>
             </div>
@@ -32,7 +32,7 @@
                     Cantidad de evaluadores <span class="requerido">*</span>
                 </label>
                 <div class="campo-nota__input-wrap">
-                    <input type="number" min="1" step="1" value="3" autocomplete="off"
+                    <input type="number" min="1" step="1" autocomplete="off"
                         placeholder="Ej. 3" class="campo-nota__input" name="cantidad_evaluadores"
                         id="rubrica-evaluadores">
                 </div>
@@ -167,15 +167,17 @@
                 <label for="editar-nombre">Nombre <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
                     <input type="text" id="editar-nombre" class="campo-nota__input" required
-                        maxlength="100" placeholder="Nombre de la rúbrica">
+                        maxlength="80" placeholder="Nombre de la rúbrica">
                 </div>
+                <span class="char-counter" data-for="editar-nombre">0/80</span>
             </div>
             <div class="field-group">
-                <label for="editar-descripcion">Descripción</label>
+                <label for="editar-descripcion">Descripción <span class="requerido">*</span></label>
                 <div class="campo-nota__input-wrap">
-                    <textarea id="editar-descripcion" class="campo-nota__input" rows="3"
-                        maxlength="500" placeholder="Describe el propósito de la rúbrica"></textarea>
+                    <textarea id="editar-descripcion" class="campo-nota__input" rows="1" required
+                        maxlength="160" placeholder="Describe el propósito de la rúbrica"></textarea>
                 </div>
+                <span class="char-counter" data-for="editar-descripcion">0/160</span>
             </div>
             <div class="field-group">
                 <label for="editar-evaluadores">Cantidad de evaluadores <span class="requerido">*</span></label>
@@ -183,6 +185,7 @@
                     <input type="number" min="1" step="1" autocomplete="off" id="editar-evaluadores"
                         class="campo-nota__input" placeholder="Ej. 3">
                 </div>
+                <p class="dialog-add-rubrica__hint">Número de evaluadores que deben calificar un proyecto para considerar su nota completa.</p>
             </div>
         </div>
         <div class="dialogo-editar-rubrica-actions">

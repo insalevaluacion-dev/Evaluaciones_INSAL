@@ -31,6 +31,7 @@ function toggleEmptyState(container) {
     if (!container || !emptyEl) return;
     const hasItems = container.querySelectorAll('.list-item').length > 0;
     emptyEl.style.display = hasItems ? 'none' : 'flex';
+    container.classList.toggle('has-items', hasItems);
     if (toolbar) toolbar.style.display = hasItems ? '' : 'none';
 }
 

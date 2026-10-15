@@ -1,7 +1,22 @@
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Retiene el loader de marca hasta que los datos estén pintados (ver
+    // app-loader.js). Evita revelar la vista con el contenido a medio cargar.
+    if (typeof window.__appLoaderHold === 'function') window.__appLoaderHold();
     const listaCriterios = document.getElementById('lista-criterios');
     const modalNotaFinal = document.getElementById('modal-nota-final');
     const notaFinalElement = document.getElementById('nota-final');
+    const botonConfirmar = document.getElementById('boton-confirmar');
+
+    if (botonConfirmar) botonConfirmar.disabled = true;
 
     const respuestaNivel = await fetch('/obtener-nivel', {
         method: 'GET',
@@ -32,31 +47,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (criteriosData.criterios?.length > 0) {
         criteriosData.criterios.forEach(criterio => {
             const li = document.createElement('li');
+            const idCriterio = escapeHtml(criterio.criterio_id);
             li.innerHTML = `
             <div class="titulo__criterio" onclick="AbrirDescripcion(this)">
-                ${criterio.nombre}
+                ${escapeHtml(criterio.nombre)}
                 <span class="material-symbols-rounded flecha">
                     stat_minus_1
                 </span>
-                <div><p>(${criterio.porcentaje}%)</p></div>
+                <div><p>(${escapeHtml(criterio.porcentaje)}%)</p></div>
             </div>
-            <p for="criterio-${criterio.criterio_id}" class="descripcion">
-                ${criterio.descripcion}
+            <p for="criterio-${idCriterio}" class="descripcion">
+                ${escapeHtml(criterio.descripcion)}
             </p>
-            <div class="puntuacion"><p>Puntuación: ${criterio.puntuacion} p</p></div>
+            <div class="puntuacion"><p>Puntuación: ${escapeHtml(criterio.puntuacion)} p</p></div>
             `
             listaCriterios.appendChild(li);
         });
     } else {
         listaCriterios.innerHTML = '<p>No hay criterios evaluados.</p>';
     }
+
+    // Datos pintados: libera el loader de marca (junto a la fuente lista).
+    if (typeof window.__appLoaderDataReady === 'function') window.__appLoaderDataReady();
 });
 
 function mostrarNotaFinal() {
     const botonCalificar = document.getElementById('boton-calificar');
+    const botonConfirmar = document.getElementById('boton-confirmar');
+    const notaFinalElement = document.getElementById('nota-final');
     const restaurarBoton = () => {
         window.setButtonFeedbackState(botonCalificar, 'normal');
     };
+
+    if (botonConfirmar) botonConfirmar.disabled = true;
+    if (notaFinalElement) notaFinalElement.textContent = 'Calculando...';
 
     window.setButtonFeedbackState(botonCalificar, 'loading');
 
@@ -88,7 +112,8 @@ function mostrarNotaFinal() {
                             return total + (criterio.puntuacion * criterio.porcentaje / 100);
                         }, 0);
                         notaFinal = notaFinal > 10 ? 10 : notaFinal;
-                        document.getElementById('nota-final').textContent = `${notaFinal.toFixed(2)}`;
+                        notaFinalElement.textContent = `${notaFinal.toFixed(2)}`;
+                        if (botonConfirmar) botonConfirmar.disabled = false;
                         document.getElementById('modal-nota-final').style.display = 'block';
                         window.setButtonFeedbackState(botonCalificar, 'success');
                     } else {
@@ -116,11 +141,20 @@ function cerrarModalNotaFinal() {
     }, 300);
 }
 
+let confirmacionEnCurso = false;
+
 function confirmarEvaluacion() {
+    if (confirmacionEnCurso) return;
+
     const botonConfirmar = document.getElementById('boton-confirmar');
+    const notaFinalElement = document.getElementById('nota-final');
+    if (!notaFinalElement?.textContent.trim() || botonConfirmar?.disabled) return;
+
+    confirmacionEnCurso = true;
     if (botonConfirmar) {
         botonConfirmar.classList.add('cargando');
         botonConfirmar.disabled = true;
+        botonConfirmar.setAttribute('aria-busy', 'true');
     }
 
     fetch('/confirmar-evaluacion', {
@@ -143,7 +177,9 @@ function confirmarEvaluacion() {
             if (botonConfirmar) {
                 botonConfirmar.classList.remove('cargando');
                 botonConfirmar.disabled = false;
+                botonConfirmar.setAttribute('aria-busy', 'false');
             }
+            confirmacionEnCurso = false;
         });
 }
 

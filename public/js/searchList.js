@@ -10,6 +10,24 @@
 
 import { animarMostrar, animarOcultar } from './listAnimations.js';
 
+/** Texto visible del ítem, sin nodos marcados data-search-ignore
+ *  (p. ej. el % de ponderación de una rúbrica). */
+function textoBuscable(root) {
+    if (!root.querySelector('[data-search-ignore]')) return root.textContent || '';
+    let text = '';
+    const walk = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            text += node.nodeValue || '';
+            return;
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.hasAttribute('data-search-ignore')) return;
+        for (const child of node.childNodes) walk(child);
+    };
+    walk(root);
+    return text;
+}
+
 /** Normaliza texto para comparar (minúsculas, sin tildes).
  *  Admite caracteres especiales como ° (equivalente a º). */
 function normalizeText(text) {
@@ -37,7 +55,16 @@ function getListState(container) {
 /** Crea (una sola vez) el bloque "sin resultados" dentro del contenedor. */
 function ensureNoResultsEl(container) {
     let el = container.querySelector(':scope > .search-no-results');
-    if (el) return el;
+    if (el) {
+        const sub = el.querySelector('.empty-subtext');
+        if (sub && !sub.querySelector('.search-no-results-term')) {
+            const term = document.createElement('em');
+            term.className = 'search-no-results-term';
+            sub.textContent = '';
+            sub.append('No hay coincidencias para ', term, '.');
+        }
+        return el;
+    }
 
     const icon = document.createElement('span');
     icon.className = 'material-symbols-rounded empty-icon';
@@ -161,7 +188,7 @@ function applyListState(container) {
         const matchesFilters = Object.entries(state.filters).every(
             ([key, val]) => !val || item.dataset[key] === val
         );
-        const matchesQuery = !query || normalizeText(item.textContent).includes(query);
+        const matchesQuery = !query || normalizeText(textoBuscable(item)).includes(query);
         const visible = matchesFilters && matchesQuery;
         applyItemVisibility(item, visible);
         if (visible) visibleCount++;

@@ -42,6 +42,28 @@ function posicionarInfoCard(menu, trigger) {
     menu.style.top = `${top}px`;
 }
 
+export function posicionarMenuFlotante(menu, trigger) {
+    const triggerRect = trigger.getBoundingClientRect();
+    const margin = 12;
+    const gap = 8;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    const maxLeft = Math.max(margin, viewportWidth - menuWidth - margin);
+    const left = Math.max(margin, Math.min(triggerRect.right - menuWidth, maxLeft));
+    const belowTop = triggerRect.bottom + gap;
+    const preferredTop = belowTop + menuHeight <= viewportHeight - margin
+        ? belowTop
+        : triggerRect.top - menuHeight - gap;
+    const maxTop = Math.max(margin, viewportHeight - menuHeight - margin);
+    const top = Math.max(margin, Math.min(preferredTop, maxTop));
+
+    menu.style.left = `${left}px`;
+    menu.style.right = 'auto';
+    menu.style.top = `${top}px`;
+}
+
 function cerrarMenuContextual(menu) {
     if (!menu || !menu.classList.contains('show')) return;
 

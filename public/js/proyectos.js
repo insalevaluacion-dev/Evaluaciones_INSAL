@@ -4,7 +4,7 @@
 
 import { mostrarNotificacion } from './notificaciones.js';
 import { createSubmitHandler } from './submitHandler.js';
-import { cerrarDialogoAnimado } from './menu.js';
+import { cerrarDialogoAnimado, posicionarMenuFlotante } from './menu.js';
 import { confirmarAccion } from './editar-criterios.js';
 import { animarEntrada, animarSalida } from './listAnimations.js';
 import { puedeEliminarProyectos } from './permisos.js';
@@ -33,6 +33,7 @@ let estadoFiltros = {
     gradoKey: '',
     seccion: '',
     rubrica: '',
+    materia: '',
     sort: 'id-desc',
 };
 
@@ -73,6 +74,7 @@ function vincularGuardadoFiltros() {
         'filtro-grado-proyectos',
         'filtro-seccion-proyectos',
         'filtro-rubrica-proyectos',
+        'filtro-materia-proyectos',
         'orden-proyectos',
     ];
     ids.forEach((id) => {
@@ -91,6 +93,7 @@ function vincularGuardadoFiltros() {
             const clave = id === 'filtro-anio-proyectos' ? 'anio'
                 : id === 'filtro-grado-proyectos' ? 'gradoKey'
                 : id === 'filtro-seccion-proyectos' ? 'seccion'
+                : id === 'filtro-materia-proyectos' ? 'materia'
                 : 'rubrica';
             estadoFiltros[clave] = sel.value;
             persistirEstadoFiltros();
@@ -121,6 +124,50 @@ function restaurarOrdenLista() {
     selOrden.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+function initMobileProjectActions() {
+    const dialog = document.getElementById('dialogo-acciones-proyecto');
+    if (!dialog) return null;
+
+    const mobileQuery = window.matchMedia('(max-width: 640px)');
+    const closeButton = dialog.querySelector('[data-cerrar-acciones-proyecto]');
+    const projectName = dialog.querySelector('[data-proyecto-nombre]');
+    const openLink = dialog.querySelector('[data-accion-movil="abrir"]');
+
+    if (dialog.dataset.handlerInitialized !== 'true') {
+        dialog.dataset.handlerInitialized = 'true';
+
+        closeButton?.addEventListener('click', () => cerrarDialogoAnimado(dialog));
+        dialog.addEventListener('close', () => dialog.classList.remove('closing'));
+        dialog.addEventListener('cancel', (event) => {
+            event.preventDefault();
+            cerrarDialogoAnimado(dialog);
+        });
+
+        dialog.addEventListener('click', async (event) => {
+            const action = event.target.closest('[data-accion-movil]');
+            if (!action || action.dataset.accionMovil === 'abrir') return;
+
+            const actionName = action.dataset.accionMovil;
+            dialog.close();
+            if (actionName === 'editar') {
+                abrirDialogoEditarProyecto();
+            } else if (actionName === 'eliminar') {
+                await eliminarProyecto(currentProyectoId);
+            }
+        });
+
+        mobileQuery.addEventListener('change', () => {
+            if (!mobileQuery.matches && dialog.open) dialog.close();
+        });
+    }
+
+    return (itemElement) => {
+        const id = itemElement.dataset.itemId;
+        projectName.textContent = itemElement.dataset.nombre || 'Sin nombre';
+        openLink.href = `/menu/proyectos/${encodeURIComponent(id)}`;
+    };
+}
+
 function getMenuList() {
     return document.getElementById('menu__list');
 }
@@ -133,7 +180,8 @@ function initMobileProjectFilters(container) {
     const toolbar = container.querySelector('.list-toolbar');
     const toggle = toolbar?.querySelector('.list-toolbar__filters-toggle');
     const count = toggle?.querySelector('.list-toolbar__filters-count');
-    if (!toolbar || !toggle || !count || toggle.dataset.initialized === 'true') return;
+    const dialog = toolbar?.querySelector('#dialogo-filtros-proyectos');
+    if (!toolbar || !toggle || !count || !dialog || toggle.dataset.initialized === 'true') return;
 
     const mobileQuery = window.matchMedia('(max-width: 640px)');
     const filterIds = [
@@ -141,7 +189,32 @@ function initMobileProjectFilters(container) {
         'filtro-grado-proyectos',
         'filtro-seccion-proyectos',
         'filtro-rubrica-proyectos',
+        'filtro-materia-proyectos',
     ];
+
+    const resetFilters = () => {
+        const search = container.querySelector('#search-proyectos');
+        if (search?.value) {
+            search.value = '';
+            search.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        filterIds.forEach((id) => {
+            const select = container.querySelector(`#${id}`);
+            if (select && select.value) {
+                select.value = '';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+
+        const sort = container.querySelector('#orden-proyectos');
+        if (sort && sort.value !== 'id-desc') {
+            sort.value = 'id-desc';
+            sort.dispatchEvent(new Event('change', { bubbles: true }));
+        } else if (sort) {
+            sort.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    };
 
     const updateActiveFilterCount = () => {
         const activeCount = filterIds.reduce((total, id) => {
@@ -152,21 +225,34 @@ function initMobileProjectFilters(container) {
         count.hidden = activeCount === 0;
     };
 
-    const setExpanded = (expanded) => {
-        toolbar.classList.toggle('is-filters-expanded', mobileQuery.matches && expanded);
-        toggle.setAttribute('aria-expanded', String(!mobileQuery.matches || expanded));
-    };
-
     toggle.dataset.initialized = 'true';
     toggle.addEventListener('click', () => {
-        if (!mobileQuery.matches) return;
-        setExpanded(!toolbar.classList.contains('is-filters-expanded'));
+        if (mobileQuery.matches && !dialog.open) {
+            dialog.showModal();
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+    });
+    dialog.querySelector('.project-filters-close')?.addEventListener('click', () => {
+        cerrarDialogoAnimado(dialog);
+    });
+    dialog.querySelector('.project-filters-done')?.addEventListener('click', () => {
+        cerrarDialogoAnimado(dialog);
+    });
+    dialog.querySelector('.project-filters-reset')?.addEventListener('click', resetFilters);
+    dialog.addEventListener('close', () => {
+        toggle.setAttribute('aria-expanded', 'false');
+    });
+    dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        cerrarDialogoAnimado(dialog);
     });
     filterIds.forEach((id) => {
         container.querySelector(`#${id}`)?.addEventListener('change', updateActiveFilterCount);
     });
-    mobileQuery.addEventListener('change', () => setExpanded(false));
-    setExpanded(false);
+    mobileQuery.addEventListener('change', () => {
+        if (!mobileQuery.matches && dialog.open) dialog.close();
+    });
+    toggle.setAttribute('aria-expanded', 'false');
     updateActiveFilterCount();
 }
 
@@ -309,7 +395,9 @@ function populateFiltrosProyectos(container, proyectos) {
         const state = container.__insalListState;
         if (state) {
             state.filters = {};
-            [selAnio, selGrado, selSeccion, container.querySelector('#filtro-rubrica-proyectos')]
+            [selAnio, selGrado, selSeccion,
+                container.querySelector('#filtro-rubrica-proyectos'),
+                container.querySelector('#filtro-materia-proyectos')]
                 .filter(Boolean)
                 .forEach((sel) => {
                     if (sel.value) state.filters[sel.dataset.filterKey] = sel.value;
@@ -569,6 +657,7 @@ function createProyectoElement(proyecto) {
     // Datos en data-* para ordenar/filtrar y para pre-cargar el diálogo de edición
     elementoDiv.dataset.nombre = (proyecto.nombre || '').trim();
     elementoDiv.dataset.grado = gradoTexto.trim();
+    elementoDiv.dataset.materiaId = proyecto.materia_id || '';
     elementoDiv.dataset.nivelId = proyecto.nivel_id || '';
     elementoDiv.dataset.gradoId = proyecto.grado_id || '';
     elementoDiv.dataset.rubrica = String(proyecto.nivel_id || '');
@@ -613,6 +702,7 @@ function updateProyectoElement(el, proyecto) {
     el.dataset.itemId = String(proyecto.proyecto_id);
     el.dataset.nombre = (proyecto.nombre || '').trim();
     el.dataset.grado = gradoTexto.trim();
+    el.dataset.materiaId = proyecto.materia_id || '';
     el.dataset.nivelId = proyecto.nivel_id || '';
     el.dataset.gradoId = proyecto.grado_id || '';
     el.dataset.rubrica = String(proyecto.nivel_id || '');
@@ -626,28 +716,31 @@ function updateProyectoElement(el, proyecto) {
 
 let nivelesCache = null;
 let gradosCache = null;
+let materiasCache = null;
 // Petición en curso por catálogo: evita lanzar dos fetch idénticos cuando la
 // vista se inicializa en DOMContentLoaded y en contentUpdated casi a la vez.
 let nivelesPendiente = null;
 let gradosPendiente = null;
+let materiasPendiente = null;
 
 /** Catálogos que alimentan el formulario de proyectos (URL y clave del JSON). */
 const CATALOGOS_PROYECTO = {
     niveles: { url: '/admin/niveles-evaluacion', clave: 'niveles' },
     grados: { url: '/admin/grados', clave: 'grados' },
+    materias: { url: '/admin/materias', clave: 'materias' },
 };
 
 /**
  * Obtiene un catálogo del servidor cacheándolo en memoria.
  * Las respuestas fallidas NO se cachean (antes un error del servidor guardaba
  * una lista vacía y el select se quedaba sin opciones el resto de la sesión).
- * @param {'niveles'|'grados'} tipo Catálogo a cargar.
+ * @param {'niveles'|'grados'|'materias'} tipo Catálogo a cargar.
  * @param {boolean} forzar true para ignorar el caché y pedir datos frescos.
  */
 async function obtenerCatalogo(tipo, forzar = false) {
     const { url, clave } = CATALOGOS_PROYECTO[tipo];
-    const cache = tipo === 'niveles' ? nivelesCache : gradosCache;
-    const pendiente = tipo === 'niveles' ? nivelesPendiente : gradosPendiente;
+    const cache = tipo === 'niveles' ? nivelesCache : (tipo === 'materias' ? materiasCache : gradosCache);
+    const pendiente = tipo === 'niveles' ? nivelesPendiente : (tipo === 'materias' ? materiasPendiente : gradosPendiente);
 
     if (!forzar && cache) return cache;
     // Ya hay una petición en curso con datos frescos: se reutiliza.
@@ -671,11 +764,13 @@ async function obtenerCatalogo(tipo, forzar = false) {
             throw new Error(`Respuesta inesperada del servidor al cargar ${clave}`);
         }
         if (tipo === 'niveles') nivelesCache = data[clave];
+        else if (tipo === 'materias') materiasCache = data[clave];
         else gradosCache = data[clave];
         return data[clave];
     })();
 
     if (tipo === 'niveles') nivelesPendiente = peticion;
+    else if (tipo === 'materias') materiasPendiente = peticion;
     else gradosPendiente = peticion;
 
     try {
@@ -683,6 +778,8 @@ async function obtenerCatalogo(tipo, forzar = false) {
     } finally {
         if (tipo === 'niveles') {
             if (nivelesPendiente === peticion) nivelesPendiente = null;
+        } else if (tipo === 'materias') {
+            if (materiasPendiente === peticion) materiasPendiente = null;
         } else if (gradosPendiente === peticion) {
             gradosPendiente = null;
         }
@@ -692,6 +789,11 @@ async function obtenerCatalogo(tipo, forzar = false) {
 /** Obtiene las rúbricas (niveles de evaluación) para el select. */
 async function obtenerNiveles(forzar = false) {
     return obtenerCatalogo('niveles', forzar);
+}
+
+/** Obtiene el catálogo de materias para el select. */
+async function obtenerMaterias(forzar = false) {
+    return obtenerCatalogo('materias', forzar);
 }
 
 /**
@@ -741,6 +843,46 @@ async function cargarOpcionesRubricas() {
     restaurarOrdenLista();
 }
 
+/**
+ * Rellena el filtro por materia con el catálogo de la BD. Conserva la
+ * selección actual si el valor sigue existiendo y restaura la materia
+ * recordada al volver de la vista de edición.
+ */
+async function cargarOpcionesMaterias() {
+    const sel = document.getElementById('filtro-materia-proyectos');
+    if (!sel) return;
+
+    let materias = materiasCache;
+    if (!Array.isArray(materias)) {
+        try {
+            materias = await obtenerMaterias();
+        } catch {
+            return;
+        }
+    }
+
+    const opciones = materias.map((m) => ({
+        valor: String(m.materia_id),
+        label: m.nombre_materia || 'Sin nombre',
+    }));
+    const cambioValor = reconstruirOpcionesFiltro(sel, opciones, 'Todas');
+
+    // ── Restaurar la materia recordada ──
+    // Al volver de la vista de edición el select llega vacío ('Todas'):
+    // se re-aplica el valor guardado si su opción ya existe en el catálogo.
+    let restauroMateria = false;
+    if (estadoFiltros.materia && sel.value !== estadoFiltros.materia &&
+        sel.querySelector(`option[value="${CSS.escape(estadoFiltros.materia)}"]`)) {
+        sel.value = estadoFiltros.materia;
+        restauroMateria = true;
+    }
+
+    // Refrescar el trigger del custom-select y el estado de filtrado solo si
+    // el valor cambió (reconstrucción o restauración). Así se evita un change
+    // espuro en la carga inicial ("" → "" no cambia).
+    if (cambioValor || restauroMateria) sel.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 /** Obtiene los grados habilitados para el maestro. */
 async function obtenerGrados(forzar = false) {
     return obtenerCatalogo('grados', forzar);
@@ -753,6 +895,7 @@ async function obtenerGrados(forzar = false) {
 function invalidarCatalogosProyecto() {
     nivelesCache = null;
     gradosCache = null;
+    materiasCache = null;
 }
 
 // criterios-rubrica.js y editar-criterios.js avisan cuando cambia el catálogo de
@@ -828,6 +971,12 @@ function resolverNivelId(nombre) {
     return n ? String(n.nivel_id) : '';
 }
 
+/** Devuelve el materia_id a partir del nombre de la materia (o '' si no existe). */
+function resolverMateriaId(nombre) {
+    const m = (materiasCache || []).find((x) => x.nombre_materia === (nombre || '').trim());
+    return m ? String(m.materia_id) : '';
+}
+
 /** Devuelve el grado_id a partir de grado + especialidad + sección (o '' si no existe). */
 function resolverGradoId(gradoTexto, espTexto, seccionTexto) {
     if (!gradoTexto || !espTexto || !seccionTexto) return '';
@@ -846,12 +995,15 @@ function resolverGradoId(gradoTexto, espTexto, seccionTexto) {
 function sincronizarIdsFormulario(prefijo) {
     const selNivel = document.getElementById(`${prefijo}-nivel`);
     const hiddenNivel = document.getElementById(`${prefijo}-nivel-id`);
+    const selMateria = document.getElementById(`${prefijo}-materia`);
+    const hiddenMateria = document.getElementById(`${prefijo}-materia-id`);
     const selGrado = document.getElementById(`${prefijo}-grado-nivel`);
     const selEsp = document.getElementById(`${prefijo}-grado-esp`);
     const selSeccion = document.getElementById(`${prefijo}-grado`);
     const hiddenGrado = document.getElementById(`${prefijo}-grado-id`);
 
     if (hiddenNivel) hiddenNivel.value = resolverNivelId(selNivel?.value || '');
+    if (hiddenMateria) hiddenMateria.value = resolverMateriaId(selMateria?.value || '');
     if (hiddenGrado) hiddenGrado.value = resolverGradoId(
         selGrado?.value || '',
         selEsp?.value || '',
@@ -942,6 +1094,17 @@ function preseleccionarNivel(prefijo, nivelId) {
     if (hidden) hidden.value = String(nivel.nivel_id);
 }
 
+/** Preselecciona una materia en un formulario a partir de su materia_id. */
+function preseleccionarMateria(prefijo, materiaId) {
+    const sel = document.getElementById(`${prefijo}-materia`);
+    const hidden = document.getElementById(`${prefijo}-materia-id`);
+    if (!sel || materiaId == null || materiaId === '') return;
+    const materia = (materiasCache || []).find((m) => String(m.materia_id) === String(materiaId));
+    if (!materia) return;
+    establecerValorSelect(`${prefijo}-materia`, materia.nombre_materia);
+    if (hidden) hidden.value = String(materia.materia_id);
+}
+
 /**
  * Preselecciona un grado concreto en la cascada de un diálogo (crear/editar),
  * reconstruyendo cada nivel con el grado correspondiente.
@@ -972,7 +1135,7 @@ function preseleccionarGradoEnCascade(prefijo, gradoId) {
 async function poblarSelectsProyecto(forzar = false) {
     // Cada catálogo se carga por separado: si uno falla, el otro todavía puede
     // poblar sus selects y el usuario recibe un aviso claro del problema.
-    const [niveles, grados] = await Promise.all([
+    const [niveles, grados, materias] = await Promise.all([
         obtenerNiveles(forzar).catch((error) => {
             console.error('Error al cargar los tipos de evaluación:', error);
             mostrarNotificacion('No se pudieron cargar los tipos de evaluación', 'error');
@@ -983,12 +1146,20 @@ async function poblarSelectsProyecto(forzar = false) {
             mostrarNotificacion('No se pudieron cargar los grados', 'error');
             return null;
         }),
+        obtenerMaterias(forzar).catch((error) => {
+            console.error('Error al cargar las materias:', error);
+            mostrarNotificacion('No se pudieron cargar las materias', 'error');
+            return null;
+        }),
     ]);
 
     if (niveles) {
-        // Rúbricas (niveles) para crear y editar
-        poblarOpcionesSelect('proyecto-nivel', niveles.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
-        poblarOpcionesSelect('editar-nivel', niveles.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
+        // Rúbricas para crear y editar: SOLO las completas (100% de ponderación).
+        // Las incompletas se pueden guardar como borrador, pero no asignar a proyectos.
+        const completas = niveles.filter((n) => Number(n.ponderacion_total) === 100);
+        const incompletas = niveles.length - completas.length;
+        poblarOpcionesSelect('proyecto-nivel', completas.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
+        poblarOpcionesSelect('editar-nivel', completas.map((n) => n.nombre), 'Selecciona un tipo de evaluación');
 
         // Resolver el nivel_id cuando cambia la rúbrica (un listener por select)
         ['proyecto-nivel', 'editar-nivel'].forEach((id) => {
@@ -1001,6 +1172,26 @@ async function poblarSelectsProyecto(forzar = false) {
             sel.dataset.nivelListenerInit = 'true';
             sel.addEventListener('change', () => {
                 hidden.value = resolverNivelId(sel.value);
+            });
+        });
+    }
+
+    if (materias) {
+        // Materias para crear y editar
+        poblarOpcionesSelect('proyecto-materia', materias.map((m) => m.nombre_materia), 'Selecciona una materia');
+        poblarOpcionesSelect('editar-materia', materias.map((m) => m.nombre_materia), 'Selecciona una materia');
+
+        // Resolver el materia_id cuando cambia la materia (un listener por select)
+        ['proyecto-materia', 'editar-materia'].forEach((id) => {
+            const sel = document.getElementById(id);
+            const hidden = document.getElementById(`${id}-id`);
+            if (!sel || !hidden) return;
+            // Tras repoblar, re-sincronizar el id oculto con la selección vigente
+            hidden.value = resolverMateriaId(sel.value);
+            if (sel.dataset.materiaListenerInit === 'true') return;
+            sel.dataset.materiaListenerInit = 'true';
+            sel.addEventListener('change', () => {
+                hidden.value = resolverMateriaId(sel.value);
             });
         });
     }
@@ -1088,6 +1279,7 @@ function initProyectoFormHandler() {
         onSubmit: async () => {
             const nombre = nombreInput ? nombreInput.value.trim() : '';
             const nivel_id = Number(resolverNivelId(document.getElementById('proyecto-nivel')?.value || ''));
+            const materia_id = Number(resolverMateriaId(document.getElementById('proyecto-materia')?.value || ''));
             const grado_id = Number(resolverGradoId(
                 document.getElementById('proyecto-grado-nivel')?.value || '',
                 document.getElementById('proyecto-grado-esp')?.value || '',
@@ -1099,15 +1291,26 @@ function initProyectoFormHandler() {
                 throw new Error('Campo vacío');
             }
 
-            if (!nivel_id || !grado_id) {
-                mostrarNotificacion('Selecciona el tipo de evaluación y el grado del proyecto', 'error');
+            if (!nivel_id || !grado_id || !materia_id) {
+                mostrarNotificacion('Selecciona la materia, el tipo de evaluación y el grado del proyecto', 'error');
                 throw new Error('Campos vacíos');
+            }
+
+            // Doble verificación en cliente: la rúbrica debe estar al 100%.
+            // El select ya filtra, pero si el dato es viejo se valida aquí también.
+            const rubricaElegida = (nivelesCache || []).find((n) => Number(n.nivel_id) === nivel_id);
+            if (rubricaElegida && Number(rubricaElegida.ponderacion_total) !== 100) {
+                mostrarNotificacion(
+                    `La rúbrica "${rubricaElegida.nombre}" está incompleta (${rubricaElegida.ponderacion_total}%): debe sumar 100% para asignarla`,
+                    'error',
+                );
+                throw new Error('Rúbrica incompleta');
             }
 
             const response = await fetch('/admin/proyectos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, grado_id, nivel_id })
+                body: JSON.stringify({ nombre, grado_id, nivel_id, materia_id })
             });
 
             const data = await response.json();
@@ -1124,12 +1327,12 @@ function initProyectoFormHandler() {
             form.reset();
             // Limpiar selects y campos ocultos, reponiendo los placeholders de la
             // cascada Grado → Especialidad → Sección y resincronizando los triggers.
-            ['proyecto-nivel', 'proyecto-grado-nivel', 'proyecto-grado-esp',
+            ['proyecto-nivel', 'proyecto-materia', 'proyecto-grado-nivel', 'proyecto-grado-esp',
                 'proyecto-grado'].forEach((id) => {
                     const sel = document.getElementById(id);
                     if (sel) sel.value = '';
                 });
-            ['proyecto-nivel-id', 'proyecto-grado-id'].forEach((id) => {
+            ['proyecto-nivel-id', 'proyecto-materia-id', 'proyecto-grado-id'].forEach((id) => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -1153,12 +1356,17 @@ function initProyectoFormHandler() {
     });
 }
 
-/** Valida que la rúbrica y el grado del formulario tengan un valor válido (de la DB). */
+/** Valida que la rúbrica, la materia y el grado del formulario tengan un valor válido (de la DB). */
 function validarSelectsProyecto() {
     // Re-sincronizar por si el usuario escribió sin salir del campo
     sincronizarIdsFormulario('proyecto');
     const nivelId = document.getElementById('proyecto-nivel-id');
+    const materiaId = document.getElementById('proyecto-materia-id');
     const gradoId = document.getElementById('proyecto-grado-id');
+    if (materiaId && !materiaId.value) {
+        mostrarNotificacion('Selecciona una materia válida para el proyecto', 'error');
+        return false;
+    }
     if (nivelId && !nivelId.value) {
         mostrarNotificacion('Selecciona un tipo de evaluación válido para el proyecto', 'error');
         return false;
@@ -1184,10 +1392,14 @@ function abrirDialogoEditarProyecto() {
 
     const nombreInput = document.getElementById('editar-nombre');
 
-    if (nombreInput) nombreInput.value = item.dataset.nombre || '';
+    if (nombreInput) {
+        nombreInput.value = item.dataset.nombre || '';
+        nombreInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 
-    // Pre-seleccionar nivel (rúbrica) y grado vía la cascada
+    // Pre-seleccionar materia (catálogo), nivel (rúbrica) y grado vía la cascada
     // Grado → Especialidad → Sección del diálogo de edición
+    preseleccionarMateria('editar', item.dataset.materiaId);
     preseleccionarNivel('editar', item.dataset.nivelId);
     preseleccionarGradoEnCascade('editar', item.dataset.gradoId);
 
@@ -1211,6 +1423,7 @@ async function guardarEdicionProyecto() {
     const nombreInput = document.getElementById('editar-nombre');
     const nombre = nombreInput ? nombreInput.value.trim() : '';
     const nivel_id = Number(resolverNivelId(document.getElementById('editar-nivel')?.value || ''));
+    const materia_id = Number(resolverMateriaId(document.getElementById('editar-materia')?.value || ''));
     const grado_id = Number(resolverGradoId(
         document.getElementById('editar-grado-nivel')?.value || '',
         document.getElementById('editar-grado-esp')?.value || '',
@@ -1223,15 +1436,15 @@ async function guardarEdicionProyecto() {
         throw new Error('Campo vacío');
     }
 
-    if (!nivel_id || !grado_id) {
-        mostrarNotificacion('Selecciona la rúbrica (nivel) y el grado del proyecto', 'error');
+    if (!nivel_id || !grado_id || !materia_id) {
+        mostrarNotificacion('Selecciona la materia, la rúbrica (nivel) y el grado del proyecto', 'error');
         throw new Error('Campos vacíos');
     }
 
     const res = await fetch(`/admin/proyectos/${currentProyectoId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, nivel_id, grado_id }),
+        body: JSON.stringify({ nombre, nivel_id, grado_id, materia_id }),
     });
 
     const data = await res.json();
@@ -1274,6 +1487,23 @@ function initDialogoEditarProyecto() {
         if (e.key === 'Enter') {
             e.preventDefault();
         }
+    });
+
+    const formEditarContadores = document.getElementById('dialogo-editar-proyecto-form');
+    formEditarContadores?.querySelectorAll('.char-counter').forEach(counter => {
+        const input = document.getElementById(counter.dataset.for);
+        if (!input) return;
+
+        const max = parseInt(input.getAttribute('maxlength'), 10) || 0;
+        const update = () => {
+            const len = input.value.length;
+            counter.textContent = `${len}/${max}`;
+            counter.classList.toggle('char-counter--warn', len >= max * 0.8 && len < max);
+            counter.classList.toggle('char-counter--limit', len >= max);
+        };
+
+        input.addEventListener('input', update);
+        update();
     });
 
     // Conectar createSubmitHandler al formulario de edición
@@ -1344,6 +1574,7 @@ function initProyectosHandlers() {
     if (!menulist) return;
 
     initMobileProjectFilters(container);
+    const setMobileProjectActions = initMobileProjectActions();
 
     // Mantener estadoFiltros al día con los cambios de la toolbar (se
     // recuerdan al salir/entrar de la vista de edición) y restaurar en la
@@ -1358,6 +1589,8 @@ function initProyectosHandlers() {
     // Rellenar el filtro por rúbrica. Reutiliza la petición de niveles en curso
     // que acabó de lanzar poblarSelectsProyecto, así que no duplica el fetch.
     cargarOpcionesRubricas();
+    // Rellenar el filtro por materia (reutiliza la petición de materias en curso).
+    cargarOpcionesMaterias();
     loadProyectos();
     initFiltroCascadaProyectos(container);
 
@@ -1378,13 +1611,18 @@ function initProyectosHandlers() {
             const itemElement = menuBtn.closest('.list-item');
             currentProyectoId = itemElement.dataset.itemId;
 
+            if (window.matchMedia('(max-width: 640px)').matches) {
+                menulist.classList.remove('show');
+                menuVisible = false;
+                setMobileProjectActions?.(itemElement);
+                document.getElementById('dialogo-acciones-proyecto')?.showModal();
+                return;
+            }
+
             menuVisible = !menuVisible;
 
-            const rect = menuBtn.getBoundingClientRect();
-            menulist.style.top = rect.bottom + 8 + 'px';
-            menulist.style.right = (window.innerWidth - rect.right) + 'px';
-
             if (menuVisible) {
+                posicionarMenuFlotante(menulist, menuBtn);
                 menulist.classList.add('show');
             } else {
                 menulist.classList.remove('show');

@@ -10,7 +10,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { mostrarNotificacion } from './notificaciones.js';
-import { cerrarDialogoAnimado } from './menu.js';
+import { cerrarDialogoAnimado, posicionarMenuFlotante } from './menu.js';
 import { createSubmitHandler } from './submitHandler.js';
 import { puedeEditarRubricas } from './permisos.js';
 import { plural } from './texto.js';
@@ -22,6 +22,10 @@ import { plural } from './texto.js';
 let rubricaId = null;
 let criterios = []; // { uid, criterio_id, nombre, descripcion, porcentaje, pendiente }
 let uidCounter = 0;
+/** Promesa de la carga en curso de criterios (null hasta el primer fetch). */
+let cargaCriterios = null;
+/** Evita abrir dos veces la modal si se pulsa Atrás muy seguido. */
+let salidaRubricaEnCurso = false;
 
 const nextUid = () => ++uidCounter;
 
@@ -53,6 +57,80 @@ function getTotal() {
 }
 
 /**
+ * Sale de la vista del editor de rúbrica. Si la ponderación no cubre el 100%,
+ * muestra la modal de advertencia (dialogo-rubrica-incompleta): la rúbrica se
+ * guarda como borrador pero NO podrá asignarse a proyectos.
+ * Se resuelve `true` si el usuario decide salir, `false` si se queda editando.
+ */
+export async function confirmarSalidaRubricaIncompleta() {
+    // Esperar al fetch: si se pulsa Atrás antes de que lleguen los criterios,
+    // getTotal() sería 0 y la modal saldría aunque la rúbrica ya esté al 100%.
+    if (!rubricaId) rubricaId = getRubricaId();
+    if (document.getElementById('criterios-lista')
+        && (!cargaCriterios || String(cargaCriterios.rubricaId) !== String(rubricaId))) {
+        cargaCriterios = loadCriterios();
+    }
+    const pendiente = cargaCriterios;
+    if (pendiente) {
+        try { await pendiente; } catch { /* el total queda en lo que se haya cargado */ }
+    }
+    // El total en pantalla ya incluye borradores y ediciones pendientes.
+    const total = getTotal();
+    if (total === 100) return true;
+    const confirmar = await confirmarAccion(
+        'Rúbrica incompleta',
+        `Esta rúbrica tiene ${total}% asignado. Podrás guardarla como borrador, pero no estará disponible para proyectos hasta completar el 100%. ¿Deseas salir?`,
+        async () => { },
+        'dialogo-rubrica-incompleta',
+    );
+    return confirmar;
+}
+
+function navegarSpa(destino) {
+    if (typeof window.navigateTo === 'function') window.navigateTo(destino);
+    else window.location.assign(destino);
+}
+
+/**
+ * Intercepta "Atrás" en fase capture, en document, antes de que el clic
+ * llegue al router SPA (bubble en document sobre [data-link]).
+ * Un listener en el propio <a> no basta: si la vista se reinyecta y el
+ * init no alcanza a engancharlo, el router navega y la modal no llega a verse.
+ * El enlace ya no lleva data-link; este listener es el único que navega.
+ */
+document.addEventListener('click', (e) => {
+    const btn = e.target instanceof Element ? e.target.closest('#btn-atras-rubrica') : null;
+    if (!btn) return;
+    // Clic modificado: dejar que el navegador abra el href (nueva pestaña).
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const destino = btn.getAttribute('href') || '/menu/rubrica';
+    // puedeEditarRubricas es síncrono (lee <body data-permisos>).
+    // Los docentes ven solo lectura: no hay ponderación que advertir.
+    let puedeEditar = false;
+    try {
+        puedeEditar = puedeEditarRubricas() === true;
+    } catch {
+        puedeEditar = false;
+    }
+    if (!puedeEditar) {
+        navegarSpa(destino);
+        return;
+    }
+    if (salidaRubricaEnCurso) return;
+    salidaRubricaEnCurso = true;
+    confirmarSalidaRubricaIncompleta()
+        .catch(() => false)
+        .then((salir) => {
+            salidaRubricaEnCurso = false;
+            if (salir) navegarSpa(destino);
+        });
+}, true);
+
+/**
  * Abre una modal nativa de confirmación en lugar de window.confirm().
  * Devuelve `true` si el usuario confirma, `false` si cancela o cierra.
  * Si la acción lanza un error, la promesa se rechaza con el error.
@@ -68,8 +146,12 @@ export function confirmarAccion(mensaje, subtitulo, accion, dialogId = 'dialogo-
             return;
         }
 
-        if (tituloEl) tituloEl.textContent = mensaje || '¿Estás seguro?';
-        if (mensajeEl) mensajeEl.textContent = subtitulo || 'Esta acción no se puede deshacer.';
+        // La modal de rúbrica incompleta comparte clases con dialogo-confirmar,
+        // pero sus ids son propios: resolverlos por data-atributo como respaldo.
+        const tituloFinal = tituloEl || dialogo.querySelector('[data-dialogo-titulo]');
+        const mensajeFinal = mensajeEl || dialogo.querySelector('[data-dialogo-mensaje]');
+        if (tituloFinal) tituloFinal.textContent = mensaje || '¿Estás seguro?';
+        if (mensajeFinal) mensajeFinal.textContent = subtitulo || 'Esta acción no se puede deshacer.';
 
         // Buscar el botón de confirmación: data-accion="confirmar" (dialogo-confirmar)
         // o data-confirmar-rubrica (dialogo-eliminar-rubrica)
@@ -356,7 +438,17 @@ export function confirmarAccion(mensaje, subtitulo, accion, dialogId = 'dialogo-
         // Restaurar estado del botón antes de abrir (por si se reabre
         // con el estado atascado en "Confirmando…" del uso anterior).
         resetButton();
-        dialogo.showModal();
+        try {
+            if (dialogo.open) dialogo.close();
+            dialogo.showModal();
+        } catch (err) {
+            console.error('No se pudo abrir el diálogo de confirmación', err);
+            cleanup();
+            if (!resolved) {
+                resolved = true;
+                resolve(window.confirm(mensaje || '¿Estás seguro?'));
+            }
+        }
     });
 }
 
@@ -390,29 +482,29 @@ function renderTotal() {
 
     const estado = document.getElementById('puntuacion-estado');
     if (estado) {
-        const resto = 110 - total;
         if (total === 100) {
             estado.textContent = 'Listo para guardar';
             card.classList.add('es-ok');
             card.classList.remove('no-ok');
-        } else if (total > 100 && total <= 110) {
-            estado.textContent = `Total con nota adicional (10% extra)`;
-            card.classList.add('es-ok');
-            card.classList.remove('no-ok');
-        } else if (total > 110) {
-            estado.textContent = `Exceso: ${Math.abs(110 - total)}% sobre el 110% máximo`;
+        } else if (total > 100) {
+            estado.textContent = `Exceso: ${total - 100}% sobre el 100% máximo`;
+            card.classList.remove('es-ok');
+            card.classList.add('no-ok');
+        } else if (total === 0) {
+            estado.textContent = 'Sin ponderación: se guarda igual (0%)';
             card.classList.remove('es-ok');
             card.classList.add('no-ok');
         } else {
-            estado.textContent = `Faltan ${resto}% por asignar`;
+            estado.textContent = `Parcial: ${total}% (se puede guardar)`;
             card.classList.remove('es-ok');
             card.classList.add('no-ok');
         }
     }
 
-    // El guardado se deshabilita hasta que la ponderación sume entre 100% y 110%.
+    // El botón Guardar siempre está habilitado: la ponderación es opcional.
+    // Solo se bloquea si el total supera el 100% máximo.
     const btn = document.getElementById('btn-guardar-criterios');
-    if (btn) btn.disabled = total < 100 || total > 110;
+    if (btn) btn.disabled = total < 0 || total > 100;
 }
 
 function getCriterioPorUid(uid) {
@@ -461,20 +553,30 @@ async function loadRubrica() {
 }
 
 /** Carga los criterios ya guardados de la rúbrica desde el backend. */
-async function loadCriterios() {
-    if (!rubricaId) return;
+function loadCriterios() {
+    if (!rubricaId) return Promise.resolve();
     const lista = document.getElementById('criterios-lista');
-    if (!lista) return;
-    try {
-        const res = await fetch(`/admin/niveles/${rubricaId}/criterios`);
-        const data = await res.json();
-        criterios = Array.isArray(data.criterios) ? data.criterios : [];
-        criterios.forEach(c => { c.uid = nextUid(); c.pendiente = false; c.eliminado = false; });
-    } catch (err) {
-        console.log('Error al cargar criterios:', err);
-        criterios = [];
-    }
-    renderCriterios();
+    if (!lista) return Promise.resolve();
+    const id = String(rubricaId);
+    if (cargaCriterios && cargaCriterios.rubricaId === id) return cargaCriterios;
+    const peticion = (async () => {
+        try {
+            const res = await fetch(`/admin/niveles/${id}/criterios`);
+            const data = await res.json();
+            if (String(rubricaId) !== id) return;
+            criterios = Array.isArray(data.criterios) ? data.criterios : [];
+            criterios.forEach(c => { c.uid = nextUid(); c.pendiente = false; c.eliminado = false; });
+        } catch (err) {
+            console.log('Error al cargar criterios:', err);
+            if (String(rubricaId) !== id) return;
+            criterios = [];
+        }
+        if (String(rubricaId) !== id || !document.getElementById('criterios-lista')) return;
+        renderCriterios();
+    })();
+    peticion.rubricaId = id;
+    cargaCriterios = peticion;
+    return peticion;
 }
 
 function hideLoader() {
@@ -669,9 +771,10 @@ function startEdit(card, campo) {
         const patch = {};
 
         if (campo === 'porcentaje') {
-            const porc = Number(value);
-            if (!value || !Number.isFinite(porc) || porc < 1 || porc > 100) {
-                mostrarNotificacion('La ponderación debe estar entre 1 y 100', 'error');
+            // Vacío = 0% (criterio sin ponderación, válido).
+            const porc = value === '' ? 0 : Number(value);
+            if (!Number.isFinite(porc) || porc < 0 || porc > 100) {
+                mostrarNotificacion('La ponderación debe estar entre 0 y 100', 'error');
                 return;
             }
             patch.porcentaje = porc;
@@ -758,14 +861,28 @@ function quitarErrorCriterio(input, errorSpan) {
 }
 
 function validarPorcentajeCriterio(input, errorSpan, porcentaje) {
-    if (!input) return Number.isFinite(porcentaje) && porcentaje >= 1 && porcentaje <= 100;
-    if (!input.value.trim()) {
-        return marcarErrorCriterio(input, errorSpan, 'Rellena este campo de ponderación');
+    // La ponderación es opcional: vacío = 0% (válido, no cuenta en la nota).
+    const vacio = porcentaje === undefined || porcentaje === null
+        || (typeof porcentaje === 'string' && porcentaje.trim() === '')
+        || (typeof porcentaje === 'number' && Number.isNaN(porcentaje));
+    if (vacio) {
+        if (input) marcarValidoCriterio(input, errorSpan);
+        return true;
     }
-    if (!Number.isFinite(porcentaje) || porcentaje < 1 || porcentaje > 100) {
+    if (!input) return Number.isFinite(porcentaje) && porcentaje >= 0 && porcentaje <= 100;
+    if (!input.value.trim()) {
+        // Vacío = 0%: válido, el criterio se guarda sin ponderación.
+        input.classList.remove('error');
+        if (errorSpan) {
+            errorSpan.classList.remove('show');
+            errorSpan.textContent = '';
+        }
+        return true;
+    }
+    if (!Number.isFinite(porcentaje) || porcentaje < 0 || porcentaje > 100) {
         input.classList.add('error');
         if (errorSpan) {
-            errorSpan.textContent = 'La ponderación debe estar entre 1 y 100';
+            errorSpan.textContent = 'La ponderación debe estar entre 0 y 100';
             errorSpan.classList.add('show');
         }
         return false;
@@ -805,7 +922,9 @@ function addCriterioDraft() {
 
     const nombre = nombreInput ? nombreInput.value.trim() : '';
     const descripcion = descripcionInput ? descripcionInput.value.trim() : '';
-    const porcentaje = Number(porcentajeInput ? porcentajeInput.value : NaN);
+    // Vacío = 0% (criterio sin ponderación): se guarda igual.
+    const rawValor = porcentajeInput ? porcentajeInput.value.trim() : '';
+    const porcentaje = rawValor === '' ? 0 : Number(rawValor);
 
     const okNombre = marcarErrorCriterio(
         nombreInput,
@@ -860,12 +979,16 @@ function cancelarCriterioDraft() {
 async function guardarCriterios() {
     if (!rubricaId) return { success: false };
 
-    // Solo se permite guardar si la ponderación suma entre 100% y 110%.
-    // El 10% extra corresponde al criterio de "punto adicional".
+    // La ponderación es opcional: se puede guardar con cualquier total 0-100%.
+    // El máximo siempre es 100% (sin punto extra).
+    // Si el total es menor a 100%, la nota se calcula sobre la suma real.
     const total = getTotal();
-    if (total < 100 || total > 110) {
-        mostrarNotificacion('La ponderación debe sumar entre 100% y 110% antes de guardar', 'error');
+    if (total < 0 || total > 100) {
+        mostrarNotificacion('La ponderación no puede superar el 100%', 'error');
         throw new Error('Validación fallida');
+    }
+    if (total < 100) {
+        mostrarNotificacion(`Guardando con ponderación parcial (${total}%). La nota se calculará sobre ese total.`, 'info');
     }
 
     const eliminados = criterios.filter(c => c.eliminado);
@@ -956,9 +1079,7 @@ function abrirMenuRubrica() {
     const visible = menu.classList.contains('show');
     menu.classList.toggle('show', !visible);
     if (!visible) {
-        const rect = btn.getBoundingClientRect();
-        menu.style.top = (rect.bottom + 8) + 'px';
-        menu.style.right = (window.innerWidth - rect.right) + 'px';
+        posicionarMenuFlotante(menu, btn);
     }
 }
 
@@ -1012,6 +1133,8 @@ function abrirDialogoEditarRubrica() {
 
     if (nombreInput) nombreInput.value = tituloEl ? tituloEl.textContent.trim() : '';
     if (descInput) descInput.value = descVista ? descVista.textContent.trim() : '';
+    nombreInput?.dispatchEvent(new Event('input'));
+    descInput?.dispatchEvent(new Event('input'));
 
     setTimeout(() => nombreInput?.focus(), 30);
     dialogo.showModal();
@@ -1038,6 +1161,12 @@ async function guardarEdicionRubrica() {
     if (!nombre) {
         mostrarNotificacion('El nombre de la rúbrica es requerido', 'error');
         nombreInput?.focus();
+        throw new Error('Campo vacío');
+    }
+
+    if (!descripcion) {
+        mostrarNotificacion('La descripción de la rúbrica es requerida', 'error');
+        descInput?.focus();
         throw new Error('Campo vacío');
     }
 
@@ -1084,6 +1213,20 @@ function initDialogoEditarRubrica() {
             // El submit se dispara via createSubmitHandler; evitamos el
             // comportamiento por defecto del Enter para que no cierre el dialog
         }
+    });
+
+    dialogo.querySelectorAll('.char-counter').forEach(counter => {
+        const input = document.getElementById(counter.dataset.for);
+        if (!input) return;
+        const max = parseInt(input.getAttribute('maxlength'), 10) || 0;
+        const update = () => {
+            const len = input.value.length;
+            counter.textContent = `${len}/${max}`;
+            counter.classList.toggle('char-counter--warn', len >= max * 0.8 && len < max);
+            counter.classList.toggle('char-counter--limit', len >= max);
+        };
+        input.addEventListener('input', update);
+        update();
     });
 
     // ── Conectar createSubmitHandler al formulario de edición ──
@@ -1168,9 +1311,10 @@ function initEditarCriterios() {
     initDialogoEditarRubrica();
 
     // Verificación de campos vacíos en el formulario de criterio (patrón login)
+    // La ponderación es opcional: solo el nombre es obligatorio.
     const camposCriterio = [
         { inputId: 'criterio-nombre', errorId: 'error-criterio-nombre', mensaje: 'Rellena este campo de nombre' },
-        { inputId: 'criterio-porcentaje', errorId: 'error-criterio-porcentaje', mensaje: 'Rellena este campo de ponderación' },
+        { inputId: 'criterio-porcentaje', errorId: 'error-criterio-porcentaje', mensaje: '' }, // opcional (vacío = 0%)
         { inputId: 'criterio-descripcion', errorId: 'error-criterio-descripcion', mensaje: '' }, // opcional
     ];
     camposCriterio.forEach(({ inputId, errorId, mensaje }) => {
@@ -1183,7 +1327,8 @@ function initEditarCriterios() {
                 return;
             }
             if (inputId === 'criterio-porcentaje') {
-                validarPorcentajeCriterio(input, errorSpan, Number(input.value));
+                const raw = input.value.trim();
+                validarPorcentajeCriterio(input, errorSpan, raw === '' ? 0 : Number(raw));
             } else {
                 marcarErrorCriterio(input, errorSpan, mensaje);
             }
@@ -1247,6 +1392,7 @@ function initEditarCriterios() {
             }
         });
     }
+
 }
 
 window.initEditarCriterios = initEditarCriterios;

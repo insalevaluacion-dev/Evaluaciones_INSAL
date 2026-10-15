@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 import bcrypt from 'bcrypt';
 
 // ─── Variables de entorno ─────────────────────────────────────────────────────
@@ -65,14 +66,11 @@ if (PLATAFORMA || process.env.TRUST_PROXY === 'true') {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET || 'insal-secret-2026',
-        resave: false,
-        saveUninitialized: false,
-        cookie: { secure: COOKIES_SEGURAS, httpOnly: true, maxAge: 8 * 60 * 60 * 1000 },
-    }),
-);
+// (El middleware de sesión se configura más abajo, tras crear el pool de
+// PostgreSQL, para poder PERSISTIR las sesiones en la base de datos. En la capa
+// gratuita de Render/Railway el contenedor se duerme y se reinicia; con el
+// MemoryStore por defecto esas sesiones se perderían y los usuarios quedarían
+// deslogueados. Guardándolas en PostgreSQL sobreviven a los reinicios.)
 
 // EJS
 app.set('view engine', 'ejs');
@@ -157,9 +155,21 @@ const CADENA_BD = process.env.DATABASE_URL
         : cadenaSinSSLMODE(process.env.DATABASE_URL)
     : process.env.DATABASE_URL;
 
+// Timeouts del pool pensados para Neon (free tier), que suspende la "compute"
+// tras ~5 min sin consultas y luego tarda en despertar.
+//   - connectionTimeoutMillis: si no logra conectar en X ms, aborta (no cuelga).
+//   - idleTimeoutMillis: cierra conexiones oxidadas del pool.
+//   - max: tope de conexiones simultáneas (Neon free las limita).
+// El reintento de consultas (justo debajo) es lo que realmente tolera el frío.
+const OPCIONES_POOL = {
+    connectionTimeoutMillis: Number(process.env.DB_CONN_TIMEOUT_MS) || 12000,
+    idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS) || 20000,
+    max: Number(process.env.DB_POOL_MAX) || 10,
+};
+
 const pool = new Pool(
     CADENA_BD
-        ? { connectionString: CADENA_BD, ssl }
+        ? { connectionString: CADENA_BD, ssl, ...OPCIONES_POOL }
         : {
             host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
             port: Number(process.env.DB_PORT || process.env.PGPORT) || 5432,
@@ -167,7 +177,107 @@ const pool = new Pool(
             user: process.env.DB_USER || process.env.PGUSER || 'postgres',
             password: process.env.DB_PASSWORD || process.env.PGPASSWORD || 'postgres',
             ssl,
+            ...OPCIONES_POOL,
         },
+);
+
+// ─── Tolerancia al "scale to zero" de Neon ───────────────────────────────────
+// Neon (sobre todo en free tier) suspende la compute de la BD tras ~5 min sin
+// consultas y CIERRA las conexiones TCP que el pool mantenía abiertas. La
+// siguiente consulta (la primera acción de un usuario tras un rato inactivo) usa
+// una conexión muerta y falla con error de conexión/timeout; al reintentar, pg
+// abre una conexión NUEVA que despierta la compute y la consulta funciona.
+//
+// Envolvemos pool.query UNA sola vez para que las ~64 consultas existentes
+// reintenten solas estos errores transitorios. Reglas:
+//   - Solo se reintentan errores de CONEXIÓN/timeout (códigos y mensajes de red).
+//   - Los errores LÓGICOS de SQL (PK duplicada 23505, NOT NULL, etc.) se
+//     propagan igual: reintentarlos no serviría.
+//   - Devuelve el resultado COMPLETO de la consulta, idéntico al original, para
+//     no romper el `const { rows } = await pool.query(...)` de las rutas.
+//   - NO envolvemos client.query (transacciones BEGIN/COMMIT), donde reintentar
+//     podría duplicar efectos. Esas usan una conexión sacada del pool a mano.
+const queryOriginal = pool.query.bind(pool);
+const MAX_REINTENTOS_BD = Number(process.env.DB_REINTENTOS) || 3;
+
+// Códigos de error de pg/libpq y del SO que son transitorios de conexión.
+const ERRORES_REINTENTABLES = new Set([
+    'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET', 'EPIPE', 'EAI_AGAIN', 'EPROTO',
+    '08000', '08003', '08006', '08001', '08004', // connection_exception y relacionados
+    '57P01', // admin_shutdown
+    '57P03', // cannot_connect_now (la BD está arrancando: típico al despertar)
+]);
+const REGEX_TRANSITORIO =
+    /connection terminated|connection timeout|timeout expired|connection closed|remaining connection slots|too many clients|server closed the connection|read ECONNRESET|connect ETIMEDOUT|Connection terminated unexpectedly/i;
+
+function esErrorTransitorioBD(err) {
+    if (!err) return false;
+    if (err.code && ERRORES_REINTENTABLES.has(err.code)) return true;
+    return REGEX_TRANSITORIO.test(err.message || '');
+}
+
+pool.query = async function consultaConReintento(...args) {
+    let ultimoError;
+    for (let intento = 1; intento <= MAX_REINTENTOS_BD + 1; intento++) {
+        try {
+            return await queryOriginal(...args);
+        } catch (err) {
+            ultimoError = err;
+            if (intento > MAX_REINTENTOS_BD || !esErrorTransitorioBD(err)) throw err;
+            const espera = Math.min(500 * intento, 2500); // backoff: 0.5s, 1s, 1.5s…
+            console.warn(
+                `⚠️  BD: error transitorio (${err.code || err.message}). ` +
+                `Reintento ${intento}/${MAX_REINTENTOS_BD} en ${espera}ms…`,
+            );
+            await new Promise((r) => setTimeout(r, espera));
+        }
+    }
+    throw ultimoError;
+};
+
+// ─── Almacén de sesiones persistente (PostgreSQL) ────────────────────────────
+// Render/Railway en capa gratuita "duermen" el contenedor tras un rato sin
+// tráfico y lo reinician en la siguiente petición. Con el MemoryStore por
+// defecto de express-session las sesiones viven SOLO en la RAM del contenedor,
+// así que en cada reinicio se borran TODAS: los usuarios con el sistema
+// abierto quedan deslogueados y sus datos de sesión (rol, permisos, evaluador,
+// nivel/proyecto seleccionados) se pierden.
+//
+// connect-pg-simple guarda cada sesión en una tabla de PostgreSQL, de modo que
+// SOBREVIVE a reinicios y cold starts: cuando el contenedor despierta, la
+// cookie de sesión del usuario sigue siendo válida y continúa donde estaba.
+// Se reutiliza el MISMO pool de la app (sin conexiones extra a la BD).
+const PgSessionStore = connectPgSimple(session);
+const sessionStore = new PgSessionStore({
+    pool,
+    // Tabla dentro del schema evaluaciones (el de este proyecto). NUNCA en
+    // principal, que es de otros sistemas.
+    schemaName: 'evaluaciones',
+    tableName: 'sesiones',
+    // NO se crea la tabla automáticamente: se crea una sola vez con el SQL
+    // facilitado (ver comentario más abajo) para no alterar la BD sola.
+    createTableIfMissing: false,
+    // 8 horas, igual que la cookie de sesión de abajo.
+    ttl: 8 * 60 * 60,
+});
+
+// Si el store no puede inicializarse (p. ej. la BD tarda en aceptar conexiones),
+// express-session reintenta de forma interna; aun así capturamos el error para
+// que no tumbe el arranque del servidor.
+sessionStore.on?.('error', (err) => {
+    console.error('❌ Error en el almacén de sesiones (connect-pg-simple):', err);
+});
+
+app.use(
+    session({
+        store: sessionStore,
+        secret: process.env.SESSION_SECRET || 'insal-secret-2026',
+        resave: false,
+        saveUninitialized: false,
+        // rolling no es necesario: connect-pg-simple renueva el TTL en cada
+        // acceso. La cookie mantiene su maxAge de 8h.
+        cookie: { secure: COOKIES_SEGURAS, httpOnly: true, maxAge: 8 * 60 * 60 * 1000 },
+    }),
 );
 
 /** Destino de la BD para los logs de arranque (nunca incluye credenciales). */
@@ -200,6 +310,37 @@ function buildGradeName(nivelNombre, bachilleratoId, seccionLetra) {
     const año = (nivelNombre || '').replace(/\s+/g, '').replace('Año', '');
     const abrev = BACH_ABREV[bachilleratoId] || '?';
     return `${año}${abrev}-${seccionLetra}`;
+}
+
+// ─── Historial de actividad del proyecto ─────────────────────────────────────
+/**
+ * Registra un cambio en el historial de actividad de un proyecto.
+ * Nunca lanza: si la tabla aún no existe (SQL no ejecutado) solo avisa por
+ * consola para no romper el flujo principal de guardado.
+ *
+ * @param {import('pg').PoolClient|import('pg').Pool} executor pool o client (dentro de transacción)
+ * @param {object} datos
+ */
+async function registrarActividad(executor, {
+    proyectoId,
+    usuarioId = null,
+    usuarioNombre = 'Sistema',
+    tipo,
+    descripcion,
+    valorAnterior = null,
+    valorNuevo = null,
+}) {
+    if (!proyectoId || !tipo || !descripcion) return;
+    try {
+        await executor.query(
+            `INSERT INTO evaluaciones.actividad_proyecto
+                 (proyecto_id, usuario_id, usuario_nombre, tipo, descripcion, valor_anterior, valor_nuevo)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [proyectoId, usuarioId, usuarioNombre, tipo, descripcion, valorAnterior, valorNuevo],
+        );
+    } catch (err) {
+        console.error('No se pudo registrar la actividad del proyecto (¿ejecutaste db/actividad_proyecto.sql?):', err.message);
+    }
 }
 
 // ─── DB init + seed ────────────────────────────────────────────────────────────
@@ -425,7 +566,7 @@ const submitCooldown = new Map(); // clave → timestamp (ms)
 
 function evitarSubmitDuplicado(tiempoMs = 3000) {
     return (req, res, next) => {
-        const usuario = req.session?.maestro?.id || req.session?.datosEvaluador?.evaluador_id || req.ip || 'anon';
+        const usuario = req.session?.maestro?.id || req.session?.datosEvaluador?.id || req.ip || 'anon';
         const cuerpo =
             req.body && typeof req.body === 'object'
                 ? JSON.stringify(Object.entries(req.body).sort())
@@ -471,8 +612,18 @@ async function canAccessGrade(maestroId, rolId, gradoId) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
+// Anti-caché SOLO para login/registro: la flecha "atrás" del navegador puede
+// servir estas páginas desde su caché (bfcache) mostrando un login "fantasma"
+// aunque la sesión siga activa. Con no-store, el navegador vuelve a preguntar al
+// servidor, que redirige según la sesión real. No toca el caché de assets ni el
+// del SPA (router.js).
+const sinCache = (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    next();
+};
+
 // Login para profesores
-app.get('/login', (req, res) => {
+app.get('/login', sinCache, (req, res) => {
     if (req.session.maestro) {
         return res.redirect('/menu');
     }
@@ -483,15 +634,14 @@ app.get('/login', (req, res) => {
 });
 
 // Registrarse
-app.get('/registrarse', (req, res) => {
+app.get('/registrarse', sinCache, (req, res) => {
     if (req.session.maestro) {
         return res.redirect('/menu');
     }
     if (req.session.datosEvaluador) {
-        res.redirect('/seleccion');
-    } else {
-        res.render('registrarse');
+        return res.redirect('/seleccion');
     }
+    res.render('registrarse');
 });
 
 app.get('/dashboard', (req, res) => {
@@ -599,7 +749,7 @@ app.get('/admin/inicio/resumen', requireAuth, async (req, res) => {
                        COALESCE(MAX(n.cantidad_evaluadores), 3)::int AS requeridos
                 FROM evaluaciones.proyectos p
                 JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
-                LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id
+                LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id AND ev.confirmo_nota = true
                 ${filtroGrado}
                 GROUP BY p.proyecto_id, p.grado_id
             ) p`,
@@ -619,7 +769,7 @@ app.get('/admin/inicio/resumen', requireAuth, async (req, res) => {
                     s.letra AS seccion,
                     e.nombre AS evaluador_nombre
             FROM evaluaciones.evaluaciones ev
-            JOIN evaluaciones.proyectos p ON ev.proyecto_id = p.proyecto_id
+            JOIN evaluaciones.proyectos p ON ev.proyecto_id = p.proyecto_id AND ev.confirmo_nota = true
             JOIN principal.grados g ON p.grado_id = g.grado_id
             JOIN principal.niveles_estudios ne ON g.niveles_estudio_id = ne.niveles_estudios_id
             LEFT JOIN principal.bachilleratos b ON g.bachillerato_id = b.bachillerato_id
@@ -783,20 +933,31 @@ app.post('/auth/login', async (req, res) => {
         if (!match) {
             return res.status(401).json({ mensaje: 'Credenciales incorrectas' });
         }
-        req.session.maestro = {
-            id: maestro.maestro_id,
-            nombre: maestro.nombre,
-            rolId: maestro.rol_id,
-            rolNombre: maestro.rol_nombre,
-        };
-        return res.json({
-            mensaje: 'Login exitoso',
-            maestro: {
+        // Cambio de identidad => sesión NUEVA. regenerate() destruye la sesión
+        // actual en el store y crea una vacía con NUEVO id. Esto garantiza roles
+        // mutuamente excluyentes (nunca maestro Y evaluador a la vez) y es la
+        // práctica recomendada ante un login (evita session fixation). Un simple
+        // `delete` de la otra clave NO es fiable con el store de PostgreSQL.
+        req.session.regenerate((errRegen) => {
+            if (errRegen) {
+                console.error('Error al regenerar sesión en login:', errRegen);
+                return res.status(500).json({ mensaje: 'No se pudo iniciar la sesión' });
+            }
+            req.session.maestro = {
                 id: maestro.maestro_id,
                 nombre: maestro.nombre,
                 rolId: maestro.rol_id,
                 rolNombre: maestro.rol_nombre,
-            },
+            };
+            return res.json({
+                mensaje: 'Login exitoso',
+                maestro: {
+                    id: maestro.maestro_id,
+                    nombre: maestro.nombre,
+                    rolId: maestro.rol_id,
+                    rolNombre: maestro.rol_nombre,
+                },
+            });
         });
     } catch (err) {
         console.error('Error login:', err);
@@ -942,18 +1103,56 @@ app.post('/enviarEvaluador', async (req, res) => {
         return res.status(400).json({ mensaje: 'Nombre y email son requeridos' });
     }
     try {
-        const result = await pool.query(
-            `INSERT INTO evaluaciones.evaluadores (nombre, email)
-            VALUES ($1, $2) RETURNING evaluador_id`,
-            [nombreEvaluador, email],
-        );
-        req.session.datosEvaluador = {
-            id: result.rows[0].evaluador_id,
-            nombreEvaluador,
-            email,
-        };
-        console.log(`Evaluador registrado: ${nombreEvaluador} (${email})`);
-        res.json({ success: true, mensaje: 'Evaluador registrado correctamente', redirect: '/seleccion' });
+        const emailNorm = String(email).trim();
+        const nombreNorm = String(nombreEvaluador).trim();
+
+        // Intentamos insertar. Como `email` es UNIQUE, si el evaluador ya existe
+        // recibimos 23505: en lugar de bloquearlo, RECUPERAMOS su sesión (busca su
+        // evaluador_id y se lo devuelve a la sesión). Así, si perdió la sesión
+        // (expiró, se reinició el contenedor, etc.) puede volver a entrar con SU
+        // MISMO correo y continuar donde estaba, sin inventar otro email.
+        let evaluadorId;
+        try {
+            const result = await pool.query(
+                `INSERT INTO evaluaciones.evaluadores (nombre, email)
+                 VALUES ($1, $2) RETURNING evaluador_id`,
+                [nombreNorm, emailNorm],
+            );
+            evaluadorId = result.rows[0].evaluador_id;
+            console.log(`Evaluador registrado: ${nombreNorm} (${emailNorm})`);
+        } catch (insertErr) {
+            if (insertErr.code !== '23505') throw insertErr;
+            // Email ya registrado: recuperamos la sesión existente.
+            const { rows } = await pool.query(
+                `SELECT evaluador_id, nombre FROM evaluaciones.evaluadores WHERE email = $1 LIMIT 1`,
+                [emailNorm],
+            );
+            if (rows.length === 0) throw insertErr;
+            if (String(rows[0].nombre).trim() !== nombreNorm) {
+                return res.status(409).json({ mensaje: 'Ese correo ya está registrado. Ingresa el mismo nombre y correo que usaste al registrarte.' });
+            }
+            evaluadorId = rows[0].evaluador_id;
+            console.log(`Evaluador reingresó (sesión recuperada): ${emailNorm}`);
+        }
+
+        // Sesión NUEVA (regenerate): descarta cualquier sesión de maestro previa
+        // en la MISMA cookie, garantizando roles mutuamente excluyentes (nunca
+        // maestro Y evaluador a la vez). Es más fiable que un `delete` con el
+        // store de PostgreSQL, y es la práctica correcta ante un cambio de
+        // identidad. Así, tras entrar como maestro y luego como evaluador, la
+        // sesión queda SOLO como evaluador y /login deja de redirigir a /menu.
+        req.session.regenerate((errRegen) => {
+            if (errRegen) {
+                console.error('Error al regenerar sesión en enviarEvaluador:', errRegen);
+                return res.status(500).json({ mensaje: 'No se guardaron los datos' });
+            }
+            req.session.datosEvaluador = {
+                id: evaluadorId,
+                nombreEvaluador: nombreNorm,
+                email: emailNorm,
+            };
+            res.json({ success: true, mensaje: 'Evaluador registrado correctamente', redirect: '/seleccion' });
+        });
     } catch (err) {
         console.error('Error enviarEvaluador:', err);
         if (err.code === '23505') {
@@ -1094,6 +1293,9 @@ app.get('/grados/secciones/:numNivel/:ano/:bachId', async (req, res) => {
  * Devuelve proyectos para nivel + año de estudio + bachillerato_id + sección.
  * :ano = principal.niveles_estudios_id (id del año de estudio)
  * Solo proyectos que aún no alcanzan la cantidad de evaluadores que exige su rúbrica.
+ * Los proyectos SIN alumnos asociados no aparecen (no son evaluables).
+ * OJO: no confundir con asistencia completa — un proyecto con alumnos, aunque
+ * todos ya tengan asistencia registrada, SÍ sigue apareciendo.
  */
 app.get('/proyectos/:numNivel/:ano/:bachId/:seccion', async (req, res) => {
     const numNivel = Number(req.params.numNivel);
@@ -1117,6 +1319,7 @@ app.get('/proyectos/:numNivel/:ano/:bachId/:seccion', async (req, res) => {
                  SELECT proyecto_id,
                         COUNT(*) AS cnt
                  FROM evaluaciones.evaluaciones
+                 WHERE confirmo_nota = true
                  GROUP BY proyecto_id
              ) e ON p.proyecto_id = e.proyecto_id
              JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
@@ -1125,6 +1328,11 @@ app.get('/proyectos/:numNivel/:ano/:bachId/:seccion', async (req, res) => {
                AND g.bachillerato_id = $3
                AND s.letra = $4
                AND (e.cnt IS NULL OR e.cnt < n.cantidad_evaluadores)
+               AND EXISTS (
+                   SELECT 1
+                     FROM evaluaciones.estudiantes es
+                    WHERE es.proyecto_id = p.proyecto_id
+               )
                AND NOT EXISTS (
                    SELECT 1
                      FROM evaluaciones.evaluaciones ev
@@ -1141,10 +1349,24 @@ app.get('/proyectos/:numNivel/:ano/:bachId/:seccion', async (req, res) => {
     }
 });
 
-app.post('/guardar-proyecto', (req, res) => {
+app.post('/guardar-proyecto', async (req, res) => {
     const { idProyecto, nombreProyecto } = req.body;
     if (!idProyecto || !nombreProyecto) {
         return res.status(400).json({ mensaje: 'Proyecto no válido' });
+    }
+    // Defensa: un proyecto sin alumnos asociados no es evaluable, aunque se
+    // intente seleccionarlo directamente (sin pasar por el listado filtrado).
+    try {
+        const { rows } = await pool.query(
+            'SELECT 1 FROM evaluaciones.estudiantes WHERE proyecto_id = $1 LIMIT 1',
+            [Number(idProyecto)],
+        );
+        if (rows.length === 0) {
+            return res.status(422).json({ mensaje: 'Este proyecto no tiene alumnos inscritos y no puede evaluarse.' });
+        }
+    } catch (err) {
+        console.error('Error /guardar-proyecto (validar alumnos):', err);
+        return res.status(500).json({ mensaje: 'No se pudo validar el proyecto' });
     }
     req.session.idProyecto = idProyecto;
     req.session.nombreProyecto = nombreProyecto;
@@ -1211,7 +1433,7 @@ app.get('/estudiantes/:proyectoId', async (req, res) => {
                     COALESCE(n.cantidad_evaluadores, 3)::int AS requeridos
              FROM evaluaciones.proyectos p
              JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
-             LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id
+             LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id AND ev.confirmo_nota = true
              WHERE p.proyecto_id = $1
              GROUP BY p.proyecto_id, n.cantidad_evaluadores`,
             [proyectoId],
@@ -1280,6 +1502,22 @@ app.post('/guardar-evaluacion', async (req, res) => {
     try {
         await client.query('BEGIN');
 
+        // Defensa: el proyecto debe tener al menos un alumno asociado para
+        // poder evaluarse (EXISTS sobre la tabla, NO sobre asistencia: con
+        // asistencia completa el proyecto SIGUE siendo evaluable).
+        const { rows: alumnosProyecto } = await client.query(
+            `SELECT 1
+               FROM evaluaciones.estudiantes
+              WHERE proyecto_id = $1
+              LIMIT 1`,
+            [proyectoId],
+        );
+        if (alumnosProyecto.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(422).json({
+                mensaje: 'Este proyecto no tiene alumnos inscritos y no puede evaluarse.',
+            });
+        }
         // Bloqueo: si este evaluador YA confirmó la nota de este proyecto
         // (confirmo_nota = true en /resumen) no puede volver a calificarlo.
         const { rows: confirmadas } = await client.query(
@@ -1349,25 +1587,11 @@ app.post('/guardar-evaluacion', async (req, res) => {
             );
         }
 
-        // Si ya se alcanzó la cantidad de evaluadores que exige la rúbrica,
-        // calcular el promedio y actualizar la nota final del proyecto.
-        const { rows: cntRows } = await client.query(
-            `SELECT COUNT(ev.evaluacion_id)::int AS cnt,
-                    AVG(ev.nota_evaluacion)::numeric(4,2) AS prom,
-                    COALESCE(n.cantidad_evaluadores, 3)::int AS requeridos
-             FROM evaluaciones.proyectos p
-             JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
-             LEFT JOIN evaluaciones.evaluaciones ev ON ev.proyecto_id = p.proyecto_id
-             WHERE p.proyecto_id = $1
-             GROUP BY p.proyecto_id, n.cantidad_evaluadores`,
-            [proyectoId],
-        );
-        if (cntRows.length > 0 && cntRows[0].cnt >= cntRows[0].requeridos) {
-            await client.query(`UPDATE evaluaciones.proyectos SET nota = $1 WHERE proyecto_id = $2`, [
-                cntRows[0].prom,
-                proyectoId,
-            ]);
-        }
+        // NOTA: la nota final del proyecto NO se calcula aquí. Una evaluación
+        // recién guardada aún no está confirmada (confirmo_nota = false) y, bajo
+        // la regla "sin confirmar no cuenta", no debe influir en la nota final.
+        // El promedio y la limpieza de evaluaciones sin confirmar se realizan en
+        // /confirmar-evaluacion, cuando la evaluación queda confirmada.
 
         await client.query('COMMIT');
         res.json({
@@ -1388,6 +1612,10 @@ app.post('/guardar-evaluacion', async (req, res) => {
  * Marca confirmo_nota = true en la evaluación de la sesión. Tras confirmar:
  *   - el evaluador ya no puede volver a calificar ese proyecto
  *     (/guardar-evaluacion lo rechaza y /proyectos/... deja de listarlo).
+ *   - si con esta confirmación el proyecto alcanza el número de evaluaciones
+ *     confirmadas que exige su rúbrica, se calcula la nota final (promedio de
+ *     las confirmadas) y se BORRAN todas las evaluaciones del proyecto que
+ *     quedaron sin confirmar: "una evaluación sin confirmar no cuenta".
  * Solo se confirma una vez: si ya está confirmada, responde sin error
  * (idempotente) para no romper el flujo si se recarga la página.
  */
@@ -1399,8 +1627,11 @@ app.post('/confirmar-evaluacion', async (req, res) => {
         return res.status(400).json({ mensaje: 'No hay una evaluación en curso para confirmar' });
     }
 
+    const client = await pool.connect();
     try {
-        const { rows } = await pool.query(
+        await client.query('BEGIN');
+
+        const { rows } = await client.query(
             `UPDATE evaluaciones.evaluaciones
                 SET confirmo_nota = true
               WHERE evaluacion_id = $1 AND evaluador_id = $2
@@ -1409,8 +1640,54 @@ app.post('/confirmar-evaluacion', async (req, res) => {
         );
 
         if (rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ mensaje: 'Evaluación no encontrada' });
         }
+
+        const proyectoId = rows[0].proyecto_id;
+
+        // ¿El proyecto alcanzó el número de evaluaciones CONFIRMADAS que exige
+        // su rúbrica? Si es así, fijamos la nota final y purgamos las
+        // evaluaciones sin confirmar (no cuentan).
+        const { rows: cntRows } = await client.query(
+            `SELECT COUNT(ev.evaluacion_id)::int AS cnt,
+                    AVG(ev.nota_evaluacion)::numeric(4,2) AS prom,
+                    COALESCE(n.cantidad_evaluadores, 3)::int AS requeridos
+             FROM evaluaciones.proyectos p
+             JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
+             LEFT JOIN evaluaciones.evaluaciones ev
+                    ON ev.proyecto_id = p.proyecto_id AND ev.confirmo_nota = true
+             WHERE p.proyecto_id = $1
+             GROUP BY p.proyecto_id, n.cantidad_evaluadores`,
+            [proyectoId],
+        );
+
+        if (cntRows.length > 0 && cntRows[0].cnt >= cntRows[0].requeridos) {
+            // Nota final = promedio de las evaluaciones confirmadas.
+            await client.query(
+                `UPDATE evaluaciones.proyectos SET nota = $1 WHERE proyecto_id = $2`,
+                [cntRows[0].prom, proyectoId],
+            );
+
+            // Borrar los criterios y la cabecera de TODAS las evaluaciones del
+            // proyecto que quedaron SIN confirmar (regla: "no cuentan").
+            await client.query(
+                `DELETE FROM evaluaciones.evaluacion_criterios
+                  WHERE evaluacion_id IN (
+                      SELECT evaluacion_id
+                        FROM evaluaciones.evaluaciones
+                       WHERE proyecto_id = $1 AND confirmo_nota = false
+                  )`,
+                [proyectoId],
+            );
+            await client.query(
+                `DELETE FROM evaluaciones.evaluaciones
+                  WHERE proyecto_id = $1 AND confirmo_nota = false`,
+                [proyectoId],
+            );
+        }
+
+        await client.query('COMMIT');
 
         // Limpieza de la sesión de evaluación para que no pueda reintentar
         // sobre el mismo proyecto desde /resumen o /evaluacion.
@@ -1423,8 +1700,11 @@ app.post('/confirmar-evaluacion', async (req, res) => {
             redirect: '/seleccion?nota=confirmada',
         });
     } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
         console.error('Error confirmar-evaluacion:', err);
         return res.status(500).json({ mensaje: 'Error al confirmar la evaluación' });
+    } finally {
+        client.release();
     }
 });
 
@@ -1442,7 +1722,8 @@ app.get('/evaluacion-criterios/:evaluacionId', async (req, res) => {
                     c.porcentaje
              FROM evaluaciones.evaluacion_criterios ec
              JOIN evaluaciones.criterios            c  ON ec.criterio_id = c.criterio_id
-             WHERE ec.evaluacion_id = $1`,
+             WHERE ec.evaluacion_id = $1
+             ORDER BY ec.criterio_id`,
             [evaluacionId],
         );
         res.json({ criterios: rows });
@@ -1573,7 +1854,7 @@ app.get('/admin/grados/:gradoId/proyectos', requireAuth, async (req, res) => {
              FROM evaluaciones.proyectos p
              JOIN evaluaciones.niveles   n  ON p.nivel_id    = n.nivel_id
              LEFT JOIN evaluaciones.estudiantes  es ON p.proyecto_id = es.proyecto_id
-             LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id = ev.proyecto_id
+             LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id = ev.proyecto_id AND ev.confirmo_nota = true
              WHERE p.grado_id = $1
              GROUP BY p.proyecto_id, p.nombre, p.nota, n.nivel_id, n.nombre
              ORDER BY p.nombre`,
@@ -1622,7 +1903,7 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
       LEFT JOIN principal.niveles_estudios ne ON g.niveles_estudio_id    = ne.niveles_estudios_id
       LEFT JOIN principal.bachilleratos    b  ON g.bachillerato_id       = b.bachillerato_id
       LEFT JOIN principal.secciones        s  ON g.seccion_id            = s.seccion_id
-      LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id       = ev.proyecto_id
+      LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id       = ev.proyecto_id AND ev.confirmo_nota = true
     `;
         const groupBy = `
       GROUP BY p.proyecto_id, p.nombre, p.nota, p.grado_id, g.anio,
@@ -1648,6 +1929,8 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
         const proyectos = rows.map((r) => {
             const total = Number(r.total_evaluaciones) || 0;
             const requeridos = Number(r.requeridos) || 3;
+            // Todo se cuenta SOLO con evaluaciones confirmadas (el JOIN ya filtra
+            // confirmo_nota = true): una evaluación sin confirmar "no existe".
             const completa = total >= requeridos;
             const notaProyecto = r.nota !== null && r.nota !== undefined ? Number(r.nota) : null;
             let displayName = '';
@@ -1703,7 +1986,7 @@ app.get('/admin/evaluaciones/proyectos/:proyectoId/evaluaciones', requireAuth, a
                     e.email            AS evaluador_email
              FROM evaluaciones.evaluaciones ev
              JOIN evaluaciones.evaluadores  e ON ev.evaluador_id = e.evaluador_id
-             WHERE ev.proyecto_id = $1
+             WHERE ev.proyecto_id = $1 AND ev.confirmo_nota = true
              ORDER BY ev.fecha_evaluacion`,
             [proyectoId],
         );
@@ -1767,7 +2050,7 @@ app.get('/admin/evaluaciones/grado/:gradoId', requireAuth, async (req, res) => {
                     COALESCE(n.cantidad_evaluadores, 3)::int      AS requeridos
              FROM evaluaciones.proyectos p
              JOIN evaluaciones.niveles n ON p.nivel_id = n.nivel_id
-             LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id = ev.proyecto_id
+             LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id = ev.proyecto_id AND ev.confirmo_nota = true
              WHERE p.grado_id = $1
              GROUP BY p.proyecto_id, p.nombre, p.nota, p.grado_id, n.cantidad_evaluadores
              ORDER BY p.nombre`,
@@ -1787,7 +2070,7 @@ app.get('/admin/evaluaciones/grado/:gradoId', requireAuth, async (req, res) => {
                             e.email              AS evaluador_email
                  FROM evaluaciones.evaluaciones ev
                  JOIN evaluaciones.evaluadores  e  ON ev.evaluador_id = e.evaluador_id
-                 WHERE ev.proyecto_id = ANY($1::int[])
+                 WHERE ev.proyecto_id = ANY($1::int[]) AND ev.confirmo_nota = true
                  ORDER BY ev.proyecto_id, ev.fecha_evaluacion`,
                 [ids],
             );
@@ -1865,24 +2148,60 @@ app.get('/admin/evaluaciones/grado/:gradoId', requireAuth, async (req, res) => {
 //  ADMIN — CRUD PROYECTOS
 // ══════════════════════════════════════════════════════════════════════════════
 
+/** Un título de proyecto cabe en una línea de lista y de diálogo. */
+const NOMBRE_PROYECTO_MAX = 40;
+
+/**
+ * Total de ponderación asignada a una rúbrica (suma de sus criterios).
+ * Una rúbrica solo puede usarse en proyectos cuando cubre el 100%.
+ */
+async function totalPonderacionRubrica(nivelId, cliente = pool) {
+    const { rows } = await cliente.query(
+        `SELECT COALESCE(SUM(porcentaje), 0)::int AS total
+          FROM evaluaciones.criterios WHERE nivel_id = $1`,
+        [nivelId],
+    );
+    return rows[0]?.total ?? 0;
+}
+
 /** Crear proyecto en un grado */
 app.post('/admin/proyectos', requireAuth, async (req, res) => {
-    const { nombre, grado_id, nivel_id } = req.body;
+    const { grado_id, nivel_id, materia_id } = req.body;
+    const nombre = req.body.nombre != null ? String(req.body.nombre).trim() : '';
     const { id: maestroId, rolId } = req.session.maestro;
 
-    if (!nombre || !grado_id || !nivel_id) {
-        return res.status(400).json({ mensaje: 'nombre, grado_id y nivel_id son requeridos' });
+    if (!nombre || !grado_id || !nivel_id || !materia_id) {
+        return res.status(400).json({ mensaje: 'nombre, grado_id, nivel_id y materia_id son requeridos' });
+    }
+    if (nombre.length > NOMBRE_PROYECTO_MAX) {
+        return res.status(400).json({ mensaje: `El nombre del proyecto no puede superar ${NOMBRE_PROYECTO_MAX} caracteres` });
     }
     try {
         if (!(await canAccessGrade(maestroId, rolId, Number(grado_id)))) {
             return res.status(403).json({ mensaje: 'Sin acceso a este grado' });
         }
+        // La rúbrica debe tener el 100% de ponderación para usarse en un proyecto.
+        const totalRubrica = await totalPonderacionRubrica(Number(nivel_id));
+        if (totalRubrica !== 100) {
+            return res.status(422).json({
+                mensaje: `La rúbrica no está completa (${totalRubrica}%): debe sumar 100% para asignarla a un proyecto`,
+                ponderacionTotal: totalRubrica,
+            });
+        }
         const { rows } = await pool.query(
-            `INSERT INTO evaluaciones.proyectos (nombre, grado_id, nivel_id)
-             VALUES ($1, $2, $3)
+            `INSERT INTO evaluaciones.proyectos (nombre, grado_id, nivel_id, materia_id)
+             VALUES ($1, $2, $3, $4)
              RETURNING *`,
-            [nombre, grado_id, nivel_id],
+            [nombre, grado_id, nivel_id, materia_id],
         );
+        await registrarActividad(pool, {
+            proyectoId: rows[0].proyecto_id,
+            usuarioId: maestroId,
+            usuarioNombre: req.session.maestro.nombre,
+            tipo: 'creacion',
+            descripcion: 'creó el proyecto',
+            valorNuevo: nombre,
+        });
         res.status(201).json({ proyecto: rows[0] });
     } catch (err) {
         console.error('Error POST /admin/proyectos:', err);
@@ -1905,6 +2224,8 @@ app.get('/admin/proyectos', requireAuth, async (req, res) => {
              p.nota,
              p.grado_id,
              p.nivel_id,
+             p.materia_id,
+             mat.nombre_materia   AS materia_nombre,
              n.nombre            AS nivel_nombre,
              ne.nombre           AS grado_nivel,
              b.bachillerato_id,
@@ -1913,6 +2234,7 @@ app.get('/admin/proyectos', requireAuth, async (req, res) => {
              g.anio
       FROM evaluaciones.proyectos      p
       JOIN evaluaciones.niveles        n  ON p.nivel_id    = n.nivel_id
+      JOIN principal.materias          mat ON p.materia_id = mat.materia_id
       JOIN principal.grados            g  ON p.grado_id    = g.grado_id
       JOIN principal.niveles_estudios ne  ON g.niveles_estudio_id = ne.niveles_estudios_id
       JOIN principal.bachilleratos     b  ON g.bachillerato_id   = b.bachillerato_id
@@ -1946,13 +2268,16 @@ app.get('/admin/proyectos/:id', requireAuth, async (req, res) => {
     try {
         const { rows } = await pool.query(
             `SELECT p.*,
+                    mat.nombre_materia    AS materia_nombre,
                     n.nombre  AS nivel_nombre,
+                    COALESCE(n.cantidad_evaluadores, 3)::int AS cantidad_evaluadores,
                     ne.nombre AS grado_nivel,
                     b.nombre  AS bachillerato,
                     b.bachillerato_id,
                     s.letra   AS seccion,
                     g.anio
              FROM evaluaciones.proyectos p
+             JOIN principal.materias       mat ON p.materia_id = mat.materia_id
              JOIN evaluaciones.niveles   n  ON p.nivel_id          = n.nivel_id
              JOIN principal.grados       g  ON p.grado_id          = g.grado_id
              JOIN principal.niveles_estudios ne ON g.niveles_estudio_id = ne.niveles_estudios_id
@@ -1978,15 +2303,30 @@ app.get('/admin/proyectos/:id', requireAuth, async (req, res) => {
 /** Actualizar nombre, nivel y/o grado de un proyecto */
 app.put('/admin/proyectos/:id', requireAuth, async (req, res) => {
     const proyectoId = Number(req.params.id);
-    const { nombre, nivel_id, grado_id } = req.body;
+    const { nivel_id, grado_id, materia_id } = req.body;
+    const nombre = req.body.nombre != null ? String(req.body.nombre).trim() : '';
     const { id: maestroId, rolId } = req.session.maestro;
     if (!proyectoId) return res.status(400).json({ mensaje: 'proyectoId no válido' });
-    if (!nombre && !nivel_id && !grado_id) return res.status(400).json({ mensaje: 'Nada que actualizar' });
+    if (!nombre && !nivel_id && !grado_id && !materia_id) return res.status(400).json({ mensaje: 'Nada que actualizar' });
+    if (req.body.nombre != null && nombre.length > NOMBRE_PROYECTO_MAX) {
+        return res.status(400).json({ mensaje: `El nombre del proyecto no puede superar ${NOMBRE_PROYECTO_MAX} caracteres` });
+    }
 
     try {
-        const { rows: check } = await pool.query('SELECT grado_id FROM evaluaciones.proyectos WHERE proyecto_id = $1', [
-            proyectoId,
-        ]);
+        const { rows: check } = await pool.query(
+            `SELECT p.nombre, p.nivel_id, p.grado_id, p.materia_id,
+                    mat.nombre_materia AS materia_nombre,
+                    n.nombre AS nivel_nombre,
+                    ne.nombre AS grado_nivel, g.bachillerato_id, s.letra AS seccion
+             FROM evaluaciones.proyectos p
+             JOIN principal.materias       mat ON p.materia_id = mat.materia_id
+             JOIN evaluaciones.niveles   n  ON p.nivel_id = n.nivel_id
+             JOIN principal.grados       g  ON p.grado_id = g.grado_id
+             JOIN principal.niveles_estudios ne ON g.niveles_estudio_id = ne.niveles_estudios_id
+             JOIN principal.secciones    s  ON g.seccion_id = s.seccion_id
+             WHERE p.proyecto_id = $1`,
+            [proyectoId],
+        );
         if (check.length === 0) return res.status(404).json({ mensaje: 'Proyecto no encontrado' });
         if (!(await canAccessGrade(maestroId, rolId, check[0].grado_id))) {
             return res.status(403).json({ mensaje: 'Sin acceso a este proyecto' });
@@ -1995,6 +2335,16 @@ app.put('/admin/proyectos/:id', requireAuth, async (req, res) => {
         if (grado_id && Number(grado_id) !== Number(check[0].grado_id)) {
             if (!(await canAccessGrade(maestroId, rolId, Number(grado_id)))) {
                 return res.status(403).json({ mensaje: 'Sin acceso al nuevo grado' });
+            }
+        }
+        // Si cambia la rúbrica, la nueva también debe tener el 100% asignado.
+        if (nivel_id && Number(nivel_id) !== Number(check[0].nivel_id)) {
+            const totalRubrica = await totalPonderacionRubrica(Number(nivel_id));
+            if (totalRubrica !== 100) {
+                return res.status(422).json({
+                    mensaje: `La rúbrica no está completa (${totalRubrica}%): debe sumar 100% para asignarla a un proyecto`,
+                    ponderacionTotal: totalRubrica,
+                });
             }
         }
 
@@ -2013,13 +2363,22 @@ app.put('/admin/proyectos/:id', requireAuth, async (req, res) => {
             sets.push(`grado_id = $${idx++}`);
             values.push(grado_id);
         }
+        if (materia_id) {
+            sets.push(`materia_id = $${idx++}`);
+            values.push(materia_id);
+        }
         values.push(proyectoId);
 
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
             const { rows } = await client.query(
-                `UPDATE evaluaciones.proyectos SET ${sets.join(', ')} WHERE proyecto_id = $${idx} RETURNING *`,
+                `WITH upd AS (
+                     UPDATE evaluaciones.proyectos SET ${sets.join(', ')} WHERE proyecto_id = $${idx} RETURNING *
+                 )
+                 SELECT upd.*, mat.nombre_materia AS materia_nombre
+                 FROM upd
+                 LEFT JOIN principal.materias mat ON upd.materia_id = mat.materia_id`,
                 values,
             );
             // Si cambió el grado, los alumnos inscritos que no pertenezcan al
@@ -2036,6 +2395,67 @@ app.put('/admin/proyectos/:id', requireAuth, async (req, res) => {
                     [proyectoId, grado_id],
                 );
                 eliminados = resDel.rowCount;
+            }
+
+            // ── Historial de actividad (uno por campo que realmente cambió) ──
+            const usuarioNombre = req.session.maestro.nombre;
+            const previo = check[0];
+            if (nombre && nombre !== previo.nombre) {
+                await registrarActividad(client, {
+                    proyectoId, usuarioId: maestroId, usuarioNombre,
+                    tipo: 'nombre',
+                    descripcion: 'cambió el nombre del proyecto',
+                    valorAnterior: previo.nombre, valorNuevo: nombre,
+                });
+            }
+            if (nivel_id && Number(nivel_id) !== Number(previo.nivel_id)) {
+                const { rows: nivelRows } = await client.query(
+                    'SELECT nombre FROM evaluaciones.niveles WHERE nivel_id = $1', [nivel_id],
+                );
+                await registrarActividad(client, {
+                    proyectoId, usuarioId: maestroId, usuarioNombre,
+                    tipo: 'nivel',
+                    descripcion: 'cambió el tipo de evaluación (rúbrica)',
+                    valorAnterior: previo.nivel_nombre, valorNuevo: nivelRows[0]?.nombre || null,
+                });
+            }
+            if (grado_id && Number(grado_id) !== Number(previo.grado_id)) {
+                const { rows: gradoRows } = await client.query(
+                    `SELECT ne.nombre AS grado_nivel, g.bachillerato_id, s.letra AS seccion
+                     FROM principal.grados g
+                     JOIN principal.niveles_estudios ne ON g.niveles_estudio_id = ne.niveles_estudios_id
+                     JOIN principal.secciones s ON g.seccion_id = s.seccion_id
+                     WHERE g.grado_id = $1`, [grado_id],
+                );
+                const gradoNuevo = gradoRows[0]
+                    ? buildGradeName(gradoRows[0].grado_nivel, gradoRows[0].bachillerato_id, gradoRows[0].seccion)
+                    : null;
+                const gradoAntiguo = buildGradeName(previo.grado_nivel, previo.bachillerato_id, previo.seccion);
+                await registrarActividad(client, {
+                    proyectoId, usuarioId: maestroId, usuarioNombre,
+                    tipo: 'grado',
+                    descripcion: 'cambió el grado del proyecto',
+                    valorAnterior: gradoAntiguo, valorNuevo: gradoNuevo,
+                });
+                if (eliminados > 0) {
+                    await registrarActividad(client, {
+                        proyectoId, usuarioId: maestroId, usuarioNombre,
+                        tipo: 'alumno_quitado',
+                        descripcion: `${eliminados} ${plural(eliminados, 'alumno salió', 'alumnos salieron')} del proyecto por no pertenecer al nuevo grado`,
+                        valorNuevo: String(eliminados),
+                    });
+                }
+            }
+            if (materia_id && Number(materia_id) !== Number(previo.materia_id)) {
+                const { rows: materiaRows } = await client.query(
+                    'SELECT nombre_materia FROM principal.materias WHERE materia_id = $1', [materia_id],
+                );
+                await registrarActividad(client, {
+                    proyectoId, usuarioId: maestroId, usuarioNombre,
+                    tipo: 'materia',
+                    descripcion: 'cambió la materia del proyecto',
+                    valorAnterior: previo.materia_nombre, valorNuevo: materiaRows[0]?.nombre_materia || null,
+                });
             }
             await client.query('COMMIT');
             res.json({ proyecto: rows[0], alumnosEliminados: eliminados });
@@ -2160,10 +2580,11 @@ app.post('/admin/proyectos/:proyectoId/estudiantes', requireAuth, async (req, re
 
         await client.query('BEGIN');
         let agregados = 0;
+        const usuarioNombre = req.session.maestro.nombre;
         for (const estId of estudianteIds) {
             // Verificar que el estudiante pertenezca al grado del proyecto
             const { rows: valid } = await client.query(
-                `SELECT 1 FROM principal.estudiantes
+                `SELECT nombre_completo FROM principal.estudiantes
                  WHERE estudiante_id = $1 AND grado_id = $2 AND estado = true`,
                 [estId, check[0].grado_id],
             );
@@ -2183,6 +2604,12 @@ app.post('/admin/proyectos/:proyectoId/estudiantes', requireAuth, async (req, re
                 [proyectoId, estId],
             );
             agregados++;
+            await registrarActividad(client, {
+                proyectoId, usuarioId: maestroId, usuarioNombre,
+                tipo: 'alumno_agregado',
+                descripcion: `agregó al alumno ${valid[0].nombre_completo} al proyecto`,
+                valorNuevo: valid[0].nombre_completo,
+            });
         }
         await client.query('COMMIT');
         res.status(201).json({
@@ -2219,16 +2646,62 @@ app.delete('/admin/proyectos/:proyectoId/estudiantes/:estudianteId', requireAuth
         if (!(await canAccessGrade(maestroId, rolId, check[0].grado_id))) {
             return res.status(403).json({ mensaje: 'Sin acceso' });
         }
+        // Nombre del alumno (antes de borrar) para el historial
+        const { rows: alumnoRows } = await pool.query(
+            `SELECT ps.nombre_completo
+             FROM evaluaciones.estudiantes es
+             JOIN principal.estudiantes ps ON es.grado_id = ps.estudiante_id
+             WHERE es.estudiante_id = $1 AND es.proyecto_id = $2`,
+            [estudianteId, proyectoId],
+        );
         const { rowCount } = await pool.query(
             `DELETE FROM evaluaciones.estudiantes
              WHERE estudiante_id = $1 AND proyecto_id = $2`,
             [estudianteId, proyectoId],
         );
         if (rowCount === 0) return res.status(404).json({ mensaje: 'Estudiante no encontrado en el proyecto' });
+        await registrarActividad(pool, {
+            proyectoId, usuarioId: maestroId, usuarioNombre: req.session.maestro.nombre,
+            tipo: 'alumno_quitado',
+            descripcion: `quitó al alumno ${alumnoRows[0]?.nombre_completo || 'del proyecto'} del proyecto`,
+            valorAnterior: alumnoRows[0]?.nombre_completo || null,
+        });
         res.json({ mensaje: 'Estudiante removido del proyecto' });
     } catch (err) {
         console.error('Error DELETE /admin/proyectos/:proyectoId/estudiantes/:estudianteId:', err);
         return res.status(500).json({ mensaje: 'Error al remover estudiante' });
+    }
+});
+
+/** Historial de actividad de un proyecto (pestaña «Actividad»), en orden cronológico (lo más antiguo primero). */
+app.get('/admin/proyectos/:id/actividad', requireAuth, async (req, res) => {
+    const proyectoId = Number(req.params.id);
+    const { id: maestroId, rolId } = req.session.maestro;
+    if (!proyectoId) return res.status(400).json({ mensaje: 'proyectoId no válido' });
+    try {
+        const { rows: check } = await pool.query('SELECT grado_id FROM evaluaciones.proyectos WHERE proyecto_id = $1', [
+            proyectoId,
+        ]);
+        if (check.length === 0) return res.status(404).json({ mensaje: 'Proyecto no encontrado' });
+        if (!(await canAccessGrade(maestroId, rolId, check[0].grado_id))) {
+            return res.status(403).json({ mensaje: 'Sin acceso a este proyecto' });
+        }
+        const { rows } = await pool.query(
+            `SELECT a.actividad_id, a.proyecto_id, a.usuario_id,
+                    -- Híbrido: muestra el nombre ACTUAL del maestro; si la cuenta
+                    -- ya no existe (borrada), cae al nombre guardado como respaldo.
+                    COALESCE(m.nombre, a.usuario_nombre, 'Sistema') AS usuario_nombre,
+                    a.tipo, a.descripcion, a.valor_anterior, a.valor_nuevo, a.creado_en
+             FROM evaluaciones.actividad_proyecto a
+             LEFT JOIN principal.maestros m ON a.usuario_id = m.maestro_id
+             WHERE a.proyecto_id = $1
+             ORDER BY a.creado_en ASC, a.actividad_id ASC`,
+            [proyectoId],
+        );
+        res.json({ actividad: rows });
+    } catch (err) {
+        console.error('Error GET /admin/proyectos/:id/actividad:', err);
+        return res.status(500).json({ mensaje: 'Error al obtener la actividad del proyecto' });
     }
 });
 
@@ -2467,18 +2940,37 @@ app.delete('/admin/orientadores/:id', requireDirector, async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Listar rúbricas (niveles de evaluación).
+ * Listar rúbricas (niveles de evaluación) con su ponderación total.
  * Lectura abierta a cualquier maestro: el docente-orientador las consulta en
  * modo solo lectura; escribirlas exige permiso 'gestionarRubricas'.
+ * `ponderacion_total` permite al frontend mostrar solo las completas (100%)
+ * al asignar rúbricas a proyectos.
  */
 app.get('/admin/niveles-evaluacion', requireAuth, async (req, res) => {
     try {
         const { rows } = await pool.query(
-            'SELECT nivel_id, nombre, descripcion, cantidad_evaluadores FROM evaluaciones.niveles ORDER BY nivel_id DESC',
+            `SELECT n.nivel_id, n.nombre, n.descripcion, n.cantidad_evaluadores,
+                    COALESCE(SUM(c.porcentaje), 0)::int AS ponderacion_total
+              FROM evaluaciones.niveles n
+              LEFT JOIN evaluaciones.criterios c ON c.nivel_id = n.nivel_id
+              GROUP BY n.nivel_id, n.nombre, n.descripcion, n.cantidad_evaluadores
+              ORDER BY n.nivel_id DESC`,
         );
         res.json({ niveles: rows });
     } catch (err) {
         return res.status(500).json({ mensaje: 'Error al obtener niveles de evaluación' });
+    }
+});
+
+/** Listar el catálogo de materias (para los selects de proyectos). */
+app.get('/admin/materias', requireAuth, async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            'SELECT materia_id, nombre_materia FROM principal.materias ORDER BY nombre_materia',
+        );
+        res.json({ materias: rows });
+    } catch (err) {
+        return res.status(500).json({ mensaje: 'Error al obtener las materias' });
     }
 });
 
@@ -2638,6 +3130,25 @@ app.get('/admin/niveles/:id', requireAuth, async (req, res) => {
     }
 });
 
+/**
+ * Ponderación total asignada a una rúbrica (suma de sus criterios).
+ * El editor la usa para la modal de "Atrás" sin 100% y para validar
+ * antes de asignar la rúbrica a un proyecto.
+ */
+app.get('/admin/niveles/:id/ponderacion', requireAuth, async (req, res) => {
+    const nivelId = Number(req.params.id);
+    if (!nivelId) {
+        return res.status(400).json({ mensaje: 'nivelId no válido' });
+    }
+    try {
+        const total = await totalPonderacionRubrica(nivelId);
+        res.json({ nivel_id: nivelId, ponderacionTotal: total, completa: total === 100 });
+    } catch (err) {
+        console.error('Error GET /admin/niveles/:id/ponderacion:', err);
+        return res.status(500).json({ mensaje: 'Error al obtener la ponderación' });
+    }
+});
+
 /** Listar criterios de una rúbrica (nivel) */
 app.get('/admin/niveles/:id/criterios', requireAuth, async (req, res) => {
     const nivelId = Number(req.params.id);
@@ -2669,10 +3180,15 @@ app.post('/admin/niveles/:id/criterios', requireRubricas, evitarSubmitDuplicado(
     if (!nombre || String(nombre).trim() === '') {
         return res.status(400).json({ mensaje: 'El nombre del criterio es requerido' });
     }
-    const porc = Number(porcentaje);
-    if (!Number.isFinite(porc) || porc < 1 || porc > 100) {
-        return res.status(400).json({ mensaje: 'La ponderación debe estar entre 1 y 100' });
+    // La ponderación es opcional: vacío = 0% (no cuenta en la nota).
+    // Rango válido 0-100 para permitir criterios sin ponderación.
+    const rawPorc = porcentaje === undefined || porcentaje === null || String(porcentaje).trim() === ''
+        ? 0
+        : Number(porcentaje);
+    if (!Number.isFinite(rawPorc) || rawPorc < 0 || rawPorc > 100) {
+        return res.status(400).json({ mensaje: 'La ponderación debe estar entre 0 y 100' });
     }
+    const porc = rawPorc;
     try {
         const { rows } = await pool.query(
             `INSERT INTO evaluaciones.criterios (nivel_id, nombre, descripcion, porcentaje)
@@ -2711,12 +3227,15 @@ app.put('/admin/criterios/:id', requireRubricas, async (req, res) => {
             values.push(descripcion || null);
         }
         if (porcentaje !== undefined) {
-            const porc = Number(porcentaje);
-            if (!Number.isFinite(porc) || porc < 1 || porc > 100) {
-                return res.status(400).json({ mensaje: 'La ponderación debe estar entre 1 y 100' });
+            // Vacío = 0% (criterio sin ponderación, no cuenta en la nota).
+            const rawPorc = porcentaje === null || String(porcentaje).trim() === ''
+                ? 0
+                : Number(porcentaje);
+            if (!Number.isFinite(rawPorc) || rawPorc < 0 || rawPorc > 100) {
+                return res.status(400).json({ mensaje: 'La ponderación debe estar entre 0 y 100' });
             }
             sets.push(`porcentaje  = $${idx++}`);
-            values.push(porc);
+            values.push(rawPorc);
         }
 
         if (sets.length === 0) {

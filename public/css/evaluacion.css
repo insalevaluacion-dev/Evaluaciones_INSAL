@@ -48,27 +48,6 @@ section{
     gap: 20px;
     overflow-y: scroll;
     overscroll-behavior-y: contain;
-    /* Scrollbar moderno (Firefox) */
-    scrollbar-width: thin;
-    scrollbar-color: var(--hover-color) transparent;
-}
-
-/* Scrollbar moderno (WebKit: Chrome, Edge, Safari) */
-.container2::-webkit-scrollbar {
-    width: 8px;
-}
-
-.container2::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.container2::-webkit-scrollbar-thumb {
-    background: var(--hover-color);
-    border-radius: 10px;
-}
-
-.container2::-webkit-scrollbar-thumb:hover {
-    background: var(--text-color);
 }
 
 .criterio{
@@ -445,19 +424,6 @@ body.modal-open {
     max-height: 240px;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    scrollbar-width: thin;
-    scrollbar-color: var(--hover-color) transparent;
-}
-
-#lista-estudiantes::-webkit-scrollbar {
-    width: 8px;
-}
-#lista-estudiantes::-webkit-scrollbar-track {
-    background: transparent;
-}
-#lista-estudiantes::-webkit-scrollbar-thumb {
-    background: var(--hover-color);
-    border-radius: 10px;
 }
 
 .estudiante-checkbox {
