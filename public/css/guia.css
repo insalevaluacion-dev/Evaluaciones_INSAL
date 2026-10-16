@@ -12,6 +12,29 @@
     min-height: min-content !important;
 }
 
+/* En /seleccion el elemento activo cuelga de .principal (flex en columna).
+   Con overflow:hidden sus hijos se encogen y la pantalla se colapsa en móvil. */
+.principal:has(> .driver-active-element),
+section.container1:has(> .driver-active-element),
+.container2:has(> .driver-active-element) {
+    overflow: visible !important;
+}
+
+/* Driver pone overflow:hidden al padre del elemento activo; si ese padre es un
+   ítem flex, su tamaño mínimo pasa a 0 y se colapsa. Nunca debe encogerse. */
+:not(body):has(> .driver-active-element) {
+    flex-shrink: 0 !important;
+}
+
+.inicio-scroll:has(> .driver-active-element),
+#main__container:has(> .driver-active-element) {
+    flex-shrink: 1 !important;
+}
+
+.principal:has(> .driver-active-element) > * {
+    flex-shrink: 0;
+}
+
 main.main_document:has(> .driver-active-element) {
     overflow-y: auto !important;
 }
