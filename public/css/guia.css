@@ -253,7 +253,8 @@ main.main_document #nombre-proyecto {
         border-radius: 22px;
     }
 
-    .guia-evaluador-btn span:last-child {
+    /* El ripple añade un span al final; :last-child dejaría visible el texto. */
+    .guia-evaluador-btn > span:not(.material-symbols-rounded):not(.ripple) {
         display: none;
     }
 }

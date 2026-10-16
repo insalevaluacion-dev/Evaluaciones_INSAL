@@ -196,7 +196,7 @@
         border-radius: 22px;
     }
 
-    #btn-cerrar-sesion-evaluador span:last-child {
+    #btn-cerrar-sesion-evaluador > span:not(.material-symbols-rounded):not(.ripple) {
         display: none;
     }
 }
