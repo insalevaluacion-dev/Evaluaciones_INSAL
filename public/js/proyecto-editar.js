@@ -39,9 +39,15 @@ let cargaProyectoEditar = null;
 /** Evita abrir dos veces la modal si se pulsa Atrás muy seguido. */
 let salidaProyectoEnCurso = false;
 
+/** La vista de edición. El detalle de evaluación reutiliza las mismas clases
+ *  e ids del encabezado; sin este ancla, este módulo lo pisa al cargar. */
+function raizEditarProyecto() {
+    return document.querySelector('.vista-proyecto-editar');
+}
+
 /** Lee el id del proyecto desde el data-attribute de la vista (o de la URL). */
 function getProyectoId() {
-    const root = document.querySelector('.contenedor-criterios[data-proyecto-id]');
+    const root = raizEditarProyecto()?.querySelector('.contenedor-criterios[data-proyecto-id]');
     if (root?.dataset?.proyectoId) return root.dataset.proyectoId;
     const m = location.pathname.match(/^\/menu\/proyectos\/(\d+)$/);
     return m ? m[1] : null;
@@ -88,7 +94,7 @@ export async function confirmarSalidaProyectoSinAlumnos() {
     // Esperar a la carga: si se pulsa Atrás antes de que lleguen los alumnos,
     // el total sería 0 y la modal saldría aunque el proyecto ya tenga equipo.
     if (!proyectoId) proyectoId = getProyectoId();
-    const root = document.querySelector('.contenedor-criterios[data-proyecto-id]');
+    const root = raizEditarProyecto()?.querySelector('.contenedor-criterios[data-proyecto-id]');
     if (root && root.dataset.iniciado !== 'true' && !cargaProyectoEditar) {
         cargaProyectoEditar = cargarVista();
     }
@@ -128,7 +134,7 @@ document.addEventListener('click', (e) => {
     const destino = btn.getAttribute('href') || '/menu/proyectos';
     if (salidaProyectoEnCurso) return;
     // Fuera de la vista de edición: navegar directo.
-    if (!document.querySelector('.contenedor-criterios[data-proyecto-id]')) {
+    if (!raizEditarProyecto()) {
         navegarSpaProyecto(destino);
         return;
     }
@@ -305,8 +311,10 @@ function preseleccionarGradoEditar(gradoId) {
 
 /** Pinta el encabezado con los datos del proyecto. */
 function renderEncabezado(proyecto) {
-    const nombreEl = document.getElementById('detalle-proyecto-nombre');
-    const subEl = document.getElementById('detalle-proyecto-sub');
+    const vista = raizEditarProyecto();
+    if (!vista) return;
+    const nombreEl = vista.querySelector('#detalle-proyecto-nombre');
+    const subEl = vista.querySelector('#detalle-proyecto-sub');
 
     if (nombreEl) nombreEl.textContent = proyecto.nombre || 'Proyecto sin nombre';
     if (subEl) {
@@ -378,7 +386,7 @@ async function cargarVista() {
     if (!proyectoId) return;
 
     // Evitar doble carga (DOMContentLoaded + contentUpdated)
-    const root = document.querySelector('.contenedor-criterios[data-proyecto-id]');
+    const root = raizEditarProyecto()?.querySelector('.contenedor-criterios[data-proyecto-id]');
     if (!root || root.dataset.iniciado === 'true') return;
     root.dataset.iniciado = 'true';
 
@@ -717,7 +725,10 @@ async function cargarAlumnos() {
     try {
         const data = await fetchJson(`/admin/proyectos/${proyectoId}/estudiantes`);
         if (hayCambiosAlumnos()) {
-            anteriores.forEach(pulsarActualizado);
+            // Hay ediciones locales sin guardar: no se pisan. Si la lista está
+            // vacía (vista recién montada) se pinta el estado local actual.
+            if (coldLoad) renderAlumnos();
+            else anteriores.forEach(pulsarActualizado);
             return;
         }
         const estudiantesNuevos = (data?.estudiantes || []).filter((a) => a?.estudiante_id != null);
@@ -960,6 +971,13 @@ async function persistirAlumnos() {
             { method: 'DELETE' },
         );
     }
+
+    // Ya están en BD: dejar de tratarlos como "pendientes". Si no se limpian,
+    // hayCambiosAlumnos() sigue en true y cargarAlumnos() aborta sin pintar
+    // (también en la siguiente visita a la vista, pues este estado es del módulo).
+    pendientesAgregar = [];
+    pendientesQuitar.clear();
+    proyectoGradoPendiente = null;
 }
 
 /** Refresca el indicador de sincronización de la cabecera (único estado). */
@@ -1771,14 +1789,20 @@ function crearItemActividad(ev) {
 // ═══════════════════════════════════════════════════════════════
 
 function initEditarProyecto() {
-    // Reiniciar estado por navegación SPA (la vista se recrea)
-    const root = document.querySelector('.contenedor-criterios[data-proyecto-id]');
-    if (!root) {
+    // Reiniciar estado por navegación SPA (la vista se recrea).
+    // El detalle de evaluación también usa .contenedor-criterios[data-proyecto-id]
+    // y #detalle-proyecto-sub: si este módulo arrancara ahí, cargaría el proyecto
+    // y sustituiría la rúbrica del subtítulo por la materia.
+    const vista = raizEditarProyecto();
+    const root = vista?.querySelector('.contenedor-criterios[data-proyecto-id]');
+    if (!vista || !root) {
         alumnosSeleccionados.clear();
         document.body.classList.remove('alumnos-multi-locked');
         return;
     }
-    if (root.dataset.proyectoId !== String(proyectoId)) {
+    // El DOM es nuevo (iniciado aún no marcado) o es otro proyecto: el estado
+    // del módulo sobrevive a la navegación SPA, así que hay que reiniciarlo.
+    if (root.dataset.proyectoId !== String(proyectoId) || root.dataset.iniciado !== 'true') {
         proyectoActual = null;
         estudiantesProyecto = [];
         pendientesAgregar = [];
@@ -1799,7 +1823,8 @@ function initEditarProyecto() {
 }
 
 document.addEventListener('routeChanging', (event) => {
-    const root = document.querySelector('.contenedor-criterios[data-proyecto-id]');
+    if (!raizEditarProyecto()) return;
+    const root = raizEditarProyecto().querySelector('.contenedor-criterios[data-proyecto-id]');
     const rutaActual = root
         ? `/menu/proyectos/${root.dataset.proyectoId}`
         : null;

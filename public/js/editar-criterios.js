@@ -66,8 +66,7 @@ export async function confirmarSalidaRubricaIncompleta() {
     // Esperar al fetch: si se pulsa Atrás antes de que lleguen los criterios,
     // getTotal() sería 0 y la modal saldría aunque la rúbrica ya esté al 100%.
     if (!rubricaId) rubricaId = getRubricaId();
-    if (document.getElementById('criterios-lista')
-        && (!cargaCriterios || String(cargaCriterios.rubricaId) !== String(rubricaId))) {
+    if (document.getElementById('criterios-lista')) {
         cargaCriterios = loadCriterios();
     }
     const pendiente = cargaCriterios;
@@ -552,36 +551,107 @@ async function loadRubrica() {
     }
 }
 
-/** Carga los criterios ya guardados de la rúbrica desde el backend. */
+/**
+ * Carga los criterios ya guardados de la rúbrica desde el backend.
+ * La promesa se reutiliza solo mientras pertenece a este mismo nodo de lista:
+ * en el SPA el módulo sobrevive a la navegación y, si se devolviera la carga
+ * anterior, el loader nuevo se quedaría visible para siempre.
+ */
 function loadCriterios() {
-    if (!rubricaId) return Promise.resolve();
+    if (!rubricaId) {
+        hideLoader();
+        return Promise.resolve();
+    }
     const lista = document.getElementById('criterios-lista');
     if (!lista) return Promise.resolve();
     const id = String(rubricaId);
-    if (cargaCriterios && cargaCriterios.rubricaId === id) return cargaCriterios;
+    if (cargaCriterios
+        && cargaCriterios.rubricaId === id
+        && cargaCriterios.lista === lista
+        && lista.isConnected) {
+        return cargaCriterios;
+    }
+
     const peticion = (async () => {
+        let fallo = null;
         try {
             const res = await fetch(`/admin/niveles/${id}/criterios`);
-            const data = await res.json();
-            if (String(rubricaId) !== id) return;
-            criterios = Array.isArray(data.criterios) ? data.criterios : [];
-            criterios.forEach(c => { c.uid = nextUid(); c.pendiente = false; c.eliminado = false; });
+            const data = await res.json().catch(() => ({}));
+            if (!sigueVigente()) return;
+            if (!res.ok) throw new Error(data?.mensaje || 'Error al obtener criterios');
+            const filas = Array.isArray(data.criterios) ? data.criterios : [];
+            criterios = filas.map((criterio) => ({
+                ...criterio,
+                uid: nextUid(),
+                pendiente: false,
+                eliminado: false,
+            }));
         } catch (err) {
             console.log('Error al cargar criterios:', err);
-            if (String(rubricaId) !== id) return;
+            if (!sigueVigente()) return;
+            fallo = err;
             criterios = [];
         }
-        if (String(rubricaId) !== id || !document.getElementById('criterios-lista')) return;
-        renderCriterios();
+        if (!sigueVigente()) return;
+        if (fallo) {
+            pintarFalloCarga(lista, fallo);
+            return;
+        }
+        try {
+            renderCriterios();
+        } catch (err) {
+            console.log('Error al mostrar criterios:', err);
+            if (sigueVigente()) pintarFalloCarga(lista, err);
+        }
     })();
+
+    function sigueVigente() {
+        return peticion === cargaCriterios && lista.isConnected && String(rubricaId) === id;
+    }
+
     peticion.rubricaId = id;
+    peticion.lista = lista;
     cargaCriterios = peticion;
     return peticion;
 }
 
-function hideLoader() {
-    const loader = document.getElementById('criterios-loader');
+function hideLoader(lista) {
+    const loader = lista
+        ? lista.parentElement?.querySelector('#criterios-loader')
+        : document.getElementById('criterios-loader');
+    // display en línea: .criterios-loader fija display:block y anularía el atributo hidden.
     if (loader) loader.style.display = 'none';
+}
+
+function mostrarLoader(lista) {
+    const loader = lista?.parentElement?.querySelector('#criterios-loader');
+    if (loader) loader.style.display = '';
+}
+
+function pintarFalloCarga(lista, err) {
+    hideLoader(lista);
+    if (!lista.isConnected) return;
+    lista.replaceChildren();
+    const bloque = document.createElement('div');
+    bloque.className = 'criterios-vacio';
+    const mensaje = document.createElement('p');
+    mensaje.textContent = 'No se pudieron cargar los criterios.';
+    const reintentar = document.createElement('button');
+    reintentar.type = 'button';
+    reintentar.className = 'criterios-deshacer__btn';
+    reintentar.style.marginTop = '12px';
+    reintentar.textContent = 'Reintentar';
+    reintentar.addEventListener('click', () => {
+        if (cargaCriterios?.lista === lista) cargaCriterios = null;
+        mostrarLoader(lista);
+        lista.replaceChildren();
+        loadCriterios();
+    });
+    bloque.append(mensaje, reintentar);
+    lista.appendChild(bloque);
+    const contador = document.getElementById('contador-criterios');
+    if (contador) contador.textContent = '0';
+    mostrarNotificacion(err?.message || 'Error al cargar los criterios', 'error');
 }
 
 function renderCriterios() {
@@ -625,7 +695,7 @@ function renderCriterios() {
             lista.appendChild(card);
         });
     }
-    hideLoader();
+    hideLoader(lista);
     const contador = document.getElementById('contador-criterios');
     if (contador) contador.textContent = activos.length;
     renderTotal();

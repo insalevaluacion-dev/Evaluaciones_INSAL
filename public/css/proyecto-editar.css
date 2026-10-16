@@ -1320,9 +1320,7 @@ body.alumnos-multi-locked {
     font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
     color: var(--azul-dark);
     background: color-mix(in srgb, var(--azul) 16%, var(--font-color-secondary));
-    box-shadow:
-        0 0 0 4px var(--font-color-secondary),
-        0 4px 10px color-mix(in srgb, var(--azul) 18%, transparent);
+    box-shadow: 0 0 0 4px var(--font-color-secondary);
     cursor: default;
 }
 
@@ -1336,35 +1334,27 @@ body.alumnos-multi-locked {
 .actividad-item.is-agrega .actividad-item__icono {
     color: var(--verde);
     background: color-mix(in srgb, var(--verde-clr) 22%, var(--font-color-secondary));
-    box-shadow:
-        0 0 0 4px var(--font-color-secondary),
-        0 4px 10px color-mix(in srgb, var(--verde) 20%, transparent);
+    box-shadow: 0 0 0 4px var(--font-color-secondary);
 }
 
 .actividad-item.is-quita .actividad-item__icono {
     color: var(--rojo);
     background: color-mix(in srgb, var(--rojo-clr) 16%, var(--font-color-secondary));
-    box-shadow:
-        0 0 0 4px var(--font-color-secondary),
-        0 4px 10px color-mix(in srgb, var(--rojo) 18%, transparent);
+    box-shadow: 0 0 0 4px var(--font-color-secondary);
 }
 
 .actividad-item.is-nivel .actividad-item__icono,
 .actividad-item.is-grado .actividad-item__icono {
     color: var(--naranja-drk);
     background: color-mix(in srgb, var(--naranja) 22%, var(--font-color-secondary));
-    box-shadow:
-        0 0 0 4px var(--font-color-secondary),
-        0 4px 10px color-mix(in srgb, var(--naranja) 22%, transparent);
+    box-shadow: 0 0 0 4px var(--font-color-secondary);
 }
 
 .actividad-item.is-materia .actividad-item__icono,
 .actividad-item.is-nombre .actividad-item__icono {
     color: var(--text-color-prioritary);
     background: color-mix(in srgb, var(--principal-color) 18%, var(--font-color-secondary));
-    box-shadow:
-        0 0 0 4px var(--font-color-secondary),
-        0 4px 10px color-mix(in srgb, var(--principal-color) 22%, transparent);
+    box-shadow: 0 0 0 4px var(--font-color-secondary);
 }
 
 .actividad-item__contenido {

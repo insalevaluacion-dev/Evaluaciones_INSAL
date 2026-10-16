@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const idCriterio = escapeHtml(criterio.criterio_id);
             li.innerHTML = `
             <div class="titulo__criterio" onclick="AbrirDescripcion(this)">
-                ${escapeHtml(criterio.nombre)}
+                <span class="titulo__nombre">${escapeHtml(criterio.nombre)}</span>
                 <span class="material-symbols-rounded flecha">
                     stat_minus_1
                 </span>

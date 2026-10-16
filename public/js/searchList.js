@@ -8,7 +8,12 @@
 //   • Ocultar/mostrar items al filtrar: delegado a listAnimations.js (WAAPI)
 // ═══════════════════════════════════════════════════════════════
 
-import { animarMostrar, animarOcultar } from './listAnimations.js';
+import { animarMostrar, animarOcultar, cancelarAnimacionLista } from './listAnimations.js';
+
+// Por debajo de este umbral el filtrado anima cada ítem. Por encima, mostrar
+// u ocultar es instantáneo: medir la altura de cientos de filas (offsetHeight)
+// en el mismo turno bloquea el hilo principal y la página se congela.
+const UMBRAL_ANIMACION_FILTRO = 12;
 
 /** Texto visible del ítem, sin nodos marcados data-search-ignore
  *  (p. ej. el % de ponderación de una rúbrica). */
@@ -109,13 +114,22 @@ function getSortComparator(state) {
             return Number(b.dataset.itemId) - Number(a.dataset.itemId);
         };
     }
-    // 'relevancia' → restaura el orden original capturado antes de ordenar
-    const base = state.baseline || [];
-    return (a, b) => {
-        const iA = base.findIndex((el) => el.dataset?.itemId === a.dataset?.itemId);
-        const iB = base.findIndex((el) => el.dataset?.itemId === b.dataset?.itemId);
-        return (iA === -1 ? base.length : iA) - (iB === -1 ? base.length : iB);
-    };
+    // 'relevancia' → restaura el orden original capturado antes de ordenar.
+    // El índice se arma una vez: findIndex dentro del comparador era O(n) por
+    // comparación y congelaba listas largas.
+    const indice = new Map();
+    (state.baseline || []).forEach((el, i) => indice.set(el, i));
+    const fallback = indice.size;
+    return (a, b) => (indice.get(a) ?? fallback) - (indice.get(b) ?? fallback);
+}
+
+/** Texto normalizado del ítem, cacheado mientras su texto no cambie. */
+function claveBusqueda(item) {
+    const sello = item.textContent || '';
+    if (item.__selloBusqueda === sello) return item.__claveBusqueda;
+    item.__selloBusqueda = sello;
+    item.__claveBusqueda = normalizeText(textoBuscable(item));
+    return item.__claveBusqueda;
 }
 
 /** Nodo de referencia para reinsertar los items (loader/empty/no-results). */
@@ -140,36 +154,88 @@ function orderItems(container, items) {
     }
     if (!needsReorder) return;
 
-    items.forEach((item) => {
-        if (ref && ref.parentNode === container) container.insertBefore(item, ref);
-        else container.appendChild(item);
-    });
+    // Un solo insert evita un reflow por ítem (antes cada insertBefore
+    // recolocaba la lista entera y el MutationObserver volvía a filtrar).
+    const frag = document.createDocumentFragment();
+    items.forEach((item) => frag.appendChild(item));
+    if (ref && ref.parentNode === container) container.insertBefore(frag, ref);
+    else container.appendChild(frag);
+}
+
+/** true si el ítem ya está (o está quedando) fuera del filtro. */
+function itemEstaOculto(item) {
+    return item.classList.contains('is-filter-hidden') || item.style.display === 'none';
+}
+
+/** Muestra u oculta sin medir layout: para muchos ítems a la vez. */
+function fijarVisibilidadInmediata(item, visible) {
+    cancelarAnimacionLista(item);
+    item.classList.toggle('is-filter-hidden', !visible);
+    item.style.display = visible ? '' : 'none';
 }
 
 /** Aplica la visibilidad de un item con animación suave (filtrado por búsqueda).
- *  Toda la gestión de cancelación/estilos vive en listAnimations.js: iniciar
- *  una nueva animación sobre un item cancela automáticamente la anterior,
- *  así que aquí no hace falta llevar estado de "ocultándose/mostrándose". */
+ *  La clase is-filter-hidden se pone al instante para que un segundo filtrado
+ *  (otra tecla, otro select) no vuelva a medir y animar el mismo ítem. */
 function applyItemVisibility(item, visible) {
-    const hidden = item.style.display === 'none';
+    const hidden = itemEstaOculto(item);
 
     if (visible) {
-        if (hidden) {
-            animarMostrar(item);
+        if (!hidden) return;
+        item.classList.remove('is-filter-hidden');
+        animarMostrar(item);
+        return;
+    }
+    if (hidden) return;
+    item.classList.add('is-filter-hidden');
+    animarOcultar(item).then((completo) => {
+        // Solo ocultar de verdad si la animación terminó completa;
+        // si fue cancelada, el item volvió a mostrarse mientras tanto.
+        if (completo && item.classList.contains('is-filter-hidden')) {
+            item.style.display = 'none';
         }
-    } else if (!hidden) {
-        animarOcultar(item).then((completo) => {
-            // Solo ocultar de verdad si la animación terminó completa;
-            // si fue cancelada, el item volvió a mostrarse mientras tanto.
-            if (completo && item.style.display !== 'none') {
-                item.style.display = 'none';
+    });
+}
+
+/** Aplica query + filtros (visibilidad) y el orden sobre el contenedor.
+ *  Como mucho una vez por frame: varios selects o teclas en el mismo turno
+ *  se fusionan en una sola pasada. */
+const aplicarProgramado = new WeakMap();
+
+function programarAplicar(container) {
+    if (aplicarProgramado.has(container)) return;
+    const id = requestAnimationFrame(() => {
+        aplicarProgramado.delete(container);
+        applyListState(container);
+    });
+    aplicarProgramado.set(container, id);
+}
+
+/** Aplica query + filtros (visibilidad) y el orden sobre el contenedor. */
+function applyListState(container) {
+    if (container.__aplicandoLista) {
+        container.__listaPendiente = true;
+        return;
+    }
+    container.__aplicandoLista = true;
+    // El reorden mueve nodos y el MutationObserver volvería a entrar aquí.
+    container.__ignorarMutacionesLista = true;
+
+    try {
+        aplicarListaAhora(container);
+    } finally {
+        container.__aplicandoLista = false;
+        queueMicrotask(() => {
+            container.__ignorarMutacionesLista = false;
+            if (container.__listaPendiente) {
+                container.__listaPendiente = false;
+                programarAplicar(container);
             }
         });
     }
 }
 
-/** Aplica query + filtros (visibilidad) y el orden sobre el contenedor. */
-function applyListState(container) {
+function aplicarListaAhora(container) {
     const state = getListState(container);
     const wrapper = container.querySelector(
         ':scope > .list-toolbar .search-wrapper, :scope > .search-wrapper'
@@ -178,21 +244,30 @@ function applyListState(container) {
     state.query = input ? input.value : state.query;
 
     const query = normalizeText(state.query);
+    const hayQuery = query.length > 0;
+    const entradasFiltro = Object.entries(state.filters);
     const items = Array.from(container.querySelectorAll(':scope > .list-item'));
+    const cambios = [];
     let visibleCount = 0;
 
     items.forEach((item) => {
-        // Filtros en cascada (p. ej. Año → Grado → Sección en /proyectos).
-        // Cada entrada del estado indica sobre qué dataset.* comparar
-        // (atributo data-filter-key del select); '' no filtra.
-        const matchesFilters = Object.entries(state.filters).every(
+        // Filtros combinados con AND (Año, Grado, Sección, Rúbrica, Materia).
+        // Cada entrada indica sobre qué dataset.* comparar (data-filter-key);
+        // '' no filtra. Sin texto de búsqueda no se recorre el DOM del ítem.
+        const matchesFilters = entradasFiltro.every(
             ([key, val]) => !val || item.dataset[key] === val
         );
-        const matchesQuery = !query || normalizeText(textoBuscable(item)).includes(query);
+        const matchesQuery = !hayQuery || claveBusqueda(item).includes(query);
         const visible = matchesFilters && matchesQuery;
-        applyItemVisibility(item, visible);
+        if (visible !== !itemEstaOculto(item)) cambios.push({ item, visible });
         if (visible) visibleCount++;
     });
+
+    if (cambios.length > UMBRAL_ANIMACION_FILTRO) {
+        cambios.forEach(({ item, visible }) => fijarVisibilidadInmediata(item, visible));
+    } else {
+        cambios.forEach(({ item, visible }) => applyItemVisibility(item, visible));
+    }
 
     if (wrapper) wrapper.classList.toggle('has-value', state.query.trim().length > 0);
 
@@ -203,7 +278,6 @@ function applyListState(container) {
     // Mensaje contextual: si hay término de búsqueda, mencionarlo; si solo
     // hay filtros activos (sin texto de búsqueda), usar un mensaje genérico.
     const hasQuery = state.query.trim().length > 0;
-    const hasFilters = Object.keys(state.filters).length > 0;
     const showNoResults = items.length > 0 && visibleCount === 0;
 
     noResultsEl.style.display = showNoResults ? 'flex' : 'none';
@@ -262,7 +336,7 @@ function initListContainer(container) {
         });
         input.addEventListener('input', () => {
             state.query = input.value;
-            applyListState(container);
+            programarAplicar(container);
         });
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && input.value) clearSearch(input);
@@ -275,7 +349,7 @@ function initListContainer(container) {
         state.sort = select.value || 'id-desc';
         select.addEventListener('change', () => {
             state.sort = select.value;
-            applyListState(container);
+            programarAplicar(container);
         });
     }
 
@@ -302,12 +376,17 @@ function initListContainer(container) {
             if (sel.dataset.filterKey === 'rubrica') {
                 state.sort = 'rubrica';
             }
-            applyListState(container);
+            programarAplicar(container);
         });
     });
 
-    // Si la lista se actualiza (cargas, refresh, router) se re-aplica el estado
-    const observer = new MutationObserver(() => applyListState(container));
+    // Si la lista se actualiza (cargas, refresh, router) se re-aplica el estado.
+    // Las mutaciones hechas por el propio filtrado (reordenar ítems) se ignoran
+    // para no volver a entrar y congelar la página.
+    const observer = new MutationObserver(() => {
+        if (container.__ignorarMutacionesLista) return;
+        programarAplicar(container);
+    });
     observer.observe(container, { childList: true, subtree: false });
 }
 

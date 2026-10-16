@@ -294,11 +294,28 @@ function partirDisplayGrade(displayGrade) {
     return { gradoKey: texto.slice(0, idx), seccion: texto.slice(idx + 1) };
 }
 
+/** true si el select ya muestra exactamente estas opciones (incluido el placeholder). */
+function opcionesFiltroIguales(select, opciones, etiquetaVacia) {
+    const actuales = select.options;
+    if (actuales.length !== opciones.length + 1) return false;
+    const primera = actuales[0];
+    if (!primera || primera.value !== '' || primera.textContent !== etiquetaVacia) return false;
+    for (let i = 0; i < opciones.length; i++) {
+        const opt = actuales[i + 1];
+        if (opt.value !== opciones[i].valor || opt.textContent !== opciones[i].label) return false;
+    }
+    return true;
+}
+
 /**
  * Reconstruye las opciones de un select de filtro preservando la selección
  * si todavía es válida. Devuelve true si el valor seleccionado cambió.
  */
 function reconstruirOpcionesFiltro(select, opciones, etiquetaVacia) {
+    // Mismas opciones: no tocar el DOM. Rehacerlas dispara el observer del
+    // custom-select, que reconstruye el menú entero en cada clic de filtro.
+    if (opcionesFiltroIguales(select, opciones, etiquetaVacia)) return false;
+
     const prevValue = select.value;
     Array.from(select.options).forEach((opt) => opt.remove());
 
@@ -332,109 +349,81 @@ function populateFiltrosProyectos(container, proyectos) {
     const selSeccion = container.querySelector('#filtro-seccion-proyectos');
     if (!selAnio || !selGrado || !selSeccion) return;
 
-    container.__cascadeSync = true;
-    try {
-        // ── Año escolar: valores únicos de toda la lista ──
-        const anios = [...new Set(proyectos.map((p) => String(p.anio ?? '')))]
-            .filter(Boolean)
-            .sort((a, b) => Number(b) - Number(a));
-        const cambioAnio = reconstruirOpcionesFiltro(
-            selAnio,
-            anios.map((v) => ({ valor: v, label: v })),
-            'Todos'
-        );
+    // ── Año escolar: valores únicos de toda la lista ──
+    const anios = [...new Set(proyectos.map((p) => String(p.anio ?? '')))]
+        .filter(Boolean)
+        .sort((a, b) => Number(b) - Number(a));
+    const cambioAnio = reconstruirOpcionesFiltro(
+        selAnio,
+        anios.map((v) => ({ valor: v, label: v })),
+        'Todos'
+    );
 
-        // ── Grado (nivel + especialidad, p. ej. "1G"): valores únicos de toda la lista ──
-        const gradosMap = new Map();
-        proyectos.forEach((p) => {
-            const { gradoKey } = partirDisplayGrade(p.displayGrade);
-            if (gradoKey && !gradosMap.has(gradoKey)) {
-                gradosMap.set(gradoKey, { valor: gradoKey, label: gradoKey });
-            }
-        });
-        const grados = [...gradosMap.values()].sort((a, b) => a.label.localeCompare(b.label));
-        const cambioGrado = reconstruirOpcionesFiltro(selGrado, grados, 'Todos');
-
-        // ── Sección: valores únicos de toda la lista ──
-        const secciones = [
-            ...new Set(proyectos.map((p) => partirDisplayGrade(p.displayGrade).seccion)),
-        ]
-            .filter(Boolean)
-            .sort();
-        const cambioSeccion = reconstruirOpcionesFiltro(
-            selSeccion,
-            secciones.map((v) => ({ valor: v, label: v })),
-            'Todas'
-        );
-
-        // Los tres filtros quedan siempre habilitados (independientes, igual que Año).
-        selAnio.disabled = false;
-        selGrado.disabled = false;
-        selSeccion.disabled = false;
-
-        // ── Restaurar los filtros recordados ──
-        // Al volver de la vista de edición el DOM se recrea y estos selects
-        // arrancan vacíos: se re-aplica el valor guardado si su opción ya
-        // existe en la lista cargada.
-        const restaurar = (sel, valor) => {
-            if (!valor || sel.value === valor) return false;
-            if (sel.querySelector(`option[value="${CSS.escape(valor)}"]`)) {
-                sel.value = valor;
-                return true;
-            }
-            return false;
-        };
-        const restaurarAnio = restaurar(selAnio, estadoFiltros.anio);
-        const restaurarGrado = restaurar(selGrado, estadoFiltros.gradoKey);
-        const restaurarSeccion = restaurar(selSeccion, estadoFiltros.seccion);
-
-        // Sincronizar el estado de filtrado del contenedor con TODOS los
-        // filtros, incluida la rúbrica (sin ella, cada recarga borraba la
-        // clave 'rubrica' de state.filters y el filtro dejaba de aplicarse
-        // aunque el select siguiera mostrando un valor).
-        const state = container.__insalListState;
-        if (state) {
-            state.filters = {};
-            [selAnio, selGrado, selSeccion,
-                container.querySelector('#filtro-rubrica-proyectos'),
-                container.querySelector('#filtro-materia-proyectos')]
-                .filter(Boolean)
-                .forEach((sel) => {
-                    if (sel.value) state.filters[sel.dataset.filterKey] = sel.value;
-                });
+    // ── Grado (nivel + especialidad, p. ej. "1G"): valores únicos de toda la lista ──
+    const gradosMap = new Map();
+    proyectos.forEach((p) => {
+        const { gradoKey } = partirDisplayGrade(p.displayGrade);
+        if (gradoKey && !gradosMap.has(gradoKey)) {
+            gradosMap.set(gradoKey, { valor: gradoKey, label: gradoKey });
         }
-
-        // Refrescar el trigger del custom-select solo de los selects cuyo
-        // valor cambió (reconstrucción o restauración del filtro guardado)
-        if (cambioAnio || restaurarAnio) selAnio.dispatchEvent(new Event('change', { bubbles: true }));
-        if (cambioGrado || restaurarGrado) selGrado.dispatchEvent(new Event('change', { bubbles: true }));
-        if (cambioSeccion || restaurarSeccion) selSeccion.dispatchEvent(new Event('change', { bubbles: true }));
-    } finally {
-        container.__cascadeSync = false;
-    }
-}
-
-/**
- * Re-popula los filtros cuando el usuario cambia cualquiera de ellos:
- * tras una carga/refresh se reconstruyen las opciones y se re-sincroniza el
- * estado de filtrado (los cambios programáticos se ignoran vía __cascadeSync).
- */
-function initFiltroCascadaProyectos(container) {
-    if (!container || container.dataset.filtroCascadeInit === 'true') return;
-    const selects = [
-        document.getElementById('filtro-anio-proyectos'),
-        document.getElementById('filtro-grado-proyectos'),
-        document.getElementById('filtro-seccion-proyectos'),
-    ].filter(Boolean);
-    if (!selects.length) return;
-    container.dataset.filtroCascadeInit = 'true';
-
-    selects.forEach((sel) => {
-        sel.addEventListener('change', () => {
-            if (container.__cascadeSync) return;
-            populateFiltrosProyectos(container, container.__datosProyectos || []);
-        });
     });
+    const grados = [...gradosMap.values()].sort((a, b) => a.label.localeCompare(b.label));
+    const cambioGrado = reconstruirOpcionesFiltro(selGrado, grados, 'Todos');
+
+    // ── Sección: valores únicos de toda la lista ──
+    const secciones = [
+        ...new Set(proyectos.map((p) => partirDisplayGrade(p.displayGrade).seccion)),
+    ]
+        .filter(Boolean)
+        .sort();
+    const cambioSeccion = reconstruirOpcionesFiltro(
+        selSeccion,
+        secciones.map((v) => ({ valor: v, label: v })),
+        'Todas'
+    );
+
+    // Los tres filtros quedan siempre habilitados (independientes, igual que Año).
+    selAnio.disabled = false;
+    selGrado.disabled = false;
+    selSeccion.disabled = false;
+
+    // ── Restaurar los filtros recordados ──
+    // Al volver de la vista de edición el DOM se recrea y estos selects
+    // arrancan vacíos: se re-aplica el valor guardado si su opción ya
+    // existe en la lista cargada.
+    const restaurar = (sel, valor) => {
+        if (!valor || sel.value === valor) return false;
+        if (sel.querySelector(`option[value="${CSS.escape(valor)}"]`)) {
+            sel.value = valor;
+            return true;
+        }
+        return false;
+    };
+    const restaurarAnio = restaurar(selAnio, estadoFiltros.anio);
+    const restaurarGrado = restaurar(selGrado, estadoFiltros.gradoKey);
+    const restaurarSeccion = restaurar(selSeccion, estadoFiltros.seccion);
+
+    // Sincronizar el estado de filtrado del contenedor con TODOS los
+    // filtros, incluida la rúbrica (sin ella, cada recarga borraba la
+    // clave 'rubrica' de state.filters y el filtro dejaba de aplicarse
+    // aunque el select siguiera mostrando un valor).
+    const state = container.__insalListState;
+    if (state) {
+        state.filters = {};
+        [selAnio, selGrado, selSeccion,
+            container.querySelector('#filtro-rubrica-proyectos'),
+            container.querySelector('#filtro-materia-proyectos')]
+            .filter(Boolean)
+            .forEach((sel) => {
+                if (sel.value) state.filters[sel.dataset.filterKey] = sel.value;
+            });
+    }
+
+    // Refrescar el trigger del custom-select solo de los selects cuyo
+    // valor cambió (reconstrucción o restauración del filtro guardado)
+    if (cambioAnio || restaurarAnio) selAnio.dispatchEvent(new Event('change', { bubbles: true }));
+    if (cambioGrado || restaurarGrado) selGrado.dispatchEvent(new Event('change', { bubbles: true }));
+    if (cambioSeccion || restaurarSeccion) selSeccion.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 /** Obtiene el botón de refresh del DOM. */
@@ -1592,7 +1581,6 @@ function initProyectosHandlers() {
     // Rellenar el filtro por materia (reutiliza la petición de materias en curso).
     cargarOpcionesMaterias();
     loadProyectos();
-    initFiltroCascadaProyectos(container);
 
     // Cerrar el menú contextual al hacer scroll en el contenedor
     container.addEventListener('scroll', () => {

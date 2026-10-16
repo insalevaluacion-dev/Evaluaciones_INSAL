@@ -40,6 +40,7 @@
     <script type="module" src="/js/app-loader.js"></script>
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/resumen.css">
+    <link rel="stylesheet" href="/css/guia.css">
     <link rel="stylesheet" href="/css/circular-progress.css">
     <link rel="stylesheet" href="/css/notificaciones.css">
     <link rel="stylesheet" href="/css/input-fields.css">
@@ -56,6 +57,8 @@
     <script src="/js/resumen.js" defer></script>
     <script type="module" src="/js/ripple.js"></script>
     <script type="module" src="/js/notificaciones.js"></script>
+    <script type="module" src="/js/guia-evaluador.js"></script>
+    <link rel="icon" href="/assets/svg/Logo_SV.svg" type="image/svg+xml">
     <script src="/js/native-app.js" defer></script>
 </head>
 
@@ -76,6 +79,10 @@
                 <span class="resumen-header__label">Evaluación</span>
                 <h3 class="resumen-header__title">Resumen de Evaluación</h3>
             </div>
+            <button type="button" class="guia-evaluador-btn" data-guia-evaluador data-ripple aria-label="Iniciar guía">
+                <span class="material-symbols-rounded" aria-hidden="true">help</span>
+                <span>Guía</span>
+            </button>
         </div>
         <button type="button" class="btn centrar" id="boton-regresar" onclick="volverEvaluacion()" data-ripple data-submit>
             <div class="submit-states">
@@ -116,7 +123,7 @@
         <button type="button" class="btn centrar calificar" id="boton-calificar" onclick="mostrarNotaFinal()" data-ripple data-submit>
             <div class="submit-states">
                 <div class="centrar gap-btn mostrar" data-normal-content>
-                    Calificar
+                    <span>Calificar</span>
                     <span class="material-symbols-rounded" aria-hidden="true">stylus_note</span>
                 </div>
                 <div class="centrar gap-btn quitar" data-loading-content>

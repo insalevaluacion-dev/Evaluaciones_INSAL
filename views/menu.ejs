@@ -39,6 +39,7 @@
     <script type="module" src="/js/menu.js" defer></script>
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.4.0/dist/driver.css">
+    <link rel="stylesheet" href="/css/guia.css">
     <link rel="stylesheet" href="/css/app-loader.css">
     <link rel="stylesheet" href="/css/menu.css">
     <link rel="stylesheet" href="/css/proyectos.css">
@@ -55,7 +56,7 @@
     <link rel="stylesheet" href="/css/configuracion.css">
     <link rel="stylesheet" href="/css/ripple.css">
     <link rel="stylesheet" href="/css/input-fields.css">
-    <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
+    <link rel="icon" href="/assets/svg/Logo_SV.svg" type="image/svg+xml">
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.4.0/dist/driver.js.iife.js" defer></script>
     <script type="module" src="/js/proyectos.js" defer></script>
     <script type="module" src="/js/inicio.js" defer></script>
@@ -97,8 +98,9 @@
         // Fallbacks para que NUNCA quede colgado:
         //   - Si el fetch falla, router.js marca la condición 1 y pinta la UI
         //     de error (se oculta el loader, nunca pantalla blanca).
-        //   - Deadlines en la espera de fuente (3 s) y de datos (8 s), más un
-        //     timeout duro global de 12 s por si algo se cuelga del todo.
+        //   - Deadlines en la espera del probe de fuente (8 s) y de datos (8 s);
+        //     el deadline de fuente NO marca fontsReady si el glifo no se
+        //     pintó. Última garantía a los 28 s por si algo se cuelga del todo.
         (function () {
             var loader = document.getElementById('app-loader');
             var FONT_FACE = '700 24px "Material Symbols Rounded"';
@@ -151,12 +153,44 @@
                 document.documentElement.classList.add('icons-ready');
             }
 
-            function waitUntilIconsPainted(deadline) {
+            // ¿Sigue la fuente de iconos descargándose (petición "pending")?
+            // Mientras sea true NUNCA se oculta el loader, tarde lo que tarde.
+            function iconFontPending() {
+                var link = document.querySelector(
+                    'link[href*="fonts.googleapis.com/css2"][href*="Material"]'
+                );
+                if (link && !link.sheet && document.readyState !== 'complete') return true;
+                var fonts = document.fonts;
+                if (!fonts || typeof fonts.forEach !== 'function') return false;
+                var pending = false;
+                fonts.forEach(function (face) {
+                    if (!/Material Symbols/i.test(face.family)) return;
+                    if (face.status === 'loading') pending = true;
+                    else if (face.status === 'unloaded' && document.readyState !== 'complete') pending = true;
+                });
+                return pending;
+            }
+
+            // Espera el glifo pintado SIN deadline por tiempo. Solo si la fuente
+            // FALLÓ de forma definitiva (ni pintada ni pendiente durante
+            // FONT_FAILED_GRACE_MS) deja de esperar, para no congelar la app.
+            var FONT_FAILED_GRACE_MS = 2500;
+            function waitUntilIconsPainted() {
                 return new Promise(function (resolve) {
+                    var settledSince = 0;
                     (function poll() {
-                        if (iconsArePainted() || Date.now() > deadline) {
-                            requestAnimationFrame(function () { resolve(); });
+                        if (iconsArePainted()) {
+                            requestAnimationFrame(function () { resolve(true); });
                             return;
+                        }
+                        if (iconFontPending()) {
+                            settledSince = 0;
+                        } else {
+                            settledSince = settledSince || Date.now();
+                            if (Date.now() - settledSince > FONT_FAILED_GRACE_MS) {
+                                resolve(false);
+                                return;
+                            }
                         }
                         setTimeout(poll, 50);
                     })();
@@ -239,30 +273,19 @@
                 fontWaitStarted = true;
                 var fonts = document.fonts;
                 var text = collectIconText() + ICON_PROBE_WORD;
-                var hasFontApi = !!(fonts && fonts.load);
-
-                var fontDone = new Promise(function (resolve) {
-                    if (!hasFontApi) { resolve(); return; }
-                    var load;
-                    try {
-                        load = fonts.load(FONT_FACE, text);
-                    } catch (e) { resolve(); return; }
-                    if (load && typeof load.then === 'function') {
-                        load.then(function () {
-                            try {
-                                if (typeof fonts.ready === 'undefined') { resolve(); }
-                                else { fonts.ready.then(resolve, resolve); }
-                            } catch (e) { resolve(); }
-                        }).catch(function () { resolve(); });
-                    } else { resolve(); }
-                });
-
-                var DEADLINE = Date.now() + 8000;
-                Promise.all([fontDone, waitUntilIconsPainted(DEADLINE)]).then(function () {
-                    if (iconsArePainted()) {
-                        fontsReady = true;
-                        tryFinish();
+                // fonts.load() solo adelanta la descarga; la condición es el probe.
+                try {
+                    if (fonts && fonts.load) {
+                        var load = fonts.load(FONT_FACE, text);
+                        if (load && typeof load.catch === 'function') {
+                            load.catch(function () { /* el probe decide */ });
+                        }
                     }
+                } catch (e) { /* el probe decide */ }
+
+                waitUntilIconsPainted().then(function () {
+                    fontsReady = true;
+                    tryFinish();
                 });
             }
 
@@ -293,6 +316,18 @@
                     finish();
                 }
             }, 12000);
+
+            // Última garantía (igual que app-loader.js): tras ~28 s libera el
+            // overlay, pero NUNCA mientras la fuente de iconos siga pendiente;
+            // en ese caso reintenta cada segundo.
+            setTimeout(function lastResort() {
+                if (!loader || !loader.classList.contains('is-active')) return;
+                if (iconFontPending() && !iconsArePainted()) {
+                    setTimeout(lastResort, 1000);
+                    return;
+                }
+                finish();
+            }, 28000);
         })();
     </script>
     <div id="infoCard" class="info-card menu_contextual">

@@ -543,9 +543,17 @@
             if (e.key === 'Escape') closeDropdown();
         });
 
-        // Reaccionar a cambios en el <select> nativo (opciones, disabled, display)
-        const observer = new MutationObserver(() => {
-            buildOptions();
+        // Reaccionar a cambios en el <select> nativo (opciones, disabled, display).
+        // Cambiar el valor solo alterna el atributo selected de las <option>:
+        // reconstruir el menú en ese caso vaciaba y recreaba todas las opciones
+        // en el mismo clic y trababa la página.
+        const observer = new MutationObserver((records) => {
+            const estructural = records.some((record) =>
+                record.type === 'childList' ||
+                (record.type === 'attributes' && record.attributeName !== 'selected')
+            );
+            if (estructural) buildOptions();
+            else syncTrigger();
             syncDisabled();
             syncVisibility();
             // Si el menú quedó abierto pero se quedó sin opciones que mostrar

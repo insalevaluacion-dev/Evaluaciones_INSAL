@@ -238,6 +238,13 @@ main.main_document .proyecto-header {
     color: #b3261e;
 }
 
+/* Criterio sin ponderación (0%): su calificación es opcional. */
+.campo-nota__label .opcional{
+    color: var(--text-color);
+    opacity: .7;
+    font-weight: 400;
+}
+
 .campo-nota__input{
     width: 100%;
     padding: 12px 16px;
@@ -441,6 +448,16 @@ body.modal-open {
     flex-shrink: 0;
     width: 18px;
     height: 18px;
+}
+
+.estudiante-checkbox md-checkbox:focus,
+.estudiante-checkbox md-checkbox:focus-visible {
+    outline: none;
+}
+
+/* Elimina el anillo de foco (md-focus-ring) que MDC dibuja dentro del shadow DOM */
+.estudiante-checkbox md-checkbox::part(focus-ring) {
+    display: none;
 }
 
 .estudiante-checkbox:hover {

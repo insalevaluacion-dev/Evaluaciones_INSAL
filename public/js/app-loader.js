@@ -25,9 +25,11 @@
  *        una señal explícita `window.__appLoaderDataReady()` cuando haya
  *        pintado sus datos.
  *
- * Redes de seguridad para que NUNCA quede colgado: deadline de fuente (3 s) y
- * un timeout duro global (8 s). Además cada vista trae su propio `<script>`
- * inline de respaldo por si este módulo no llegara a ejecutarse.
+ * El TIEMPO nunca autoriza ocultar mientras la fuente de iconos siga
+ * descargándose (petición pending): se espera sin límite. Solo si la fuente
+ * FALLA de forma definitiva (error de red) se deja de esperar para no
+ * congelar la app. Además cada vista trae su propio `<script>` inline de
+ * respaldo por si este módulo no llegara a ejecutarse.
  */
 
 const FONT_FACE = '700 24px "Material Symbols Rounded"';
@@ -35,6 +37,9 @@ const ICON_PROBE_WORD = 'settings';
 const ICON_GLYPH_MAX_PX = 48;
 
 const HARD_TIMEOUT_MS = 8000;
+// Tiempo continuo "ni pintada ni pendiente" tras el cual damos la fuente por
+// fallida (no por lenta) y dejamos de esperarla.
+const FONT_FAILED_GRACE_MS = 2500;
 
 let fontsReady = false;
 let dataReady = false;
@@ -98,12 +103,52 @@ function markIconsReady() {
     document.documentElement.classList.add('icons-ready');
 }
 
-function waitUntilIconsPainted(deadline) {
+/**
+ * ¿Sigue la fuente de iconos descargándose? (petición "pending")
+ *  - La hoja de estilos de Google Fonts aún no llegó (ni falló).
+ *  - Algún FontFace "Material Symbols" está en `loading`, o `unloaded`
+ *    mientras la página todavía carga.
+ * Mientras esto sea true NUNCA se debe ocultar el loader, sin importar
+ * cuánto tarde: el tiempo no autoriza el ocultado, solo el glifo pintado.
+ */
+function iconFontPending() {
+    const link = document.querySelector(
+        'link[href*="fonts.googleapis.com/css2"][href*="Material"]'
+    );
+    if (link && !link.sheet && document.readyState !== 'complete') return true;
+    const fonts = document.fonts;
+    if (!fonts || typeof fonts.forEach !== 'function') return false;
+    let pending = false;
+    fonts.forEach(function (face) {
+        if (!/Material Symbols/i.test(face.family)) return;
+        if (face.status === 'loading') pending = true;
+        else if (face.status === 'unloaded' && document.readyState !== 'complete') pending = true;
+    });
+    return pending;
+}
+
+/**
+ * Espera a que el glifo se pinte. Sin deadline por tiempo: sigue esperando
+ * mientras la fuente esté pendiente. Resuelve `false` solo si la fuente
+ * FALLÓ de forma definitiva (error de red, hoja sin la fuente...), para no
+ * dejar la app congelada; resuelve `true` cuando el probe colapsa.
+ */
+function waitUntilIconsPainted() {
     return new Promise(function (resolve) {
+        let settledSince = 0;
         (function poll() {
-            if (iconsArePainted() || Date.now() > deadline) {
-                requestAnimationFrame(function () { resolve(); });
+            if (iconsArePainted()) {
+                requestAnimationFrame(function () { resolve(true); });
                 return;
+            }
+            if (iconFontPending()) {
+                settledSince = 0;
+            } else {
+                settledSince = settledSince || Date.now();
+                if (Date.now() - settledSince > FONT_FAILED_GRACE_MS) {
+                    resolve(false);
+                    return;
+                }
             }
             setTimeout(poll, 50);
         })();
@@ -145,36 +190,21 @@ function tryFinish() {
 function waitForIconFonts() {
     const fonts = document.fonts;
     const text = collectIconText() + ICON_PROBE_WORD;
-    // `fonts.load()` descarga el glifo concreto; `fonts.ready` confirma que la
-    // fuente está lista. Ninguna de las dos es, por sí sola, la señal visual:
-    // el glifo debe PINTARSE. Esperamos el probe con un deadline amplio y SOLO
-    // entonces autorizamos `fontsReady`, de forma que el loader no se oculta
-    // mientras la fuente (o el glifo) aún no se ha aplicado.
-    const hasFontApi = !!(fonts && fonts.load);
-    const fontDone = new Promise(function (resolve) {
-        if (!hasFontApi) { resolve(); return; }
-        let load;
-        try {
-            load = fonts.load(FONT_FACE, text);
-        } catch (e) { resolve(); return; }
-        if (load && typeof load.then === 'function') {
-            load.then(function () {
-                try {
-                    if (typeof fonts.ready === 'undefined') { resolve(); }
-                    else { fonts.ready.then(resolve, resolve); }
-                } catch (e) { resolve(); }
-            }).catch(function () { resolve(); });
-        } else { resolve(); }
-    });
-    const DEADLINE = Date.now() + 8000;
-    Promise.all([fontDone, waitUntilIconsPainted(DEADLINE)]).then(function () {
-        // El probe es la señal autorizativa VISUAL: solo si el glifo ya se
-        // pintó marco fontsReady. Si no pintó al vencer el deadline, NO
-        // seguimos aquí: fontsReady sigue false y el loader no se oculta.
-        if (iconsArePainted()) {
-            fontsReady = true;
-            tryFinish();
+    // `fonts.load()` solo ADELANTA la descarga del glifo concreto; no es la
+    // condición. La señal autorizativa es el probe pintado y se espera SIN
+    // límite de tiempo mientras la fuente siga pendiente (iconFontPending).
+    // Solo si la fuente FALLÓ de forma definitiva se deja de esperar.
+    try {
+        if (fonts && fonts.load) {
+            const load = fonts.load(FONT_FACE, text);
+            if (load && typeof load.catch === 'function') {
+                load.catch(function () { /* el probe decide */ });
+            }
         }
+    } catch (e) { /* el probe decide */ }
+    waitUntilIconsPainted().then(function () {
+        fontsReady = true;
+        tryFinish();
     });
 }
 
@@ -227,15 +257,18 @@ function boot() {
             finish();
         }
     }, HARD_TIMEOUT_MS);
-    // Última garantía: si se pasan ~28 s y el overlay sigue activo, quitamos la
-    // clase 'is-active' y revelamos los iconos para no dejar la aplicación
-    // congelada. Esto solo se aplica tras un tiempo muy largo.
-    setTimeout(function () {
+    // Última garantía (p. ej. los datos nunca avisan): tras ~28 s se libera el
+    // overlay, PERO nunca mientras la fuente de iconos siga pendiente: en ese
+    // caso se reintenta cada segundo. El tiempo no autoriza ocultar con la
+    // fuente descargándose.
+    setTimeout(function lastResort() {
         const loader = document.getElementById('app-loader');
-        if (loader && loader.classList.contains('is-active')) {
-            loader.classList.remove('is-active');
-            markIconsReady();
+        if (!loader || !loader.classList.contains('is-active')) return;
+        if (iconFontPending() && !iconsArePainted()) {
+            setTimeout(lastResort, 1000);
+            return;
         }
+        finish();
     }, HARD_TIMEOUT_MS + 20000);
 }
 

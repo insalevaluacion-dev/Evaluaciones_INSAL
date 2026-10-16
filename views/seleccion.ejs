@@ -46,7 +46,8 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
     <link rel="stylesheet" href="/css/cerrar-sesion-evaluador.css">
-    <link rel="shortcut icon" href="/assets/svg/Logo_SV.svg" type="image/x-icon">
+    <link rel="stylesheet" href="/css/guia.css">
+    <link rel="icon" href="/assets/svg/Logo_SV.svg" type="image/svg+xml">
     <script src="/js/custom-select.js" defer></script>
     <script src="/js/buttonFeedback.js" defer></script>
     <script type="module" src="/js/seleccion.js"></script>
@@ -54,6 +55,7 @@
     <!-- type="module": el archivo usa export; como script clásico lanza
          SyntaxError y mostrarNotificacion nunca queda disponible -->
     <script type="module" src="/js/notificaciones.js"></script>
+    <script type="module" src="/js/guia-evaluador.js"></script>
     <script src="/js/native-app.js" defer></script>
 </head>
 
@@ -77,10 +79,16 @@
                     <p class="evaluador-perfil__nombre"><%= evaluador.nombreEvaluador %></p>
                     <p class="evaluador-perfil__correo"><%= evaluador.email %></p>
                 </div>
+                <div class="evaluador-perfil__acciones">
+                <button type="button" class="guia-evaluador-btn" data-guia-evaluador data-ripple aria-label="Iniciar guía">
+                    <span class="material-symbols-rounded" aria-hidden="true">help</span>
+                    <span>Guía</span>
+                </button>
                 <button type="button" id="btn-cerrar-sesion-evaluador" title="Cerrar sesión" aria-label="Cerrar sesión" data-ripple>
                     <span class="material-symbols-rounded" aria-hidden="true">logout</span>
                     <span>Salir</span>
                 </button>
+                </div>
             </header>
             <form id="formulario-filtros" class="form" novalidate>
                 <p class="principal__element--text">

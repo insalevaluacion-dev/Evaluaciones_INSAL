@@ -255,7 +255,7 @@ function createRubricaElement(nivel) {
         </div>
     </div>
     <div class="centrar gap-row margin-left-20">
-        <a href="/menu/rubrica/${nivel.nivel_id}" data-link class="centrar boton btn-small btn-mas" id="rubrica-${nivel.nivel_id}-open">
+        <a href="/menu/rubrica/${nivel.nivel_id}" data-link class="centrar boton btn-small btn-mas" id="rubrica-${nivel.nivel_id}-open" aria-label="${puedeEditar ? 'Editar' : 'Ver'}">
             <p>${puedeEditar ? 'Editar' : 'Ver'}</p>
             <span class="material-symbols-rounded">arrow_outward</span>
         </a>
@@ -268,23 +268,32 @@ function createRubricaElement(nivel) {
     elementoDiv.querySelector('.rubrica-nombre').textContent = nivel.nombre || 'Sin nombre';
     elementoDiv.querySelector('.rubrica-descripcion').textContent = nivel.descripcion || 'Sin descripción';
 
-    // Estado de ponderación: porcentaje junto a Editar/Ver, mismo lenguaje que
-    // el botón contiguo (borde fino). El texto largo vive en title/aria-label
-    // y el número no entra en la búsqueda (data-search-ignore).
+    // Estado de ponderación junto al texto de la rúbrica, no entre los botones:
+    // un "100%" suelto se lee como nota. El detalle largo queda en title/aria-label
+    // y el estado no entra en la búsqueda (data-search-ignore).
     const total = Number(nivel.ponderacion_total ?? NaN);
     if (Number.isFinite(total)) {
         const completa = total === 100;
-        const acciones = elementoDiv.querySelector('.gap-row');
-        if (acciones) {
-            const estado = document.createElement('span');
+        const texto = elementoDiv.querySelector('.list-item__text-block');
+        if (texto) {
+            const estado = document.createElement('p');
             estado.className = `rubrica-estado ${completa ? 'rubrica-estado--ok' : 'rubrica-estado--borrador'}`;
             estado.dataset.searchIgnore = '';
-            estado.textContent = `${total}%`;
+
+            const icono = document.createElement('span');
+            icono.className = 'material-symbols-rounded';
+            icono.setAttribute('aria-hidden', 'true');
+            icono.textContent = completa ? 'check_circle' : 'warning';
+
+            const etiqueta = document.createElement('span');
+            etiqueta.textContent = completa ? 'Lista para usar' : `Incompleta · ${total}%`;
+
+            estado.append(icono, etiqueta);
             estado.title = completa
                 ? 'Ponderación completa (100%): puede asignarse a proyectos'
-                : `Borrador (${total}%): complétala al 100% para usarla en proyectos`;
+                : `Ponderación al ${total}%: complétala al 100% para usarla en proyectos`;
             estado.setAttribute('aria-label', estado.title);
-            acciones.insertBefore(estado, acciones.firstChild);
+            texto.appendChild(estado);
         }
         elementoDiv.dataset.ponderacionTotal = String(total);
         elementoDiv.dataset.rubricaCompleta = completa ? 'true' : 'false';

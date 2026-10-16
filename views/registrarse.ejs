@@ -35,7 +35,7 @@
     <link rel="stylesheet" href="/css/circular-progress.css">
     <link rel="stylesheet" href="/css/ripple.css">
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/assets/svg/Logo_SV.svg" type="image/png" />
+    <link rel="icon" href="/assets/svg/Logo_SV.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
@@ -53,7 +53,7 @@
 
 <body>
     <div id="app-loader" class="app-loader is-active" role="status" aria-label="Cargando">
-        <img src="/assets/svg/Logo_SV_loader.svg" alt="" class="app-loader__logo">
+        <img src="/assets/svg/Logo_SV_loader_blanco.svg" alt="" class="app-loader__logo">
     </div>
     <script type="module" src="/js/app-loader.js"></script>
     <script>
@@ -83,16 +83,16 @@
             <p>Ingresaras en modo solo evaluación</p>
             <p class="hint__correo">
                 <span class="material-symbols-rounded hint__correo-icono" aria-hidden="true">info</span>
-                <span>Si ya te registraste antes, usa el <strong>mismo nombre y correo</strong> para continuar.</span>
+                <span>Si ya te habías registrado previamente, escribe el mismo nombre y el mismo correo para continuar. Asegúrate de escribirlos correctamente.</span>
             </p>
             <form class="form-registrar" id="form-registrar" novalidate>
                 <label for="nombre">Nombre</label>
                 <input placeholder="Nombre" class="input__text" type="text" name="nombre" id="nombre"
-                    autocomplete="name">
+                    autocomplete="name" maxlength="65">
                 <span class="error-message" id="error-nombre"></span>
                 <label for="correo">Correo</label>
                 <input placeholder="Correo" class="input__text" type="text" name="correo" id="correo" inputmode="email"
-                    autocomplete="email">
+                    autocomplete="email" maxlength="65">
                 <span class="error-message" id="error-correo"></span>
                 <p class="hint__correo" style="display: none;">
                     <span class="material-symbols-rounded hint__correo-icono">error</span>

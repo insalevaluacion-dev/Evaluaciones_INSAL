@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import bcrypt from 'bcrypt';
+import { generarPdfGrado, generarPdfProyecto, textoGrado, textoPlan } from './public/js/pdf-reportes.js';
 
 // ─── Variables de entorno ─────────────────────────────────────────────────────
 // Local: se carga el archivo .env (nativo desde Node.js 20.12, sin dotenv).
@@ -77,6 +78,16 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Favicon de respaldo en /favicon.ico: aunque cada vista declara su
+// <link rel="icon"> (el logo SVG), algunos navegadores y agentes piden
+// /favicon.ico de forma automática (pestañas nuevas, prefetch, crawlers).
+// Al no existir ese archivo en /public devolvería 404 y se perdería la marca;
+// aquí servimos el mismo logo SVG con el MIME correcto.
+app.get('/favicon.ico', (req, res) => {
+    res.type('image/svg+xml');
+    res.sendFile(path.join(__dirname, 'public', 'assets', 'svg', 'Logo_SV.svg'));
+});
+
 // ─── Conexión a PostgreSQL ────────────────────────────────────────────────────
 // Render/Railway entregan la cadena completa en DATABASE_URL (lo habitual al
 // añadir su PostgreSQL). También se admiten las variables discretas DB_* y las
@@ -108,8 +119,8 @@ const USAR_SSL =
     process.env.DB_SSL !== undefined
         ? process.env.DB_SSL === 'true'
         : MODO_SSL_URL
-          ? MODOS_CIFRADOS.has(MODO_SSL_URL)
-          : /^(allow|prefer|require|verify-ca|verify-full|no-verify|true|1)$/i.test(process.env.PGSSLMODE || '');
+            ? MODOS_CIFRADOS.has(MODO_SSL_URL)
+            : /^(allow|prefer|require|verify-ca|verify-full|no-verify|true|1)$/i.test(process.env.PGSSLMODE || '');
 
 // rejectUnauthorized:false porque los Postgres gestionados usan certificados que
 // Node no valida contra la CA del sistema, aunque el tráfico sí va cifrado.
@@ -144,8 +155,8 @@ function cadenaSinSSLMODE(url) {
 if (!USAR_SSL && MODOS_CIFRADOS.has(MODO_SSL_URL)) {
     console.warn(
         `⚠️  La URL de conexión pide sslmode=${MODO_SSL_URL} pero DB_SSL/PGSSLMODE ` +
-            `desactiva el TLS. Se ignorará sslmode; si tu base de datos exige ` +
-            `cifrado, quita DB_SSL=false o ponla en true.`,
+        `desactiva el TLS. Se ignorará sslmode; si tu base de datos exige ` +
+        `cifrado, quita DB_SSL=false o ponla en true.`,
     );
 }
 
@@ -313,14 +324,6 @@ function buildGradeName(nivelNombre, bachilleratoId, seccionLetra) {
 }
 
 // ─── Historial de actividad del proyecto ─────────────────────────────────────
-/**
- * Registra un cambio en el historial de actividad de un proyecto.
- * Nunca lanza: si la tabla aún no existe (SQL no ejecutado) solo avisa por
- * consola para no romper el flujo principal de guardado.
- *
- * @param {import('pg').PoolClient|import('pg').Pool} executor pool o client (dentro de transacción)
- * @param {object} datos
- */
 async function registrarActividad(executor, {
     proyectoId,
     usuarioId = null,
@@ -1106,33 +1109,86 @@ app.post('/enviarEvaluador', async (req, res) => {
         const emailNorm = String(email).trim();
         const nombreNorm = String(nombreEvaluador).trim();
 
-        // Intentamos insertar. Como `email` es UNIQUE, si el evaluador ya existe
-        // recibimos 23505: en lugar de bloquearlo, RECUPERAMOS su sesión (busca su
-        // evaluador_id y se lo devuelve a la sesión). Así, si perdió la sesión
-        // (expiró, se reinició el contenedor, etc.) puede volver a entrar con SU
-        // MISMO correo y continuar donde estaba, sin inventar otro email.
+        // Campos en blanco tras recortar (p. ej. "   ") o más largos que su
+        // columna (ambos son varchar(65) en evaluaciones.evaluadores): 400 con
+        // mensaje claro, en lugar de un error crudo de la BD (22001 / NOT NULL)
+        // que acabaría respondiendo un 500 genérico.
+        if (!nombreNorm || !emailNorm) {
+            return res.status(400).json({ mensaje: 'Nombre y email son requeridos' });
+        }
+        if (nombreNorm.length > 65 || emailNorm.length > 65) {
+            return res.status(400).json({ mensaje: 'El nombre y el correo no pueden superar los 65 caracteres' });
+        }
+
+        // Misma normalización que en la consulta de abajo (lower(btrim(...))):
+        // ignora mayúsculas/minúsculas y espacios de más, así "María  Pérez" y
+        // "maria perez" se consideran el mismo dato.
+        const mismoDato = (a, b) =>
+            String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+
+        // ── Unicidad de CORREO y NOMBRE (comprobación previa) ──────────────────
+        // El correo ya era único (constraint `evaluadores_email_key`); al igual
+        // que él, el NOMBRE tampoco puede repetirse entre evaluadores. Ambas
+        // comparaciones se hacen con lower(btrim(...)), igual que mismoDato.
+        const { rows: existentes } = await pool.query(
+            `SELECT evaluador_id, nombre, email
+               FROM evaluaciones.evaluadores
+              WHERE lower(btrim(nombre)) = lower(btrim($1))
+                 OR lower(btrim(email))  = lower(btrim($2))
+              ORDER BY evaluador_id`,
+            [nombreNorm, emailNorm],
+        );
+
+        // ¿El correo pertenece a un registro previo?
+        //   • Mismo nombre  → es un REINGRESO (sesión expirada, reinicio del
+        //     contenedor, etc.): recuperamos SU evaluador_id sin insertar nada.
+        //   • Otro nombre   → 409: hay que usar la pareja nombre+correo original.
+        const correoExistente = existentes.find((fila) => mismoDato(fila.email, emailNorm));
+
         let evaluadorId;
-        try {
-            const result = await pool.query(
-                `INSERT INTO evaluaciones.evaluadores (nombre, email)
-                 VALUES ($1, $2) RETURNING evaluador_id`,
-                [nombreNorm, emailNorm],
-            );
-            evaluadorId = result.rows[0].evaluador_id;
-            console.log(`Evaluador registrado: ${nombreNorm} (${emailNorm})`);
-        } catch (insertErr) {
-            if (insertErr.code !== '23505') throw insertErr;
-            // Email ya registrado: recuperamos la sesión existente.
-            const { rows } = await pool.query(
-                `SELECT evaluador_id, nombre FROM evaluaciones.evaluadores WHERE email = $1 LIMIT 1`,
-                [emailNorm],
-            );
-            if (rows.length === 0) throw insertErr;
-            if (String(rows[0].nombre).trim() !== nombreNorm) {
-                return res.status(409).json({ mensaje: 'Ese correo ya está registrado. Ingresa el mismo nombre y correo que usaste al registrarte.' });
+        if (correoExistente) {
+            if (!mismoDato(correoExistente.nombre, nombreNorm)) {
+                return res.status(409).json({
+                    mensaje: 'Ese correo ya está registrado. Ingresa el mismo nombre y correo que usaste al registrarte.',
+                });
             }
-            evaluadorId = rows[0].evaluador_id;
+            evaluadorId = correoExistente.evaluador_id;
             console.log(`Evaluador reingresó (sesión recuperada): ${emailNorm}`);
+        } else if (existentes.length > 0) {
+            // El nombre ya pertenece a OTRO evaluador (con otro correo): se
+            // bloquea con 409, igual que se bloquearía un correo repetido.
+            return res.status(409).json({
+                mensaje: 'Ese nombre ya está registrado. Ingresa el mismo nombre y correo que usaste al registrarte.',
+            });
+        } else {
+            // Registro nuevo. El INSERT sigue protegido por los UNIQUE de
+            // `nombre` (evaluadores_nombre_key) y `email` (evaluadores_email_key)
+            // por si dos peticiones llegan a la vez: la comprobación de arriba
+            // no es una transacción atómica.
+            try {
+                const result = await pool.query(
+                    `INSERT INTO evaluaciones.evaluadores (nombre, email)
+                     VALUES ($1, $2) RETURNING evaluador_id`,
+                    [nombreNorm, emailNorm],
+                );
+                evaluadorId = result.rows[0].evaluador_id;
+                console.log(`Evaluador registrado: ${nombreNorm} (${emailNorm})`);
+            } catch (insertErr) {
+                if (insertErr.code !== '23505') throw insertErr;
+                // Carrera entre dos registros simultáneos: recuperamos la sesión
+                // existente con el mismo criterio de arriba (nombre+correo).
+                const { rows } = await pool.query(
+                    `SELECT evaluador_id, nombre, email FROM evaluaciones.evaluadores
+                      WHERE lower(btrim(email)) = lower(btrim($1)) LIMIT 1`,
+                    [emailNorm],
+                );
+                if (rows.length === 0) throw insertErr;
+                if (!mismoDato(rows[0].nombre, nombreNorm)) {
+                    return res.status(409).json({ mensaje: 'Ese correo ya está registrado. Ingresa el mismo nombre y correo que usaste al registrarte.' });
+                }
+                evaluadorId = rows[0].evaluador_id;
+                console.log(`Evaluador reingresó (sesión recuperada): ${emailNorm}`);
+            }
         }
 
         // Sesión NUEVA (regenerate): descarta cualquier sesión de maestro previa
@@ -1156,7 +1212,16 @@ app.post('/enviarEvaluador', async (req, res) => {
     } catch (err) {
         console.error('Error enviarEvaluador:', err);
         if (err.code === '23505') {
-            return res.status(400).json({ mensaje: 'El evaluador ya está registrado' });
+            // Último filtro ante carreras: si la restricción UNIQUE de `nombre`
+            // (`evaluadores_nombre_key`, script db/evaluadores-nombre-unico.sql)
+            // rechazó la inserción, avisamos del nombre; si no, del correo
+            // (constraint `evaluadores_email_key`, el que ya existía).
+            const porNombre = /nombre/i.test(String(err.constraint || ''));
+            return res.status(409).json({
+                mensaje: porNombre
+                    ? 'Ese nombre ya está registrado. Ingresa el mismo nombre y correo que usaste al registrarte.'
+                    : 'Ese correo ya está registrado. Ingresa el mismo nombre y correo que usaste al registrarte.',
+            });
         } else {
             return res.status(500).json({ mensaje: 'No se guardaron los datos' });
         }
@@ -1559,6 +1624,25 @@ app.post('/guardar-evaluacion', async (req, res) => {
             [criterioIds],
         );
 
+        // Validación de las puntuaciones recibidas (defensa del servidor):
+        // la escala válida es 1.0 a 10.0 con un solo decimal, igual que en el
+        // formulario. Si falta el criterio en la BD, también se rechaza.
+        for (const ev of evaluaciones) {
+            const puntuacion = Number(ev?.puntuacion);
+            const criterioExiste = criterioRows.some((c) => c.criterio_id === ev?.criterio_id);
+            const unDecimal = /^\d+(\.\d)?$/.test(String(ev?.puntuacion));
+            if (!criterioExiste) {
+                await client.query('ROLLBACK');
+                return res.status(422).json({ mensaje: 'Criterio no válido para esta rúbrica' });
+            }
+            if (!Number.isFinite(puntuacion) || puntuacion < 1 || puntuacion > 10 || !unDecimal) {
+                await client.query('ROLLBACK');
+                return res.status(422).json({
+                    mensaje: 'Cada calificación debe estar entre 1.0 y 10.0 (un solo decimal)',
+                });
+            }
+        }
+
         let total = 0;
         evaluaciones.forEach((ev) => {
             const criterio = criterioRows.find((c) => c.criterio_id === ev.criterio_id);
@@ -1700,7 +1784,7 @@ app.post('/confirmar-evaluacion', async (req, res) => {
             redirect: '/seleccion?nota=confirmada',
         });
     } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch(() => { });
         console.error('Error confirmar-evaluacion:', err);
         return res.status(500).json({ mensaje: 'Error al confirmar la evaluación' });
     } finally {
@@ -2003,7 +2087,7 @@ app.get('/admin/evaluaciones/proyectos/:proyectoId/evaluaciones', requireAuth, a
 /**
  * Reporte de un grado: todos sus proyectos con TODAS sus evaluaciones
  * (y el desglose de criterios de cada evaluación). Se usa para descargar
- * el reporte final por grado (PDF / Excel) desde la lista de evaluaciones.
+ * el reporte final por grado (PDF) desde la lista de evaluaciones.
  * Devuelve un grado con la lista de proyectos; cada proyecto lleva su
  * `evaluaciones` array y cada evaluación sus `criterios`.
  */
@@ -2145,11 +2229,175 @@ app.get('/admin/evaluaciones/grado/:gradoId', requireAuth, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  REPORTES PDF (réplica de las plantillas Word originales, vía pdfkit)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Reúne, para cada proyecto, todo lo que muestran las plantillas de reporte:
+ * datos del grado, estudiantes presentes, evaluaciones confirmadas y criterios.
+ * Devuelve un arreglo en el mismo orden que `ids`.
+ */
+async function cargarDatosReporte(ids) {
+    if (ids.length === 0) return [];
+
+    const { rows: proyectos } = await pool.query(
+        `SELECT p.proyecto_id,
+                p.nombre,
+                p.nota,
+                p.grado_id,
+                g.anio,
+                ne.nombre AS nivel_nombre,
+                b.nombre  AS bachillerato,
+                s.letra   AS seccion,
+                t.nombre  AS turno,
+                COALESCE(n.cantidad_evaluadores, 3)::int AS requeridos
+         FROM evaluaciones.proyectos p
+         JOIN evaluaciones.niveles n          ON p.nivel_id = n.nivel_id
+         JOIN principal.grados g              ON p.grado_id = g.grado_id
+         LEFT JOIN principal.niveles_estudios ne ON g.niveles_estudio_id = ne.niveles_estudios_id
+         LEFT JOIN principal.bachilleratos b  ON g.bachillerato_id = b.bachillerato_id
+         LEFT JOIN principal.secciones s      ON g.seccion_id = s.seccion_id
+         LEFT JOIN principal.turnos t         ON g.turno_id = t.turno_id
+         WHERE p.proyecto_id = ANY($1::int[])`,
+        [ids],
+    );
+
+    // Estudiantes presentes (asistencia confirmada)
+    const { rows: estudiantes } = await pool.query(
+        `SELECT es.proyecto_id, ps.nie, ps.nombre_completo
+         FROM evaluaciones.estudiantes es
+         JOIN principal.estudiantes ps ON es.grado_id = ps.estudiante_id
+         WHERE es.proyecto_id = ANY($1::int[]) AND es.asistencia = true
+         ORDER BY ps.nombre_completo`,
+        [ids],
+    );
+
+    const { rows: evaluaciones } = await pool.query(
+        `SELECT ev.evaluacion_id,
+                ev.proyecto_id,
+                ev.nota_evaluacion AS nota,
+                ev.fecha_evaluacion,
+                e.nombre           AS evaluador_nombre,
+                e.email            AS evaluador_email
+         FROM evaluaciones.evaluaciones ev
+         JOIN evaluaciones.evaluadores e ON ev.evaluador_id = e.evaluador_id
+         WHERE ev.proyecto_id = ANY($1::int[]) AND ev.confirmo_nota = true
+         ORDER BY ev.proyecto_id, ev.fecha_evaluacion`,
+        [ids],
+    );
+
+    let criterios = [];
+    if (evaluaciones.length > 0) {
+        const { rows } = await pool.query(
+            `SELECT ec.evaluacion_id, c.nombre, ec.puntuacion, c.porcentaje
+             FROM evaluaciones.evaluacion_criterios ec
+             JOIN evaluaciones.criterios c ON ec.criterio_id = c.criterio_id
+             WHERE ec.evaluacion_id = ANY($1::int[])
+             ORDER BY ec.evaluacion_id, c.criterio_id`,
+            [evaluaciones.map((ev) => ev.evaluacion_id)],
+        );
+        criterios = rows;
+    }
+
+    return ids
+        .map((id) => proyectos.find((p) => p.proyecto_id === id))
+        .filter(Boolean)
+        .map((p) => {
+            const evs = evaluaciones
+                .filter((ev) => ev.proyecto_id === p.proyecto_id)
+                .map((ev) => ({
+                    ...ev,
+                    criterios: criterios.filter((c) => c.evaluacion_id === ev.evaluacion_id),
+                }));
+            const promedio = evs.length ? evs.reduce((acc, ev) => acc + Number(ev.nota), 0) / evs.length : null;
+            // Misma regla que el resto de la app: nota final solo con las evaluaciones completas.
+            const completa = evs.length >= p.requeridos;
+            return {
+                nombre: p.nombre,
+                plan: textoPlan(p.bachillerato),
+                grado: textoGrado(p.nivel_nombre),
+                seccion: `${p.seccion ?? '—'} – ${p.turno ?? '—'}`,
+                anio: String(p.anio ?? '—'),
+                grado_id: p.grado_id,
+                estudiantes: estudiantes
+                    .filter((e) => e.proyecto_id === p.proyecto_id)
+                    .map((e) => `${e.nie} - ${e.nombre_completo}`),
+                nota: completa && p.nota != null ? Number(p.nota) : promedio,
+                evaluaciones: evs,
+            };
+        });
+}
+
+/** Envía un PDF generado como descarga. */
+function enviarPdf(res, buffer, nombreBase) {
+    const fecha = new Date().toISOString().slice(0, 10);
+    const base = String(nombreBase || 'reporte')
+        .replace(/[\\/:*?"<>|\r\n]+/g, ' ')
+        .trim()
+        .replace(/\s+/g, '-');
+    res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="reporte.pdf"; filename*=UTF-8''${encodeURIComponent(`${base}-${fecha}.pdf`)}`,
+        'Content-Length': buffer.length,
+        'Cache-Control': 'no-store',
+    });
+    res.send(buffer);
+}
+
+/** Reporte PDF de un proyecto (plantilla Reporte-proyecto.docx). */
+app.get('/admin/evaluaciones/proyectos/:proyectoId/reporte.pdf', requireAuth, async (req, res) => {
+    const proyectoId = Number(req.params.proyectoId);
+    if (!proyectoId) return res.status(400).json({ mensaje: 'proyectoId no válido' });
+    const { id: maestroId, rolId } = req.session.maestro;
+    try {
+        const [proyecto] = await cargarDatosReporte([proyectoId]);
+        if (!proyecto) return res.status(404).json({ mensaje: 'Proyecto no encontrado' });
+        if (!(await canAccessGrade(maestroId, rolId, proyecto.grado_id))) {
+            return res.status(403).json({ mensaje: 'No tienes acceso a este proyecto' });
+        }
+        if (proyecto.evaluaciones.length === 0) {
+            return res.status(400).json({ mensaje: 'No hay evaluaciones para descargar' });
+        }
+        const pdf = await generarPdfProyecto(proyecto);
+        enviarPdf(res, pdf, proyecto.nombre);
+    } catch (err) {
+        console.error('Error GET reporte.pdf del proyecto:', err);
+        return res.status(500).json({ mensaje: 'No se pudo generar el PDF del proyecto' });
+    }
+});
+
+/** Reporte PDF de un grado (plantilla Reporte-grado.docx). */
+app.get('/admin/evaluaciones/grado/:gradoId/reporte.pdf', requireAuth, async (req, res) => {
+    const gradoId = Number(req.params.gradoId);
+    if (!gradoId) return res.status(400).json({ mensaje: 'gradoId no válido' });
+    const { id: maestroId, rolId } = req.session.maestro;
+    try {
+        if (!(await canAccessGrade(maestroId, rolId, gradoId))) {
+            return res.status(403).json({ mensaje: 'Sin acceso a este grado' });
+        }
+        const { rows } = await pool.query(
+            'SELECT proyecto_id FROM evaluaciones.proyectos WHERE grado_id = $1 ORDER BY nombre',
+            [gradoId],
+        );
+        const proyectos = await cargarDatosReporte(rows.map((r) => r.proyecto_id));
+        if (proyectos.length === 0) {
+            return res.status(400).json({ mensaje: 'No hay proyectos en este grado' });
+        }
+        const { plan, grado, seccion, anio } = proyectos[0];
+        const pdf = await generarPdfGrado({ plan, grado, seccion, anio, proyectos });
+        enviarPdf(res, pdf, `evaluaciones-${grado}-${seccion}`);
+    } catch (err) {
+        console.error('Error GET reporte.pdf del grado:', err);
+        return res.status(500).json({ mensaje: 'No se pudo generar el PDF del grado' });
+    }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  ADMIN — CRUD PROYECTOS
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** Un título de proyecto cabe en una línea de lista y de diálogo. */
-const NOMBRE_PROYECTO_MAX = 40;
+/** Título máximo de proyecto (límite de creación/edición del nombre). */
+const NOMBRE_PROYECTO_MAX = 80;
 
 /**
  * Total de ponderación asignada a una rúbrica (suma de sus criterios).

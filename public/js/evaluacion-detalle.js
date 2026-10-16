@@ -17,7 +17,7 @@ import { animarEntrada, animarSalida } from './listAnimations.js';
 let proyectoId = null;
 let ultimaCargaId = null;
 
-// Datos de la última carga, usados por la descarga (Excel / PDF)
+// Datos de la última carga, usados por la descarga (PDF)
 let proyectoCache = null;
 let evaluacionesCache = [];
 const criteriosCache = new Map();
@@ -171,7 +171,7 @@ async function cargarDetalle() {
             ? evaluacionesData.evaluaciones
             : [];
 
-        // Guardar en caché para la descarga (Excel / PDF)
+        // Guardar en caché para la descarga (PDF)
         proyectoCache = proyectoData?.proyecto || null;
         evaluacionesCache = evaluaciones;
 
@@ -737,104 +737,8 @@ document.addEventListener('DOMContentLoaded', initDetalle);
 document.addEventListener('contentUpdated', initDetalle);
 
 // ═══════════════════════════════════════════════════════════════
-// DESCARGA (Excel / PDF)
+// DESCARGA (PDF)
 // ═══════════════════════════════════════════════════════════════
-
-const EXCELJS_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
-let excelPromise = null;
-const LOGO_URL = '/assets/img/INSAL.jpg';
-let logoPromise = null;
-
-/** Carga ExcelJS desde CDN una sola vez, bajo demanda. */
-function cargarExcelJS() {
-    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
-    if (!excelPromise) {
-        excelPromise = new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = EXCELJS_URL;
-            script.onload = () => resolve(window.ExcelJS);
-            script.onerror = () => {
-                excelPromise = null; // permitir reintento
-                reject(new Error('No se pudo cargar la librería de Excel'));
-            };
-            document.head.appendChild(script);
-        });
-    }
-    return excelPromise;
-}
-
-/** Devuelve el logo institucional como data-URI (para incrustarlo en el Excel). */
-function obtenerLogoDataUri() {
-    if (!logoPromise) {
-        logoPromise = fetch(LOGO_URL)
-            .then((res) => {
-                if (!res.ok) throw new Error('logo no disponible');
-                return res.blob();
-            })
-            .then(
-                (blob) =>
-                    new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    }),
-            )
-            .catch((err) => {
-                console.warn('No se pudo cargar el logo institucional:', err);
-                logoPromise = null; // permitir reintento
-                return null;
-            });
-    }
-    return logoPromise;
-}
-
-/**
- * Datos comunes del proyecto para los reportes (Excel / PDF):
- * nombre, grado, año y nota (parcial o completa).
- */
-function datosProyecto() {
-    const { valor: notaValor, etiqueta: notaEtiqueta } = calcularNotaProyecto(
-        proyectoCache,
-        evaluacionesCache,
-    );
-    const p = proyectoCache || {};
-    return {
-        nombre: p.nombre || 'Proyecto',
-        grado: p.displayGrade || p.nivel_nombre || '—',
-        bachillerato: p.bachillerato || '',
-        anio: p.anio ? String(p.anio) : '—',
-        notaValor,
-        notaEtiqueta,
-        totalEvaluaciones: evaluacionesCache.length,
-    };
-}
-
-/** Fecha legible de generación del reporte. */
-function fechaGeneracion() {
-    return formatFecha(new Date().toISOString());
-}
-
-/** Carga un script externo dinámicamente (para las librerías de PDF). */
-function cargarScript(url) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = url;
-        script.onload = resolve;
-        script.onerror = () => reject(new Error('No se pudo cargar la librería de PDF'));
-        document.head.appendChild(script);
-    });
-}
-
-/** Carga jsPDF + html2canvas bajo demanda para generar el PDF descargable. */
-async function cargarLibreriasPDF() {
-    if (!window.jspdf?.jsPDF) {
-        await cargarScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js');
-    }
-    if (!window.html2canvas) {
-        await cargarScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
-    }
-}
 
 /** Abre/cierra el diálogo de opciones de descarga con animación. */
 function toggleDialogoDescarga() {
@@ -876,339 +780,8 @@ function nombreArchivo() {
 }
 
 /**
- * Devuelve los criterios de una evaluación, usando la caché o
- * descargándolos (GET /evaluacion-criterios/:id) si faltan.
- */
-async function obtenerCriterios(evaluacionId) {
-    const id = Number(evaluacionId);
-    if (criteriosCache.has(id)) return criteriosCache.get(id);
-    try {
-        const data = await fetchJson(`/evaluacion-criterios/${id}`);
-        const criterios = Array.isArray(data?.criterios) ? data.criterios : [];
-        criteriosCache.set(id, criterios);
-        return criterios;
-    } catch (err) {
-        console.error('Error al cargar criterios para la descarga:', err);
-        return [];
-    }
-}
-
-/**
- * Exporta las evaluaciones (y su desglose) a un archivo .xlsx con ExcelJS.
- * Diseño profesional y ordenado:
- *  - Hoja "Resumen": cabecera institucional con logo, ficha de datos del
- *    proyecto en tarjeta (etiqueta/valor con bordes) y tabla de evaluaciones
- *    con fila de promedio final destacada.
- *  - Hoja "Criterios": por cada evaluación un bloque con su tabla de
- *    criterios y fila de total.
- */
-async function exportarExcel() {
-    if (!evaluacionesCache.length) {
-        mostrarNotificacion('No hay evaluaciones para descargar', 'info');
-        return;
-    }
-
-    mostrarNotificacion('Preparando archivo de Excel…', 'info');
-    const ExcelJS = await cargarExcelJS();
-    const datos = datosProyecto();
-    const logo = await obtenerLogoDataUri();
-
-    // Paleta institucional
-    const AZUL = 'FF0f5aab';
-    const AZUL_OSCURO = 'FF0b3a66';
-    const AZUL_CLARO = 'FFe8f0fb';
-    const GRIS = 'FF4a607e';
-    const TEXTO = 'FF0D1E35';
-    const BORDE = 'FFc5d5ea';
-    const ZEBRA = 'FFf6fafe';
-    const BLANCO = 'FFFFFFFF';
-    const VERDE = 'FF1A7A45';
-    const fuente = 'Segoe UI';
-
-    const borde = {
-        top: { style: 'thin', color: { argb: BORDE } },
-        left: { style: 'thin', color: { argb: BORDE } },
-        bottom: { style: 'thin', color: { argb: BORDE } },
-        right: { style: 'thin', color: { argb: BORDE } },
-    };
-    const sinBorde = { top: { style: 'thin', color: { argb: 'FFFFFFFF' } }, left: { style: 'thin', color: { argb: 'FFFFFFFF' } }, bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } }, right: { style: 'thin', color: { argb: 'FFFFFFFF' } } };
-
-    // Aplica borde a una región rectangular (para "tarjetas").
-    const bordeRegion = (hoja, filaIni, filaFin, colIni, colFin, estilo) => {
-        for (let f = filaIni; f <= filaFin; f++) {
-            for (let c = colIni; c <= colFin; c++) {
-                hoja.getCell(f, c).border = estilo;
-            }
-        }
-    };
-    const fondoRegion = (hoja, filaIni, filaFin, colIni, colFin, color) => {
-        for (let f = filaIni; f <= filaFin; f++) {
-            for (let c = colIni; c <= colFin; c++) {
-                hoja.getCell(f, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
-            }
-        }
-    };
-
-    const libro = new ExcelJS.Workbook();
-    libro.creator = 'Sistema de Evaluaciones INSAL';
-    libro.created = new Date();
-
-    // ═══════════════════════════════════════════════════════════════
-    // HOJA 1 — RESumen
-    // ═══════════════════════════════════════════════════════════════
-    const hoja = libro.addWorksheet('Resumen');
-    hoja.columns = [
-        { width: 16 },
-        { width: 34 },
-        { width: 34 },
-        { width: 26 },
-        { width: 14 },
-    ];
-    hoja.views = [{ state: 'frozen', ySplit: 4 }];
-
-    // Banda de título institucional
-    hoja.mergeCells('A1:E1');
-    const titulo = hoja.getCell('A1');
-    titulo.value = 'INSTITUTO NACIONAL SAN LUIS';
-    titulo.font = { name: fuente, size: 16, bold: true, color: { argb: BLANCO } };
-    titulo.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-    titulo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL_OSCURO } };
-    hoja.getRow(1).height = 30;
-    bordeRegion(hoja, 1, 1, 1, 5, sinBorde);
-
-    hoja.mergeCells('A2:E2');
-    const subtitulo = hoja.getCell('A2');
-    subtitulo.value = `Reporte de evaluación de proyecto`;
-    subtitulo.font = { name: fuente, size: 12, bold: true, color: { argb: AZUL } };
-    subtitulo.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-    hoja.getRow(2).height = 22;
-
-    hoja.mergeCells('A3:E3');
-    const genCell = hoja.getCell('A3');
-    genCell.value = `Generado el ${fechaGeneracion()}`;
-    genCell.font = { name: fuente, size: 9, italic: true, color: { argb: GRIS } };
-    genCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-    hoja.getRow(3).height = 16;
-
-    // ── Ficha de datos del proyecto ──
-    const datosIni = 5;
-    hoja.getCell(`A${datosIni}`).value = 'DATOS DEL PROYECTO';
-    hoja.getCell(`A${datosIni}`).font = { name: fuente, size: 10, bold: true, color: { argb: BLANCO } };
-    hoja.getCell(`A${datosIni}`).alignment = { vertical: 'middle' };
-    fondoRegion(hoja, datosIni, datosIni, 1, 5, AZUL);
-    bordeRegion(hoja, datosIni, datosIni, 1, 5, sinBorde);
-    hoja.getRow(datosIni).height = 20;
-
-    const filasDatos = [
-        ['Proyecto', datos.nombre],
-        ['Grado', datos.bachillerato ? `${datos.grado} · ${datos.bachillerato}` : datos.grado],
-        ['Año', datos.anio],
-        ['Nota', datos.notaValor ? `${datos.notaValor} / 10` : 'Sin nota registrada'],
-        ['Evaluaciones', String(datos.totalEvaluaciones)],
-    ];
-    filasDatos.forEach(([etiqueta, valor], i) => {
-        const fila = datosIni + 1 + i;
-        hoja.getCell(`A${fila}`).value = etiqueta;
-        hoja.getCell(`A${fila}`).font = { name: fuente, size: 10, bold: true, color: { argb: GRIS } };
-        hoja.getCell(`A${fila}`).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-        hoja.getCell(`A${fila}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL_CLARO } };
-        hoja.mergeCells(`B${fila}:E${fila}`);
-        hoja.getCell(`B${fila}`).value = valor;
-        hoja.getCell(`B${fila}`).font = { name: fuente, size: 10, color: { argb: TEXTO } };
-        hoja.getCell(`B${fila}`).alignment = { vertical: 'middle', horizontal: 'left', indent: 0 };
-        hoja.getRow(fila).height = 18;
-        bordeRegion(hoja, fila, fila, 1, 5, borde);
-        // Suavizar el borde inferior de la última fila de la tarjeta
-        if (i === filasDatos.length - 1) bordeRegion(hoja, fila, fila, 1, 5, sinBorde);
-        if (i === 0) bordeRegion(hoja, fila, fila, 1, 5, borde);
-    });
-    // Re-dibujar borde del contorno de la tarjeta (filas 6..10)
-    bordeRegion(hoja, datosIni, datosIni + filasDatos.length, 1, 5, borde);
-
-    // ── Tabla de evaluaciones ──
-    const cabeceraFila = datosIni + filasDatos.length + 2; // 12
-    hoja.getCell(`A${cabeceraFila}`).value = 'EVALUACIONES REGISTRADAS';
-    hoja.getCell(`A${cabeceraFila}`).font = { name: fuente, size: 10, bold: true, color: { argb: BLANCO } };
-    hoja.getCell(`A${cabeceraFila}`).alignment = { vertical: 'middle' };
-    fondoRegion(hoja, cabeceraFila, cabeceraFila, 1, 5, AZUL);
-    bordeRegion(hoja, cabeceraFila, cabeceraFila, 1, 5, sinBorde);
-    hoja.getRow(cabeceraFila).height = 20;
-
-    const headerRow = hoja.getRow(cabeceraFila + 1);
-    headerRow.values = ['N°', 'Evaluador', 'Correo', 'Fecha', 'Nota'];
-    headerRow.height = 20;
-    headerRow.eachCell((cell) => {
-        cell.font = { name: fuente, size: 10, bold: true, color: { argb: BLANCO } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL } };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.border = borde;
-    });
-
-    evaluacionesCache.forEach((ev, i) => {
-        const fila = hoja.getRow(cabeceraFila + 2 + i);
-        fila.values = [
-            i + 1,
-            ev.evaluador_nombre || '—',
-            ev.evaluador_email || '—',
-            formatFecha(ev.fecha_evaluacion),
-            Number(ev.nota),
-        ];
-        fila.eachCell((cell, colNum) => {
-            cell.font = { name: fuente, size: 10, color: { argb: TEXTO } };
-            cell.border = borde;
-            if (i % 2 === 1) {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ZEBRA } };
-            }
-            if (colNum === 1 || colNum === 5) cell.alignment = { horizontal: 'center' };
-            if (colNum === 5) { cell.numFmt = '0.00'; cell.font = { name: fuente, size: 10, bold: true, color: { argb: AZUL } }; }
-        });
-        hoja.getRow(fila.number).height = 18;
-    });
-
-    // Fila de promedio
-    const promFila = cabeceraFila + 2 + evaluacionesCache.length + 1;
-    const prom = evaluacionesCache.reduce((acc, ev) => acc + Number(ev.nota), 0) / evaluacionesCache.length;
-    hoja.getCell(`A${promFila}`).value = '';
-    hoja.mergeCells(`A${promFila}:D${promFila}`);
-    hoja.getCell(`A${promFila}`).value = 'Nota promedio';
-    hoja.getCell(`A${promFila}`).font = { name: fuente, size: 10, bold: true, color: { argb: GRIS } };
-    hoja.getCell(`A${promFila}`).alignment = { vertical: 'middle', horizontal: 'right' };
-    hoja.getCell(`E${promFila}`).value = Number(prom.toFixed(2));
-    hoja.getCell(`E${promFila}`).numFmt = '0.00';
-    hoja.getCell(`E${promFila}`).font = { name: fuente, size: 11, bold: true, color: { argb: VERDE } };
-    hoja.getCell(`E${promFila}`).alignment = { vertical: 'middle', horizontal: 'center' };
-    fondoRegion(hoja, promFila, promFila, 1, 5, AZUL_CLARO);
-    bordeRegion(hoja, promFila, promFila, 1, 5, borde);
-    hoja.getRow(promFila).height = 22;
-
-    // ═══════════════════════════════════════════════════════════════
-    // HOJA 2 — Criterios (por evaluación)
-    // ═══════════════════════════════════════════════════════════════
-    const hojaC = libro.addWorksheet('Criterios');
-    hojaC.columns = [
-        { width: 24 },
-        { width: 44 },
-        { width: 12 },
-        { width: 12 },
-        { width: 14 },
-    ];
-
-    hojaC.mergeCells('A1:E1');
-    const t1 = hojaC.getCell('A1');
-    t1.value = 'Desglose de criterios';
-    t1.font = { name: fuente, size: 14, bold: true, color: { argb: AZUL_OSCURO } };
-    hojaC.mergeCells('A2:E2');
-    const t2 = hojaC.getCell('A2');
-    t2.value = `${datos.nombre} · ${datos.bachillerato ? `${datos.grado} · ${datos.bachillerato}` : datos.grado} · Año ${datos.anio}`;
-    t2.font = { name: fuente, size: 10, color: { argb: GRIS } };
-    hojaC.getRow(1).height = 24;
-    hojaC.getRow(2).height = 16;
-
-    let filaC = 4;
-    for (let idx = 0; idx < evaluacionesCache.length; idx++) {
-        const ev = evaluacionesCache[idx];
-        const criterios = await obtenerCriterios(ev.evaluacion_id);
-
-        // Título del bloque de evaluación
-        hojaC.mergeCells(`A${filaC}:E${filaC}`);
-        hojaC.getCell(`A${filaC}`).value = `Evaluación ${idx + 1} — ${ev.evaluador_nombre || 'Evaluador'}`;
-        hojaC.getCell(`A${filaC}`).font = { name: fuente, size: 11, bold: true, color: { argb: BLANCO } };
-        hojaC.getCell(`A${filaC}`).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-        fondoRegion(hojaC, filaC, filaC, 1, 5, AZUL);
-        bordeRegion(hojaC, filaC, filaC, 1, 5, sinBorde);
-        hojaC.getRow(filaC).height = 22;
-        filaC++;
-
-        // Sub-línea con fecha + nota
-        hojaC.mergeCells(`A${filaC}:E${filaC}`);
-        hojaC.getCell(`A${filaC}`).value = `${formatFecha(ev.fecha_evaluacion)} · Nota: ${formatNota(ev.nota)} / 10`;
-        hojaC.getCell(`A${filaC}`).font = { name: fuente, size: 9, italic: true, color: { argb: GRIS } };
-        hojaC.getCell(`A${filaC}`).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-        hojaC.getRow(filaC).height = 16;
-        filaC++;
-
-        if (criterios.length === 0) {
-            hojaC.mergeCells(`A${filaC}:E${filaC}`);
-            hojaC.getCell(`A${filaC}`).value = 'Sin criterios registrados.';
-            hojaC.getCell(`A${filaC}`).font = { name: fuente, size: 10, italic: true, color: { argb: GRIS } };
-            filaC++;
-        } else {
-            // Cabecera de criterios
-            const hc = hojaC.getRow(filaC);
-            hc.values = ['Criterio', 'Descripción', 'Puntaje', 'Peso (%)', 'Aporte'];
-            hc.height = 20;
-            hc.eachCell((cell) => {
-                cell.font = { name: fuente, size: 9, bold: true, color: { argb: BLANCO } };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL } };
-                cell.alignment = { vertical: 'middle', horizontal: 'center' };
-                cell.border = borde;
-            });
-            filaC++;
-
-            criterios.forEach((c, i) => {
-                const fila = hojaC.getRow(filaC);
-                const aporte = (Number(c.puntuacion) * Number(c.porcentaje)) / 100;
-                fila.values = [
-                    c.nombre || 'Criterio',
-                    c.descripcion || '',
-                    Number(c.puntuacion),
-                    Number(c.porcentaje),
-                    aporte,
-                ];
-                fila.eachCell((cell, colNum) => {
-                    cell.font = { name: fuente, size: 9, color: { argb: TEXTO } };
-                    cell.border = borde;
-                    if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ZEBRA } };
-                    if (colNum >= 3) cell.alignment = { horizontal: 'center' };
-                    if (colNum === 3) cell.numFmt = '0.00';
-                    if (colNum === 4) cell.numFmt = '0';
-                    if (colNum === 5) { cell.numFmt = '0.00'; cell.font = { name: fuente, size: 9, bold: true, color: { argb: AZUL } }; }
-                });
-                hojaC.getRow(filaC).height = 18;
-                filaC++;
-            });
-
-            // Total de la evaluación
-            const total = criterios.reduce((acc, c) => acc + (Number(c.puntuacion) * Number(c.porcentaje)) / 100, 0);
-            hojaC.mergeCells(`A${filaC}:D${filaC}`);
-            hojaC.getCell(`A${filaC}`).value = 'PUNTUACIÓN TOTAL';
-            hojaC.getCell(`A${filaC}`).font = { name: fuente, size: 9, bold: true, color: { argb: GRIS } };
-            hojaC.getCell(`A${filaC}`).alignment = { vertical: 'middle', horizontal: 'right' };
-            hojaC.getCell(`E${filaC}`).value = Number(total.toFixed(2));
-            hojaC.getCell(`E${filaC}`).numFmt = '0.00';
-            hojaC.getCell(`E${filaC}`).font = { name: fuente, size: 10, bold: true, color: { argb: VERDE } };
-            hojaC.getCell(`E${filaC}`).alignment = { vertical: 'middle', horizontal: 'center' };
-            fondoRegion(hojaC, filaC, filaC, 1, 5, AZUL_CLARO);
-            bordeRegion(hojaC, filaC, filaC, 1, 5, borde);
-            hojaC.getRow(filaC).height = 22;
-            filaC++;
-        }
-
-        // Separador entre bloques de evaluación
-        filaC++;
-    }
-
-    // Descarga del archivo generado
-    const buffer = await libro.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${nombreArchivo()}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    mostrarNotificacion('Archivo de Excel descargado', 'bien');
-}
-
-/**
- * Genera y DESCARGA un archivo .pdf con el reporte del proyecto:
- * construye el reporte en un contenedor oculto, lo renderiza con
- * html2canvas y lo pagina en un A4 con jsPDF (una tarjeta por bloque,
- * sin cortar el contenido a la mitad).
+ * Descarga el PDF del reporte del proyecto. El PDF lo genera el servidor
+ * con el diseño de la plantilla oficial de reporte de proyecto.
  */
 async function exportarPDF() {
     if (!evaluacionesCache.length) {
@@ -1217,184 +790,29 @@ async function exportarPDF() {
     }
 
     mostrarNotificacion('Generando PDF…', 'info');
-    await cargarLibreriasPDF();
 
-    const datos = datosProyecto();
-
-    // Desglose de criterios de todas las evaluaciones (en paralelo)
-    const criteriosPorEval = await Promise.all(
-        evaluacionesCache.map((ev) => obtenerCriterios(ev.evaluacion_id)),
-    );
-
-    const tarjetas = evaluacionesCache
-        .map((ev, i) => {
-            const criterios = criteriosPorEval[i] || [];
-            const filasCriterios = criterios
-                .map(
-                    (c) => `
-                    <tr>
-                        <td>${escapeHtml(c.nombre || 'Criterio')}</td>
-                        <td class="num">${formatNota(c.puntuacion)}</td>
-                        <td class="num">${Number(c.porcentaje)}%</td>
-                        <td class="num">+${formatNota((Number(c.puntuacion) * Number(c.porcentaje)) / 100)}</td>
-                    </tr>`,
-                )
-                .join('');
-
-            const tablaCriterios = criterios.length
-                ? `
-                <table>
-                    <thead>
-                        <tr><th>Criterio</th><th class="num">Puntaje</th><th class="num">Peso</th><th class="num">Aporte</th></tr>
-                    </thead>
-                    <tbody>${filasCriterios}</tbody>
-                </table>`
-                : '<p class="sin-datos">Sin criterios registrados.</p>';
-
-            return `
-            <section class="eval-card">
-                <h2>
-                    <span class="eval-num">${i + 1}</span>
-                    ${escapeHtml(ev.evaluador_nombre || 'Evaluador')}
-                    <span class="eval-nota">${formatNota(ev.nota)} / 10</span>
-                </h2>
-                <dl>
-                    <div><dt>Correo</dt><dd>${escapeHtml(ev.evaluador_email || '—')}</dd></div>
-                    <div><dt>Fecha y hora</dt><dd>${escapeHtml(formatFecha(ev.fecha_evaluacion))}</dd></div>
-                </dl>
-                ${tablaCriterios}
-            </section>`;
-        })
-        .join('');
-
-    // Contenedor oculto con el reporte (ancho A4 a 96dpi ≈ 794px).
-    // Estilos scoped bajo .reporte-pdf para no afectar al dashboard.
-    const contenedor = document.createElement('div');
-    contenedor.style.cssText =
-        'position:fixed;left:-10000px;top:0;width:794px;background:#ffffff;';
-    contenedor.innerHTML = `
-    <style>
-        .reporte-pdf { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; color: #0d1e35; padding: 40px 48px; background: #ffffff; }
-        .reporte-pdf * { box-sizing: border-box; margin: 0; padding: 0; }
-        .reporte-pdf header { border-bottom: 3px solid #0f5aab; padding-bottom: 16px; margin-bottom: 22px; }
-        .reporte-pdf .marca { display: flex; align-items: center; gap: 14px; }
-        .reporte-pdf .logo { width: 64px; height: 64px; object-fit: cover; border-radius: 12px; border: 1px solid #c5d5ea; flex: 0 0 auto; }
-        .reporte-pdf .marca-texto h1 { font-size: 20px; color: #0f5aab; }
-        .reporte-pdf .marca-texto p { font-size: 11px; color: #4a607e; margin-top: 3px; }
-        .reporte-pdf .datos { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-        .reporte-pdf .dato { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid #c5d5ea; border-radius: 10px; padding: 10px 16px; background: #f6fafe; min-width: 0; }
-        .reporte-pdf .dato-etiqueta { font-size: 11px; font-weight: 600; color: #4a607e; flex: 0 0 auto; }
-        .reporte-pdf .dato-valor { font-size: 13px; font-weight: 700; color: #0d1e35; text-align: right; overflow-wrap: anywhere; }
-        .reporte-pdf .dato--nota { background: #e8f0fb; border-color: #0f5aab; }
-        .reporte-pdf .dato--nota .dato-valor { color: #0f5aab; }
-        .reporte-pdf .eval-card { border: 1px solid #c5d5ea; border-radius: 10px; padding: 16px 18px; background: #ffffff; }
-        .reporte-pdf .eval-card + .eval-card { margin-top: 16px; }
-        .reporte-pdf .eval-card h2 { font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .reporte-pdf .eval-num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #0f5aab; color: #fff; font-size: 13px; flex: 0 0 auto; }
-        .reporte-pdf .eval-nota { margin-left: auto; font-size: 14px; color: #0f5aab; }
-        .reporte-pdf dl div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eef3fa; font-size: 12px; }
-        .reporte-pdf dt { color: #4a607e; }
-        .reporte-pdf table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
-        .reporte-pdf th, .reporte-pdf td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eef3fa; }
-        .reporte-pdf th { background: #e8f0fb; color: #0f5aab; }
-        .reporte-pdf .num { text-align: right; }
-        .reporte-pdf .sin-datos { font-size: 12px; color: #4a607e; margin-top: 10px; }
-    </style>
-    <div class="reporte-pdf">
-        <header>
-            <div class="marca">
-                <img class="logo" src="${LOGO_URL}" alt="Logo INSAL">
-                <div class="marca-texto">
-                    <h1>Instituto Nacional San Luis</h1>
-                    <p>Reporte de evaluaciones de proyecto · Generado el ${escapeHtml(fechaGeneracion())}</p>
-                </div>
-            </div>
-            <div class="datos">
-                <div class="dato">
-                    <span class="dato-etiqueta">Proyecto</span>
-                    <span class="dato-valor" title="${escapeHtml(datos.nombre)}">${escapeHtml(datos.nombre)}</span>
-                </div>
-                <div class="dato">
-                    <span class="dato-etiqueta">Grado</span>
-                    <span class="dato-valor">${escapeHtml(datos.bachillerato ? `${datos.grado} · ${datos.bachillerato}` : datos.grado)}</span>
-                </div>
-                <div class="dato">
-                    <span class="dato-etiqueta">Año</span>
-                    <span class="dato-valor">${escapeHtml(datos.anio)}</span>
-                </div>
-                <div class="dato dato--nota">
-                    <span class="dato-etiqueta">${escapeHtml(datos.notaEtiqueta || 'Nota')}</span>
-                    <span class="dato-valor">${escapeHtml(datos.notaValor ?? '—')} / 10</span>
-                </div>
-            </div>
-        </header>
-        ${tarjetas}
-    </div>`;
-    document.body.appendChild(contenedor);
-
-    try {
-        // Esperar layout + carga del logo antes de renderizar
-        await new Promise((r) => requestAnimationFrame(r));
-        await Promise.all(
-            Array.from(contenedor.querySelectorAll('img')).map((img) =>
-                img.complete
-                    ? Promise.resolve()
-                    : new Promise((res) => {
-                        img.onload = res;
-                        img.onerror = res;
-                    }),
-            ),
-        );
-
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-        const pageW = pdf.internal.pageSize.getWidth();
-        const pageH = pdf.internal.pageSize.getHeight();
-        const margen = 28;
-        const imgW = pageW - margen * 2;
-        let yCursor = margen;
-
-        /** Renderiza un bloque y lo coloca en la página actual (o en una nueva si no cabe completo). */
-        const agregarBloque = async (el) => {
-            const canvas = await window.html2canvas(el, {
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: true,
-            });
-            const altoPt = canvas.height * (imgW / canvas.width);
-            // Si el bloque no cabe en el espacio restante, pasa a página nueva
-            // (así ninguna tarjeta queda cortada a la mitad)
-            if (yCursor > margen && yCursor + altoPt > pageH - margen) {
-                pdf.addPage();
-                yCursor = margen;
-            }
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', margen, yCursor, imgW, altoPt);
-            yCursor += altoPt + 14;
-        };
-
-        await agregarBloque(contenedor.querySelector('.reporte-pdf header'));
-        for (const card of contenedor.querySelectorAll('.eval-card')) {
-            await agregarBloque(card);
+    const res = await fetch(`/admin/evaluaciones/proyectos/${proyectoId}/reporte.pdf`);
+    if (!res.ok) {
+        let mensaje = 'No se pudo generar el PDF';
+        try {
+            mensaje = (await res.json())?.mensaje || mensaje;
+        } catch {
+            /* respuesta sin JSON */
         }
-
-        // Pie de página en todas las páginas: institución + numeración
-        const totalPaginas = pdf.getNumberOfPages();
-        for (let i = 1; i <= totalPaginas; i++) {
-            pdf.setPage(i);
-            pdf.setDrawColor(197, 213, 234);
-            pdf.line(margen, pageH - 24, pageW - margen, pageH - 24);
-            pdf.setFontSize(8);
-            pdf.setTextColor(74, 96, 126);
-            pdf.text('Instituto Nacional San Luis — Sistema de Evaluaciones', margen, pageH - 12);
-            pdf.text(`Página ${i} de ${totalPaginas}`, pageW - margen, pageH - 12, { align: 'right' });
-        }
-
-        pdf.save(`${nombreArchivo()}.pdf`);
-        mostrarNotificacion('PDF descargado', 'bien');
-    } finally {
-        contenedor.remove();
+        throw new Error(mensaje);
     }
+
+    const url = URL.createObjectURL(await res.blob());
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `${nombreArchivo()}.pdf`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    mostrarNotificacion('PDF descargado', 'bien');
 }
+
 
 /** Registra los listeners del botón y del diálogo de descarga (una sola vez). */
 function initDescarga() {
@@ -1406,21 +824,7 @@ function initDescarga() {
     btn.addEventListener('click', toggleDialogoDescarga);
     dialogo.querySelector('#btn-cerrar-descargar')?.addEventListener('click', () => cerrarDialogoAnimado(dialogo));
 
-    const btnExcel = dialogo.querySelector('#btn-descargar-excel');
     const btnPdf = dialogo.querySelector('#btn-descargar-pdf');
-
-    btnExcel?.addEventListener('click', async () => {
-        btnExcel.disabled = true;
-        try {
-            await exportarExcel();
-            cerrarDialogoAnimado(dialogo);
-        } catch (err) {
-            console.error('Error al exportar a Excel:', err);
-            mostrarNotificacion(err?.message || 'Error al generar el archivo de Excel', 'error');
-        } finally {
-            btnExcel.disabled = false;
-        }
-    });
 
     btnPdf?.addEventListener('click', async () => {
         btnPdf.disabled = true;

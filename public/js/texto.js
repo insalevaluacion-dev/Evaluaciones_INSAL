@@ -26,3 +26,17 @@ export function plural(cantidad, singular, pluralForma) {
 export function contar(cantidad, singular, pluralForma) {
     return `${cantidad} ${plural(cantidad, singular, pluralForma)}`;
 }
+
+/**
+ * Escribe un texto en un elemento y le aplica la clase de shimmer
+ * (data-text se usa para el efecto visual).
+ * @param {HTMLElement|null} el
+ * @param {string|null|undefined} texto
+ */
+export function aplicarTextoShimmer(el, texto) {
+    if (!el) return;
+    const valor = texto == null ? '' : String(texto);
+    el.classList.add('t-shimmer');
+    el.dataset.text = valor;
+    el.textContent = valor;
+}

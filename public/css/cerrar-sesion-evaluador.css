@@ -77,13 +77,21 @@
 }
 
 /* Misma píldora que .boton.btn-opcion del dashboard. */
+.evaluador-perfil__acciones {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
 #btn-cerrar-sesion-evaluador {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
     flex-shrink: 0;
-    margin: 0 0 0 auto;
+    margin: 0;
     height: 50px;
     padding: 5px 16px;
     border: none;

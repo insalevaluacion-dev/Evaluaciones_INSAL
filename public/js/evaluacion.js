@@ -77,21 +77,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             const div = document.createElement('div');
             div.classList.add('criterio');
             const idCriterio = escapeHtml(criterio.criterio_id);
+            // Criterio sin ponderación (0%): no aporta a la nota, así que su
+            // calificación es OPCIONAL y no se exige al enviar la evaluación.
+            const porcentaje = Number(criterio.porcentaje) || 0;
+            const sinPonderacion = porcentaje === 0;
+            const textoSupporting = sinPonderacion
+                ? 'Criterio sin ponderación (0%): no influye en la nota y puede quedar vacío'
+                : 'La calificación debe ser entre 1.0 y 10.0 puntos (un decimal)';
             div.innerHTML = `
             <div class="titulo__criterio" onclick="AbrirDescripcion(this)">
                 ${escapeHtml(criterio.nombre)}
                 <span class="material-symbols-rounded flecha">
                     stat_minus_1
                 </span>
-                <div><p>(${escapeHtml(criterio.porcentaje)}%)</p></div>
+                <div><p>(${escapeHtml(porcentaje)}%)</p></div>
             </div>
             <p for="criterio-${idCriterio}" class="descripcion">
                 ${escapeHtml(criterio.descripcion)}
-                <span class="ponderacion">Ponderación: ${escapeHtml(criterio.porcentaje)}%.</span>
+                <span class="ponderacion">Ponderación: ${escapeHtml(porcentaje)}%.</span>
             </p>
             <div class="campo-nota">
                 <label for="criterio-${idCriterio}" class="campo-nota__label">
-                    Nota asignada <span class="requerido">*</span>
+                    Nota asignada ${sinPonderacion
+                        ? '<span class="opcional">(opcional)</span>'
+                        : '<span class="requerido">*</span>'}
                 </label>
                 <div class="campo-nota__input-wrap">
                     <input
@@ -101,13 +110,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         min="1.0"
                         max="10.0"
                         step="0.1"
-                        required
+                        ${sinPonderacion ? 'data-sin-ponderacion="1"' : 'required'}
                         inputmode="decimal"
                         placeholder="0.0"
                         class="campo-nota__input"
                     >
                 </div>
-                <p class="campo-nota__supporting">La calificación debe ser entre 1.0 y 10.0 puntos (un decimal)</p>
+                <p class="campo-nota__supporting">${textoSupporting}</p>
             </div>
             `;
             contenedorCriterios.appendChild(div);
@@ -310,12 +319,26 @@ function guardarEvaluacion() {
                 const criterioId = Number(input.id.replace('criterio-', ''));
                 const puntuacion = Number(input.value);
                 const isEmpty = !input.value || input.value.trim() === '';
+                const criterio = criteriosData.criterios.find(c => c.criterio_id === criterioId);
+                // Criterio sin ponderación (0%): no aporta a la nota, por lo que
+                // su calificación es opcional y puede enviarse vacío.
+                const sinPonderacion = Boolean(criterio) && Number(criterio.porcentaje) === 0;
+                const textoSupporting = sinPonderacion
+                    ? 'Criterio sin ponderación (0%): no influye en la nota y puede quedar vacío'
+                    : 'La calificación debe ser entre 1.0 y 10.0 puntos (un decimal)';
                 const isOutOfRange = !isEmpty && (puntuacion < 1 || puntuacion > 10);
                 const hasValidDecimals = /^\d+(\.\d{0,1})?$/.test(input.value);
                 const isInvalid = isEmpty || isOutOfRange || isNaN(puntuacion) || !hasValidDecimals;
 
                 const campo = input.closest('.campo-nota');
                 const supporting = campo.querySelector('.campo-nota__supporting');
+
+                // Criterio sin ponderación vacío: se omite sin marcar error.
+                if (sinPonderacion && isEmpty) {
+                    campo.classList.remove('error');
+                    supporting.textContent = textoSupporting;
+                    return;
+                }
 
                 if (isInvalid) {
                     valid = false;
@@ -338,10 +361,9 @@ function guardarEvaluacion() {
                     return;
                 }
                 campo.classList.remove('error');
-                supporting.textContent = "La calificación debe ser entre 1.0 y 10.0 puntos (un decimal)";
+                supporting.textContent = textoSupporting;
 
                 evaluaciones.push({ criterio_id: criterioId, puntuacion });
-                const criterio = criteriosData.criterios.find(c => c.criterio_id === criterioId);
                 if (criterio) {
                     totalPuntuacion += (puntuacion * criterio.porcentaje / 100);
                 }
