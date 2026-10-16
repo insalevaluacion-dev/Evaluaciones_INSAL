@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 nombresData.nombres.forEach(nombres => {
                     const option = document.createElement('option');
                     option.value = nombres.id;
-                    option.textContent = nombres.abrev;
+                    option.textContent = nombres.label;
                     selectNombre.appendChild(option);
                 });
                 selectNombre.disabled = false;
