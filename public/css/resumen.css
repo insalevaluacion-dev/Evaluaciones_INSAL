@@ -406,3 +406,79 @@ li{
         padding: 16px;
     }
 }
+
+#dialogo-nota-sin-confirmar.closing {
+    animation: shrinkOut 0.19s ease-in forwards;
+}
+
+#dialogo-nota-sin-confirmar.closing::backdrop {
+    animation: backdropFadeOut 0.19s ease-in forwards;
+}
+
+#dialogo-nota-sin-confirmar .dialogo-confirmar-actions > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 120px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-md, 1rem);
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+
+#dialogo-nota-sin-confirmar .boton-confirmar {
+    order: 2;
+}
+
+#dialogo-nota-sin-confirmar .boton-cancelar {
+    order: 1;
+    border: 1.5px solid var(--border, #d5dce5);
+    background: transparent;
+    color: var(--text-color-secondary, #526174);
+}
+
+#dialogo-nota-sin-confirmar .boton-cancelar:hover {
+    border-color: var(--principal-color, #315c9b);
+    background: color-mix(in srgb, var(--principal-color, #315c9b) 8%, transparent);
+    color: var(--principal-color, #315c9b);
+}
+
+#dialogo-nota-sin-confirmar .boton-confirmar {
+    border: none;
+    background: var(--principal-color, #315c9b);
+    color: #fff;
+}
+
+#dialogo-nota-sin-confirmar .boton-confirmar:hover {
+    background: var(--azul-dark, #234878);
+}
+
+#dialogo-nota-sin-confirmar .dialogo-confirmar-actions > button:active {
+    transform: scale(0.97);
+}
+
+#dialogo-nota-sin-confirmar .dialogo-confirmar-actions > button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--principal-color, #315c9b) 35%, transparent);
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    #dialogo-nota-sin-confirmar .dialogo-confirmar-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    #dialogo-nota-sin-confirmar .dialogo-confirmar-actions > button {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+    }
+}

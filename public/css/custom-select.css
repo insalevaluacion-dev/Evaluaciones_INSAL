@@ -161,11 +161,17 @@ body.custom-select-locked {
     overscroll-behavior: contain;
 }
 
-/* Abrir hacia arriba cuando no hay espacio debajo (evita que salga de pantalla) */
+/* Abrir hacia arriba cuando no hay espacio debajo (evita que salga de pantalla).
+   El panel a veces se monta como hijo del <dialog> (no de .custom-select), así
+   que el origen también vive en la propia lista. */
+.custom-select.is-open-up .custom-select__dropdown,
+.custom-select__dropdown.is-open-up {
+    transform-origin: bottom center;
+}
+
 .custom-select.is-open-up .custom-select__dropdown {
     top: auto;
     bottom: calc(100% + 8px);
-    transform-origin: bottom center;
 }
 
 /* Estado abierto: animación en vez de transición porque display:none → block

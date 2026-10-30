@@ -1,3 +1,40 @@
+// El atrás del celular (y el del navegador) dispara popstate. Se deja una
+// marca en el historial para interceptarlo y mostrar el aviso antes de salir
+// sin confirmar la nota.
+let salidaPermitida = false;
+let avisoAtrasListo = false;
+
+function instalarAvisoAtras() {
+    if (avisoAtrasListo) return;
+    avisoAtrasListo = true;
+    if (history.state?.avisoNota !== true) {
+        history.pushState({ avisoNota: true }, '', location.href);
+    }
+    window.addEventListener('popstate', alPulsarAtras);
+    window.addEventListener('pageshow', (event) => {
+        if (!event.persisted || salidaPermitida) return;
+        if (history.state?.avisoNota !== true) {
+            history.pushState({ avisoNota: true }, '', location.href);
+        }
+    });
+}
+
+function alPulsarAtras() {
+    if (salidaPermitida) return;
+    // El atrás ya consumió la marca. Se vuelve a poner para que el
+    // siguiente también pase por el aviso.
+    history.pushState({ avisoNota: true }, '', location.href);
+    const dialogo = document.getElementById('dialogo-nota-sin-confirmar');
+    if (!dialogo || dialogo.classList.contains('closing')) return;
+    if (dialogo.open) {
+        cerrarAdvertenciaNota();
+        return;
+    }
+    dialogo.showModal();
+}
+
+instalarAvisoAtras();
+
 function escapeHtml(str) {
     return String(str ?? '')
         .replace(/&/g, '&amp;')
@@ -25,7 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nivelData = await respuestaNivel.json();
     console.log('Respuesta /obtener-nivel:', nivelData);
     if (!nivelData.evaluacionId) {
-        window.location.href = '/seleccion';
+        salidaPermitida = true;
+        window.location.replace('/seleccion');
         return;
     }
 
@@ -169,6 +207,7 @@ function confirmarEvaluacion() {
             // La notificación de éxito se muestra al cargar /seleccion
             // (vía query param) porque esta navegación recarga la página
             // entera y cualquier toast creado aquí desaparecería al instante.
+            salidaPermitida = true;
             window.location.href = data.redirect || '/seleccion';
         })
         .catch(err => {
@@ -184,6 +223,44 @@ function confirmarEvaluacion() {
 }
 
 function volverEvaluacion() {
+    const dialogo = document.getElementById('dialogo-nota-sin-confirmar');
+    if (!dialogo) {
+        irAEvaluacion();
+        return;
+    }
+    if (dialogo.open) return;
+    dialogo.showModal();
+}
+
+function cerrarAdvertenciaNota() {
+    const dialogo = document.getElementById('dialogo-nota-sin-confirmar');
+    if (!dialogo?.open || dialogo.classList.contains('closing')) return;
+
+    dialogo.classList.add('closing');
+    let cerrado = false;
+    const terminar = () => {
+        if (cerrado) return;
+        cerrado = true;
+        clearTimeout(fallback);
+        dialogo.removeEventListener('animationend', alTerminarAnimacion);
+        dialogo.classList.remove('closing');
+        if (dialogo.open) dialogo.close();
+    };
+    const alTerminarAnimacion = (event) => {
+        if (event.target !== dialogo || event.animationName !== 'shrinkOut') return;
+        terminar();
+    };
+    const fallback = setTimeout(terminar, 400);
+    dialogo.addEventListener('animationend', alTerminarAnimacion);
+}
+
+function confirmarSalidaSinNota() {
+    cerrarAdvertenciaNota();
+    irAEvaluacion();
+}
+
+function irAEvaluacion() {
+    salidaPermitida = true;
     const botonRegresar = document.getElementById('boton-regresar');
     window.setButtonFeedbackState(botonRegresar, 'loading');
     setTimeout(() => {
@@ -193,3 +270,8 @@ function volverEvaluacion() {
         }, 300);
     }, 200);
 }
+
+document.addEventListener('click', (event) => {
+    const dialogo = document.getElementById('dialogo-nota-sin-confirmar');
+    if (dialogo?.open && event.target === dialogo) cerrarAdvertenciaNota();
+});

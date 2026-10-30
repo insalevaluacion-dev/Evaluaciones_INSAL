@@ -4,6 +4,345 @@
 
 import { mostrarNotificacion } from './notificaciones.js';
 import { animarEntrada, animarSalida } from './listAnimations.js';
+import { cerrarDialogoAnimado } from './menu.js';
+
+// ═══════════════════════════════════════════════════════════════
+// FILTROS (mismos que Proyectos, más el estado de la evaluación)
+// ═══════════════════════════════════════════════════════════════
+
+const CLAVE_FILTROS_EVALUACIONES = 'insal.filtrosEvaluaciones';
+const CLAVES_FILTRO_EVALUACIONES = {
+    'filtro-anio-evaluaciones': 'anio',
+    'filtro-grado-evaluaciones': 'gradoKey',
+    'filtro-seccion-evaluaciones': 'seccion',
+    'filtro-rubrica-evaluaciones': 'rubrica',
+    'filtro-materia-evaluaciones': 'materia',
+    'estado-proyectos-evaluados': 'estado',
+};
+let estadoFiltros = {
+    anio: '',
+    gradoKey: '',
+    seccion: '',
+    rubrica: '',
+    materia: '',
+    estado: '',
+    sort: 'id-desc',
+    query: '',
+};
+let nivelesCache = null;
+let materiasCache = null;
+
+function hidratarEstadoFiltros() {
+    try {
+        const crudo = sessionStorage.getItem(CLAVE_FILTROS_EVALUACIONES);
+        if (!crudo) return;
+        const datos = JSON.parse(crudo);
+        if (!datos || typeof datos !== 'object') return;
+        if (datos.rubrica === 'id-desc' || datos.rubrica === 'id-asc') datos.rubrica = '';
+        if (datos.sort !== 'id-desc' && datos.sort !== 'id-asc' && datos.sort !== 'rubrica') {
+            datos.sort = 'id-desc';
+        }
+        estadoFiltros = { ...estadoFiltros, ...datos };
+    } catch {
+        // Sin sessionStorage o dato corrupto: se usan los valores por defecto.
+    }
+}
+
+function persistirEstadoFiltros() {
+    try {
+        sessionStorage.setItem(CLAVE_FILTROS_EVALUACIONES, JSON.stringify(estadoFiltros));
+    } catch {
+        // El estado sigue vigente en memoria.
+    }
+}
+
+hidratarEstadoFiltros();
+
+function selectFiltroSinOpciones(sel) {
+    return sel.options.length <= 1;
+}
+
+function vincularGuardadoFiltros() {
+    Object.entries(CLAVES_FILTRO_EVALUACIONES).forEach(([id, clave]) => {
+        const sel = document.getElementById(id);
+        if (!sel || sel.dataset.guardadoFiltrosInit === 'true') return;
+        sel.dataset.guardadoFiltrosInit = 'true';
+        sel.addEventListener('change', () => {
+            if (sel.value === '' && estadoFiltros[clave] && selectFiltroSinOpciones(sel)) return;
+            if (clave === 'rubrica' && sel.value !== estadoFiltros.rubrica) {
+                estadoFiltros.sort = 'rubrica';
+            }
+            estadoFiltros[clave] = sel.value;
+            persistirEstadoFiltros();
+        });
+    });
+
+    const selOrden = document.getElementById('orden-proyectos-evaluados');
+    if (selOrden && selOrden.dataset.guardadoFiltrosInit !== 'true') {
+        selOrden.dataset.guardadoFiltrosInit = 'true';
+        selOrden.addEventListener('change', () => {
+            const orden = selOrden.value || 'id-desc';
+            if (orden !== 'id-desc' && orden !== 'id-asc') return;
+            estadoFiltros.sort = orden;
+            persistirEstadoFiltros();
+        });
+    }
+
+    const busqueda = document.getElementById('search-proyectos-evaluados');
+    if (!busqueda || busqueda.dataset.guardadoFiltrosInit === 'true') return;
+    busqueda.dataset.guardadoFiltrosInit = 'true';
+    busqueda.addEventListener('input', () => {
+        estadoFiltros.query = busqueda.value;
+        persistirEstadoFiltros();
+    });
+}
+
+function restaurarOrdenLista() {
+    const selOrden = document.getElementById('orden-proyectos-evaluados');
+    if (!selOrden) return;
+    if (estadoFiltros.sort === 'rubrica') {
+        const selRubrica = document.getElementById('filtro-rubrica-evaluaciones');
+        if (!selRubrica || selectFiltroSinOpciones(selRubrica)) return;
+        selRubrica.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+    }
+    if (estadoFiltros.sort !== 'id-desc' && estadoFiltros.sort !== 'id-asc') return;
+    if (selOrden.value !== estadoFiltros.sort) selOrden.value = estadoFiltros.sort;
+    selOrden.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function initMobileFilters(container) {
+    const toolbar = container.querySelector('.list-toolbar');
+    const toggle = toolbar?.querySelector('.list-toolbar__filters-toggle');
+    const count = toggle?.querySelector('.list-toolbar__filters-count');
+    const dialog = toolbar?.querySelector('#dialogo-filtros-evaluaciones');
+    if (!toolbar || !toggle || !count || !dialog || toggle.dataset.initialized === 'true') return;
+
+    const mobileQuery = window.matchMedia('(max-width: 640px)');
+    const filterIds = Object.keys(CLAVES_FILTRO_EVALUACIONES);
+
+    const resetFilters = () => {
+        const search = container.querySelector('#search-proyectos-evaluados');
+        if (search?.value) {
+            search.value = '';
+            search.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        filterIds.forEach((id) => {
+            const select = container.querySelector(`#${id}`);
+            if (select && select.value) {
+                select.value = '';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+        const sort = container.querySelector('#orden-proyectos-evaluados');
+        if (sort && sort.value !== 'id-desc') {
+            sort.value = 'id-desc';
+            sort.dispatchEvent(new Event('change', { bubbles: true }));
+        } else if (sort) {
+            sort.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    };
+
+    const updateActiveFilterCount = () => {
+        const activeCount = filterIds.reduce((total, id) => {
+            const select = container.querySelector(`#${id}`);
+            return total + (select?.value ? 1 : 0);
+        }, 0);
+        count.textContent = String(activeCount);
+        count.hidden = activeCount === 0;
+    };
+
+    toggle.dataset.initialized = 'true';
+    toggle.addEventListener('click', () => {
+        if (mobileQuery.matches && !dialog.open) {
+            dialog.showModal();
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+    });
+    dialog.querySelector('.project-filters-close')?.addEventListener('click', () => {
+        cerrarDialogoAnimado(dialog);
+    });
+    dialog.querySelector('.project-filters-done')?.addEventListener('click', () => {
+        cerrarDialogoAnimado(dialog);
+    });
+    dialog.querySelector('.project-filters-reset')?.addEventListener('click', resetFilters);
+    dialog.addEventListener('close', () => {
+        toggle.setAttribute('aria-expanded', 'false');
+    });
+    dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        cerrarDialogoAnimado(dialog);
+    });
+    filterIds.forEach((id) => {
+        container.querySelector(`#${id}`)?.addEventListener('change', updateActiveFilterCount);
+    });
+    mobileQuery.addEventListener('change', () => {
+        if (!mobileQuery.matches && dialog.open) dialog.close();
+    });
+    toggle.setAttribute('aria-expanded', 'false');
+    updateActiveFilterCount();
+}
+
+function partirDisplayGrade(displayGrade) {
+    const texto = (displayGrade || '').trim();
+    const idx = texto.lastIndexOf('-');
+    if (idx === -1 || idx === texto.length - 1) return { gradoKey: texto, seccion: '' };
+    return { gradoKey: texto.slice(0, idx), seccion: texto.slice(idx + 1) };
+}
+
+function opcionesFiltroIguales(select, opciones, etiquetaVacia) {
+    const actuales = select.options;
+    if (actuales.length !== opciones.length + 1) return false;
+    const primera = actuales[0];
+    if (!primera || primera.value !== '' || primera.textContent !== etiquetaVacia) return false;
+    for (let i = 0; i < opciones.length; i++) {
+        const opt = actuales[i + 1];
+        if (opt.value !== opciones[i].valor || opt.textContent !== opciones[i].label) return false;
+    }
+    return true;
+}
+
+function reconstruirOpcionesFiltro(select, opciones, etiquetaVacia) {
+    if (opcionesFiltroIguales(select, opciones, etiquetaVacia)) return false;
+    const prevValue = select.value;
+    Array.from(select.options).forEach((opt) => opt.remove());
+    const vacia = document.createElement('option');
+    vacia.value = '';
+    vacia.textContent = etiquetaVacia;
+    select.appendChild(vacia);
+    opciones.forEach(({ valor, label }) => {
+        const opt = document.createElement('option');
+        opt.value = valor;
+        opt.textContent = label;
+        select.appendChild(opt);
+    });
+    if (prevValue && select.querySelector(`option[value="${CSS.escape(prevValue)}"]`)) {
+        select.value = prevValue;
+    }
+    return select.value !== prevValue;
+}
+
+function restaurarSelect(sel, valor) {
+    if (!sel || !valor || sel.value === valor) return false;
+    if (sel.querySelector(`option[value="${CSS.escape(valor)}"]`)) {
+        sel.value = valor;
+        return true;
+    }
+    return false;
+}
+
+function populateFiltrosEvaluaciones(container, proyectos) {
+    const selAnio = container.querySelector('#filtro-anio-evaluaciones');
+    const selGrado = container.querySelector('#filtro-grado-evaluaciones');
+    const selSeccion = container.querySelector('#filtro-seccion-evaluaciones');
+    if (!selAnio || !selGrado || !selSeccion) return;
+
+    const anios = [...new Set(proyectos.map((p) => String(p.anio ?? '')))]
+        .filter(Boolean)
+        .sort((a, b) => Number(b) - Number(a));
+    const cambioAnio = reconstruirOpcionesFiltro(
+        selAnio,
+        anios.map((v) => ({ valor: v, label: v })),
+        'Todos',
+    );
+
+    const gradosMap = new Map();
+    proyectos.forEach((p) => {
+        const { gradoKey } = partirDisplayGrade(p.displayName || p.displayGrade);
+        if (gradoKey && !gradosMap.has(gradoKey)) {
+            gradosMap.set(gradoKey, { valor: gradoKey, label: gradoKey });
+        }
+    });
+    const grados = [...gradosMap.values()].sort((a, b) => a.label.localeCompare(b.label));
+    const cambioGrado = reconstruirOpcionesFiltro(selGrado, grados, 'Todos');
+
+    const secciones = [
+        ...new Set(proyectos.map((p) => partirDisplayGrade(p.displayName || p.displayGrade).seccion)),
+    ].filter(Boolean).sort();
+    const cambioSeccion = reconstruirOpcionesFiltro(
+        selSeccion,
+        secciones.map((v) => ({ valor: v, label: v })),
+        'Todas',
+    );
+
+    const restaurarAnio = restaurarSelect(selAnio, estadoFiltros.anio);
+    const restaurarGrado = restaurarSelect(selGrado, estadoFiltros.gradoKey);
+    const restaurarSeccion = restaurarSelect(selSeccion, estadoFiltros.seccion);
+    const selEstado = container.querySelector('#estado-proyectos-evaluados');
+    const restaurarEstado = restaurarSelect(selEstado, estadoFiltros.estado);
+
+    const state = container.__insalListState;
+    if (state) {
+        state.filters = {};
+        container.querySelectorAll('select[data-filter]').forEach((sel) => {
+            if (sel.value) state.filters[sel.dataset.filterKey] = sel.value;
+        });
+    }
+
+    if (cambioAnio || restaurarAnio) selAnio.dispatchEvent(new Event('change', { bubbles: true }));
+    if (cambioGrado || restaurarGrado) selGrado.dispatchEvent(new Event('change', { bubbles: true }));
+    if (cambioSeccion || restaurarSeccion) selSeccion.dispatchEvent(new Event('change', { bubbles: true }));
+    if (restaurarEstado) selEstado.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+async function obtenerCatalogo(url, clave) {
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || !Array.isArray(data[clave])) {
+        throw new Error(data?.mensaje || `Error al cargar ${clave}`);
+    }
+    return data[clave];
+}
+
+async function cargarOpcionesRubricas() {
+    const sel = document.getElementById('filtro-rubrica-evaluaciones');
+    if (!sel) return;
+    if (!Array.isArray(nivelesCache)) {
+        try {
+            nivelesCache = await obtenerCatalogo('/admin/niveles-evaluacion', 'niveles');
+        } catch {
+            return;
+        }
+    }
+    const opciones = nivelesCache.map((nivel) => ({
+        valor: String(nivel.nivel_id),
+        label: nivel.nombre || 'Sin nombre',
+    }));
+    const cambioValor = reconstruirOpcionesFiltro(sel, opciones, 'Todas');
+    const restauro = restaurarSelect(sel, estadoFiltros.rubrica);
+    if (cambioValor || restauro) sel.dispatchEvent(new Event('change', { bubbles: true }));
+    restaurarOrdenLista();
+}
+
+async function cargarOpcionesMaterias() {
+    const sel = document.getElementById('filtro-materia-evaluaciones');
+    if (!sel) return;
+    if (!Array.isArray(materiasCache)) {
+        try {
+            materiasCache = await obtenerCatalogo('/admin/materias', 'materias');
+        } catch {
+            return;
+        }
+    }
+    const opciones = materiasCache.map((m) => ({
+        valor: String(m.materia_id),
+        label: m.nombre_materia || 'Sin nombre',
+    }));
+    const cambioValor = reconstruirOpcionesFiltro(sel, opciones, 'Todas');
+    const restauro = restaurarSelect(sel, estadoFiltros.materia);
+    if (cambioValor || restauro) sel.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function aplicarDatosFiltro(el, proyecto) {
+    const gradoTexto = proyecto.displayName || proyecto.displayGrade || '';
+    const categorias = partirDisplayGrade(gradoTexto);
+    el.dataset.anio = proyecto.anio != null ? String(proyecto.anio) : '';
+    el.dataset.gradoKey = categorias.gradoKey;
+    el.dataset.seccion = categorias.seccion;
+    el.dataset.rubrica = proyecto.nivel_id != null ? String(proyecto.nivel_id) : '';
+    el.dataset.materiaId = proyecto.materia_id != null ? String(proyecto.materia_id) : '';
+    el.dataset.estado = proyecto.estado === 'completa' ? 'completa' : 'parcial';
+}
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS — Estado de la lista
@@ -66,6 +405,7 @@ async function loadProyectosEvaluados(btn) {
         if (coldLoad) {
             const toolbar = container.querySelector('.list-toolbar');
             if (toolbar) toolbar.style.display = 'none';
+            if (typeof window.prepararLista === 'function') window.prepararLista(container);
         }
 
         // ── PRE-FETCH: preparar UI según modo ──
@@ -99,6 +439,7 @@ async function loadProyectosEvaluados(btn) {
         if (!response.ok || !data || !Array.isArray(data.proyectos)) {
             // No marcar como "vacío": es un error del servidor.
             console.error('Respuesta del endpoint:', response.status, data);
+            container.classList.remove('is-lista-preparando');
             hideLoader(container);
             container.querySelectorAll('.list-item--refreshing').forEach((el) => {
                 el.classList.remove('list-item--refreshing');
@@ -113,8 +454,9 @@ async function loadProyectosEvaluados(btn) {
 
         // ── POST-FETCH: aplicar cambios según modo ──
         if (coldLoad) {
-            // Carga fría: renderizar todo con entrada escalonada, en el orden
-            // del selector de orden (searchList no los vuelve a reordenar).
+            const busqueda = container.querySelector('#search-proyectos-evaluados');
+            if (busqueda) busqueda.value = estadoFiltros.query || '';
+
             const sortSelect = container.querySelector('select[data-sort]');
             const items = [...data.proyectos]
                 .sort((a, b) => {
@@ -126,13 +468,21 @@ async function loadProyectosEvaluados(btn) {
                 })
                 .map((p) => createProyectoElement(p));
 
-            items.forEach((el, index) => {
-                container.appendChild(el);
-                animarEntrada(el, index * 80);
-            });
-
-            hideLoader(container);
+            items.forEach((el) => container.appendChild(el));
+            try {
+                await container.__catalogosLista;
+            } catch {
+                // El catálogo de rúbrica/materia ya avisó su propio error.
+            }
+            populateFiltrosEvaluaciones(container, data.proyectos);
+            restaurarOrdenLista();
             toggleEmptyState(container);
+            if (typeof window.revelarLista === 'function') {
+                window.revelarLista(container);
+            } else {
+                container.classList.remove('is-lista-preparando');
+                hideLoader(container);
+            }
             if (refreshBtn) refreshBtn.classList.remove('is-loading');
         } else {
             // Soft refresh: diff inteligente
@@ -221,6 +571,7 @@ async function loadProyectosEvaluados(btn) {
 
             hideLoader(container);
             toggleEmptyState(container);
+            populateFiltrosEvaluaciones(container, data.proyectos);
             // Re-aplicar búsqueda/filtros/orden tras el refresh (los data-*
             // de los persistentes pueden haber cambiado y el MutationObserver
             // de searchList no se dispara por cambios de atributos).
@@ -231,6 +582,7 @@ async function loadProyectosEvaluados(btn) {
         }
     } catch (error) {
         console.error('Error al cargar proyectos evaluados:', error);
+        container.classList.remove('is-lista-preparando');
         hideLoader(container);
         toggleEmptyState(container);
         container.querySelectorAll('.list-item--refreshing').forEach((el) => {
@@ -297,10 +649,9 @@ function createProyectoElement(proyecto) {
         proyecto.nombre || 'Sin nombre';
     div.querySelector('.proyecto-evaluado__grado').textContent = detalleGrado;
 
-    // Datos en data-* para ordenar/filtrar sin leer el DOM
     div.dataset.nombre = (proyecto.nombre || '').trim();
     div.dataset.grado = (proyecto.displayName || '').trim();
-    div.dataset.estado = esCompleta ? 'completa' : 'parcial';
+    aplicarDatosFiltro(div, proyecto);
 
     return div;
 }
@@ -347,11 +698,10 @@ function updateProyectoEvaluadoElement(el, proyecto) {
     const link = el.querySelector('a.btn-mas');
     if (link) link.href = `/menu/evaluaciones/${proyecto.proyecto_id}`;
 
-    // data-* para ordenar/filtrar
     el.dataset.itemId = String(proyecto.proyecto_id);
     el.dataset.nombre = (proyecto.nombre || '').trim();
     el.dataset.grado = (proyecto.displayName || '').trim();
-    el.dataset.estado = esCompleta ? 'completa' : 'parcial';
+    aplicarDatosFiltro(el, proyecto);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -363,6 +713,18 @@ window.loadProyectosEvaluados = loadProyectosEvaluados;
 // ═══════════════════════════════════════════════════════════════
 // INICIALIZACIÓN
 // ═══════════════════════════════════════════════════════════════
+
+function initFiltrosEvaluaciones() {
+    const container = getContainer();
+    if (!container) return;
+    initMobileFilters(container);
+    vincularGuardadoFiltros();
+    restaurarOrdenLista();
+    container.__catalogosLista = Promise.all([
+        cargarOpcionesRubricas(),
+        cargarOpcionesMaterias(),
+    ]);
+}
 
 function initEvaluacionesDialog() {
     const dialog = document.getElementById('dialogo-info-evaluaciones');
@@ -388,9 +750,11 @@ function initEvaluacionesDialog() {
 // Carga inicial y cada vez que el router reemplaza el contenido
 document.addEventListener('DOMContentLoaded', () => {
     initEvaluacionesDialog();
+    initFiltrosEvaluaciones();
     loadProyectosEvaluados();
 });
 document.addEventListener('contentUpdated', () => {
     initEvaluacionesDialog();
+    initFiltrosEvaluaciones();
     loadProyectosEvaluados();
 });

@@ -1971,6 +1971,8 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
              p.nombre,
              p.nota,
              p.grado_id,
+             p.materia_id,
+             mat.nombre_materia  AS materia_nombre,
              g.anio,
              n.nivel_id,
              n.nombre            AS nivel_nombre,
@@ -1984,13 +1986,15 @@ app.get('/admin/evaluaciones/proyectos', requireAuth, async (req, res) => {
       FROM evaluaciones.proyectos     p
       JOIN principal.grados           g  ON p.grado_id              = g.grado_id
       JOIN evaluaciones.niveles       n  ON p.nivel_id              = n.nivel_id
+      LEFT JOIN principal.materias         mat ON p.materia_id           = mat.materia_id
       LEFT JOIN principal.niveles_estudios ne ON g.niveles_estudio_id    = ne.niveles_estudios_id
       LEFT JOIN principal.bachilleratos    b  ON g.bachillerato_id       = b.bachillerato_id
       LEFT JOIN principal.secciones        s  ON g.seccion_id            = s.seccion_id
       LEFT JOIN evaluaciones.evaluaciones ev ON p.proyecto_id       = ev.proyecto_id AND ev.confirmo_nota = true
     `;
         const groupBy = `
-      GROUP BY p.proyecto_id, p.nombre, p.nota, p.grado_id, g.anio,
+      GROUP BY p.proyecto_id, p.nombre, p.nota, p.grado_id, p.materia_id,
+               mat.nombre_materia, g.anio,
                n.nivel_id, n.nombre, ne.nombre,
                b.bachillerato_id, b.nombre, s.letra, n.cantidad_evaluadores
       HAVING COUNT(ev.evaluacion_id) >= 1

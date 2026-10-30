@@ -24,6 +24,64 @@ import { puedeEditarRubricas } from './permisos.js';
 let currentRubricaId = null;
 let menuVisible = false;
 
+const CLAVE_LISTA_RUBRICAS = 'insal.filtrosRubricas';
+let estadoListaRubricas = { sort: 'id-desc', query: '' };
+
+function hidratarListaRubricas() {
+    try {
+        const crudo = sessionStorage.getItem(CLAVE_LISTA_RUBRICAS);
+        if (!crudo) return;
+        const datos = JSON.parse(crudo);
+        if (!datos || typeof datos !== 'object') return;
+        if (datos.sort !== 'id-desc' && datos.sort !== 'id-asc') datos.sort = 'id-desc';
+        estadoListaRubricas = { ...estadoListaRubricas, ...datos };
+    } catch {
+        // Sin sessionStorage o dato corrupto: se usa el orden por defecto.
+    }
+}
+
+function persistirListaRubricas() {
+    try {
+        sessionStorage.setItem(CLAVE_LISTA_RUBRICAS, JSON.stringify(estadoListaRubricas));
+    } catch {
+        // El estado sigue vigente en memoria.
+    }
+}
+
+hidratarListaRubricas();
+
+function vincularListaRubricas() {
+    const sort = document.getElementById('orden-rubricas');
+    if (sort && sort.dataset.guardadoFiltrosInit !== 'true') {
+        sort.dataset.guardadoFiltrosInit = 'true';
+        sort.addEventListener('change', () => {
+            const orden = sort.value || 'id-desc';
+            if (orden !== 'id-desc' && orden !== 'id-asc') return;
+            estadoListaRubricas.sort = orden;
+            persistirListaRubricas();
+        });
+    }
+
+    const busqueda = document.getElementById('search-rubrica');
+    if (!busqueda || busqueda.dataset.guardadoFiltrosInit === 'true') return;
+    busqueda.dataset.guardadoFiltrosInit = 'true';
+    busqueda.addEventListener('input', () => {
+        estadoListaRubricas.query = busqueda.value;
+        persistirListaRubricas();
+    });
+}
+
+function restaurarListaRubricas(container) {
+    const busqueda = container.querySelector('#search-rubrica');
+    if (busqueda) busqueda.value = estadoListaRubricas.query || '';
+    const sort = container.querySelector('#orden-rubricas');
+    if (!sort) return;
+    const orden = estadoListaRubricas.sort === 'id-asc' ? 'id-asc' : 'id-desc';
+    if (sort.value === orden) return;
+    sort.value = orden;
+    sort.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 function getMenuList() {
     return document.getElementById('menu__list');
 }
@@ -90,14 +148,15 @@ async function loadRubricas(btn) {
 
     const coldLoad = isContainerEmpty(container);
 
-    // La toolbar (búsqueda/ordenar/filtrar) solo se muestra cuando hay datos:
-    // se oculta durante la carga en frío (donde solo se ve el loader) y
-    // hideLoader() la vuelve a mostrar al terminar la carga.
+    // La toolbar (búsqueda/ordenar) solo se muestra cuando hay datos.
+    // En la carga en frío la barra de progreso sigue visible hasta restaurar
+    // la búsqueda y el orden recordados.
     const toolbar = container.querySelector('.list-toolbar');
     if (coldLoad) {
         if (toolbar) toolbar.style.display = 'none';
-    } else {
-        if (toolbar) toolbar.style.display = '';
+        if (typeof window.prepararLista === 'function') window.prepararLista(container);
+    } else if (toolbar) {
+        toolbar.style.display = '';
     }
 
     try {
@@ -123,6 +182,7 @@ async function loadRubricas(btn) {
         const data = await response.json();
 
         if (!data.niveles) {
+            container.classList.remove('is-lista-preparando');
             hideLoader(container);
             container.querySelectorAll('.list-item--refreshing').forEach(el => {
                 el.classList.remove('list-item--refreshing');
@@ -134,14 +194,21 @@ async function loadRubricas(btn) {
 
         // ── POST-FETCH: aplicar cambios según modo ──
         if (coldLoad) {
-            // Carga fría: ocultar loader, renderizar todo con entrada escalonada
-            hideLoader(container);
-            data.niveles.forEach((nivel, index) => {
-                const elementoRubrica = createRubricaElement(nivel);
-                container.appendChild(elementoRubrica);
-                animarEntrada(elementoRubrica, index * 80);
+            restaurarListaRubricas(container);
+            data.niveles.forEach((nivel) => {
+                container.appendChild(createRubricaElement(nivel));
             });
             toggleEmptyState(container);
+            if (typeof window.revelarLista === 'function') {
+                window.revelarLista(container);
+            } else {
+                container.classList.remove('is-lista-preparando');
+                hideLoader(container);
+                data.niveles.forEach((_, index) => {
+                    const el = container.querySelectorAll('.list-item')[index];
+                    if (el) animarEntrada(el, index * 80);
+                });
+            }
             if (refreshBtn) refreshBtn.classList.remove('is-loading');
         } else {
             // Soft refresh: diff inteligente
@@ -217,6 +284,7 @@ async function loadRubricas(btn) {
     } catch (error) {
         if (refreshBtn) refreshBtn.classList.remove('is-loading');
         toggleEmptyState(container);
+        container.classList.remove('is-lista-preparando');
         hideLoader(container);
         container.querySelectorAll('.list-item--refreshing').forEach(el => {
             el.classList.remove('list-item--refreshing');
@@ -318,6 +386,8 @@ function createRubricaElement(nivel) {
 function initRubricasHandlers() {
     const container = document.getElementById('rubricas__container');
     if (!container) return;
+
+    vincularListaRubricas();
 
     // La lista se carga siempre: el docente-orientador también consulta rúbricas,
     // aunque su vista sea de solo lectura.

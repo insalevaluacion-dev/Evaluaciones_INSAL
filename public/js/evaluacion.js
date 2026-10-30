@@ -90,7 +90,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="material-symbols-rounded flecha">
                     stat_minus_1
                 </span>
-                <div><p>(${escapeHtml(porcentaje)}%)</p></div>
             </div>
             <p for="criterio-${idCriterio}" class="descripcion">
                 ${escapeHtml(criterio.descripcion)}

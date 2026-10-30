@@ -127,7 +127,7 @@ const GUIAS = {
             element: '#boton-regresar',
             popover: {
                 title: 'Corregir notas',
-                description: 'Vuelve al formulario si hay que cambiar una puntuación antes de confirmar.',
+                description: 'Vuelve al formulario si hay que cambiar una puntuación. Si la nota no está confirmada, se avisa antes de salir, también con el atrás del celular.',
                 side: 'bottom',
                 align: 'center',
             },

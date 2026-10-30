@@ -6,7 +6,7 @@ import { mostrarNotificacion } from './notificaciones.js';
 import { createSubmitHandler } from './submitHandler.js';
 import { cerrarDialogoAnimado, posicionarMenuFlotante } from './menu.js';
 import { confirmarAccion } from './editar-criterios.js';
-import { animarEntrada, animarSalida } from './listAnimations.js';
+import { animarSalida } from './listAnimations.js';
 import { puedeEliminarProyectos } from './permisos.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -35,6 +35,7 @@ let estadoFiltros = {
     rubrica: '',
     materia: '',
     sort: 'id-desc',
+    query: '',
 };
 
 /** Hidrata estadoFiltros desde sessionStorage (sobrevive a recargas de F5). */
@@ -43,9 +44,14 @@ function hidratarEstadoFiltros() {
         const crudo = sessionStorage.getItem(CLAVE_FILTROS_PROYECTOS);
         if (!crudo) return;
         const datos = JSON.parse(crudo);
-        if (datos && typeof datos === 'object') {
-            estadoFiltros = { ...estadoFiltros, ...datos };
+        if (!datos || typeof datos !== 'object') return;
+        // Sesiones ya guardadas con el fallo anterior: el change del orden
+        // escribía 'id-desc'/'id-asc' en la clave de la rúbrica.
+        if (datos.rubrica === 'id-desc' || datos.rubrica === 'id-asc') datos.rubrica = '';
+        if (datos.sort !== 'id-desc' && datos.sort !== 'id-asc' && datos.sort !== 'rubrica') {
+            datos.sort = 'id-desc';
         }
+        estadoFiltros = { ...estadoFiltros, ...datos };
     } catch {
         // Sin sessionStorage (modo privado) o dato corrupto: se ignora.
     }
@@ -62,42 +68,68 @@ function persistirEstadoFiltros() {
 
 hidratarEstadoFiltros();
 
+/** Clave de estadoFiltros que corresponde a cada select de filtro. */
+const CLAVES_FILTRO_PROYECTOS = {
+    'filtro-anio-proyectos': 'anio',
+    'filtro-grado-proyectos': 'gradoKey',
+    'filtro-seccion-proyectos': 'seccion',
+    'filtro-rubrica-proyectos': 'rubrica',
+    'filtro-materia-proyectos': 'materia',
+};
+
+/** true si el select todavía solo tiene el placeholder (catálogo sin cargar). */
+function selectFiltroSinOpciones(sel) {
+    return sel.options.length <= 1;
+}
+
 /**
  * Vincula a cada select de la toolbar un listener que mantiene estadoFiltros
  * al día (y lo persiste) cada vez que el usuario cambia un filtro u el orden.
  * Se llama en cada initProyectosHandlers; el guard por dataset evita
  * listeners duplicados sobre los selects de la vista vigente.
+ *
+ * El orden vive en su propio listener. Antes compartía el fallback de la
+ * rúbrica: cada change de "Ordenar por" guardaba 'id-desc'/'id-asc' como
+ * filtro de rúbrica y, al volver a la lista, esa rúbrica no se podía restaurar.
  */
 function vincularGuardadoFiltros() {
-    const ids = [
-        'filtro-anio-proyectos',
-        'filtro-grado-proyectos',
-        'filtro-seccion-proyectos',
-        'filtro-rubrica-proyectos',
-        'filtro-materia-proyectos',
-        'orden-proyectos',
-    ];
-    ids.forEach((id) => {
+    Object.entries(CLAVES_FILTRO_PROYECTOS).forEach(([id, clave]) => {
         const sel = document.getElementById(id);
         if (!sel || sel.dataset.guardadoFiltrosInit === 'true') return;
         sel.dataset.guardadoFiltrosInit = 'true';
         sel.addEventListener('change', () => {
-            if (id === 'orden-proyectos') {
-                // El orden efectivo pasa a ser el del select...
-                estadoFiltros.sort = sel.value || 'id-desc';
-            } else if (id === 'filtro-rubrica-proyectos') {
-                // ...salvo al tocar rúbrica: searchList agrupa la lista por
-                // rúbrica (state.sort = 'rubrica') aunque el valor quede ''.
+            // La restauración dispara change antes de poblar el catálogo.
+            // En ese momento el valor es '' y grabarlo borraba el filtro.
+            if (sel.value === '' && estadoFiltros[clave] && selectFiltroSinOpciones(sel)) return;
+
+            // Elegir o quitar una rúbrica agrupa la lista. Si el valor no
+            // cambió, este change es la restauración: no debe pisar el orden
+            // (id-desc/id-asc) que el usuario había dejado.
+            if (clave === 'rubrica' && sel.value !== estadoFiltros.rubrica) {
                 estadoFiltros.sort = 'rubrica';
             }
-            const clave = id === 'filtro-anio-proyectos' ? 'anio'
-                : id === 'filtro-grado-proyectos' ? 'gradoKey'
-                : id === 'filtro-seccion-proyectos' ? 'seccion'
-                : id === 'filtro-materia-proyectos' ? 'materia'
-                : 'rubrica';
             estadoFiltros[clave] = sel.value;
             persistirEstadoFiltros();
         });
+    });
+
+    const selOrden = document.getElementById('orden-proyectos');
+    if (selOrden && selOrden.dataset.guardadoFiltrosInit !== 'true') {
+        selOrden.dataset.guardadoFiltrosInit = 'true';
+        selOrden.addEventListener('change', () => {
+            const orden = selOrden.value || 'id-desc';
+            if (orden !== 'id-desc' && orden !== 'id-asc') return;
+            estadoFiltros.sort = orden;
+            persistirEstadoFiltros();
+        });
+    }
+
+    const busqueda = document.getElementById('search-proyectos');
+    if (!busqueda || busqueda.dataset.guardadoFiltrosInit === 'true') return;
+    busqueda.dataset.guardadoFiltrosInit = 'true';
+    busqueda.addEventListener('input', () => {
+        estadoFiltros.query = busqueda.value;
+        persistirEstadoFiltros();
     });
 }
 
@@ -114,13 +146,15 @@ function restaurarOrdenLista() {
     const selOrden = document.getElementById('orden-proyectos');
     if (!selOrden) return;
     if (estadoFiltros.sort === 'rubrica') {
-        document.getElementById('filtro-rubrica-proyectos')
-            ?.dispatchEvent(new Event('change', { bubbles: true }));
+        const selRubrica = document.getElementById('filtro-rubrica-proyectos');
+        // Sin opciones, el change guardaría rúbrica ''. Se reintenta al
+        // terminar cargarOpcionesRubricas, cuando el valor ya está puesto.
+        if (!selRubrica || selectFiltroSinOpciones(selRubrica)) return;
+        selRubrica.dispatchEvent(new Event('change', { bubbles: true }));
         return;
     }
-    if (estadoFiltros.sort && selOrden.value !== estadoFiltros.sort) {
-        selOrden.value = estadoFiltros.sort;
-    }
+    if (estadoFiltros.sort !== 'id-desc' && estadoFiltros.sort !== 'id-asc') return;
+    if (selOrden.value !== estadoFiltros.sort) selOrden.value = estadoFiltros.sort;
     selOrden.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
@@ -456,9 +490,11 @@ async function loadProyectos(btn) {
     const coldLoad = isContainerEmpty(container);
 
     // La toolbar solo se muestra cuando hay datos: se oculta durante la
-    // carga en frío y hideLoader() la vuelve a mostrar.
+    // carga en frío. Con filtros recordados la barra de progreso sigue
+    // visible hasta aplicarlos, para no mostrar la lista vacía.
     const toolbar = container.querySelector('.list-toolbar');
     toolbar.style.display = coldLoad ? 'none' : '';
+    if (coldLoad && typeof window.prepararLista === 'function') window.prepararLista(container);
 
     try {
         // ── PRE-FETCH: preparar UI según modo ──
@@ -483,6 +519,7 @@ async function loadProyectos(btn) {
         const data = await response.json();
 
         if (!response.ok || !Array.isArray(data.proyectos)) {
+            container.classList.remove('is-lista-preparando');
             hideLoader(container);
             container.querySelectorAll('.list-item--refreshing').forEach(el => {
                 el.classList.remove('list-item--refreshing');
@@ -494,19 +531,29 @@ async function loadProyectos(btn) {
 
         // ── POST-FETCH: aplicar cambios según modo ──
         if (coldLoad) {
-            // Carga fría: ocultar loader, renderizar todo con entrada escalonada
-            hideLoader(container);
-            data.proyectos.forEach((proyecto, index) => {
-                const elemento = createProyectoElement(proyecto);
-                container.appendChild(elemento);
-                animarEntrada(elemento, index * 80);
+            const busqueda = container.querySelector('#search-proyectos');
+            if (busqueda) busqueda.value = estadoFiltros.query || '';
+
+            data.proyectos.forEach((proyecto) => {
+                container.appendChild(createProyectoElement(proyecto));
             });
             toggleEmptyState(container);
-            // Mostrar la toolbar (búsqueda/orden/filtro) solo si hay proyectos
-            const anyItems = container.querySelectorAll('.list-item').length > 0;
-            toolbar.style.display = anyItems ? '' : 'none';
             container.__datosProyectos = data.proyectos;
+            try {
+                await container.__catalogosLista;
+            } catch {
+                // El catálogo de rúbrica/materia ya avisó su propio error.
+            }
             populateFiltrosProyectos(container, data.proyectos);
+            restaurarOrdenLista();
+            if (typeof window.revelarLista === 'function') {
+                window.revelarLista(container);
+            } else {
+                container.classList.remove('is-lista-preparando');
+                hideLoader(container);
+                const anyItems = container.querySelectorAll('.list-item').length > 0;
+                toolbar.style.display = anyItems ? '' : 'none';
+            }
             if (refreshBtn) refreshBtn.classList.remove('is-loading');
         } else {
             // Soft refresh: diff inteligente
@@ -594,6 +641,7 @@ async function loadProyectos(btn) {
     } catch (error) {
         if (refreshBtn) refreshBtn.classList.remove('is-loading');
         toggleEmptyState(container);
+        container.classList.remove('is-lista-preparando');
         hideLoader(container);
         container.querySelectorAll('.list-item--refreshing').forEach(el => {
             el.classList.remove('list-item--refreshing');
@@ -1575,11 +1623,12 @@ function initProyectosHandlers() {
     // forzar = true: la vista se reabre al navegar (SPA) y puede haber rúbricas
     // nuevas, así que se piden los catálogos frescos en cada entrada.
     poblarSelectsProyecto(true);
-    // Rellenar el filtro por rúbrica. Reutiliza la petición de niveles en curso
-    // que acabó de lanzar poblarSelectsProyecto, así que no duplica el fetch.
-    cargarOpcionesRubricas();
-    // Rellenar el filtro por materia (reutiliza la petición de materias en curso).
-    cargarOpcionesMaterias();
+    // La carga de la lista espera estos catálogos antes de quitar la barra:
+    // si no, el filtro recordado se aplica tarde y la lista parece vacía.
+    container.__catalogosLista = Promise.all([
+        cargarOpcionesRubricas(),
+        cargarOpcionesMaterias(),
+    ]);
     loadProyectos();
 
     // Cerrar el menú contextual al hacer scroll en el contenedor

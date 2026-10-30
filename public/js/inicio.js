@@ -330,7 +330,7 @@ function iniciarGuiaInicio() {
             readySelector: '#proyectos-evaluados__container .list-toolbar:not([style*="display: none"]), #proyectos-evaluados__container .section-empty:not([style*="display: none"])',
             popover: {
                 title: 'Evaluaciones',
-                description: 'Consulta proyectos evaluados, filtra por estado y descarga reportes por grado.',
+                description: 'Consulta proyectos evaluados, filtra por año, grado, sección, rúbrica, materia o estado, y descarga reportes por grado.',
                 side: 'bottom',
                 align: 'start',
             },

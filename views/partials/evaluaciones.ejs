@@ -35,35 +35,90 @@
 <section id="proyectos-evaluados__container" class="list-container">
     <!-- Barra de herramientas: búsqueda + ordenar -->
     <div class="list-toolbar">
-        <div class="search-wrapper">
-            <span class="material-symbols-rounded icon" aria-hidden="true">
-                search
-            </span>
-            <input type="text" placeholder="Buscar proyectos evaluados..." aria-label="Buscar proyectos evaluados" role="searchbox" spellcheck="false" autocomplete="off" id="search-proyectos-evaluados" class="search-input">
-            <button type="button" class="search-clear" aria-label="Limpiar búsqueda" onclick="clearSearch(this)">
-                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        <div class="list-toolbar__search-row">
+            <div class="search-wrapper">
+                <span class="material-symbols-rounded icon" aria-hidden="true">
+                    search
+                </span>
+                <input type="text" placeholder="Buscar proyectos evaluados..." aria-label="Buscar proyectos evaluados" role="searchbox" spellcheck="false" autocomplete="off" id="search-proyectos-evaluados" class="search-input">
+                <button type="button" class="search-clear" aria-label="Limpiar búsqueda" onclick="clearSearch(this)">
+                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <button type="button" class="list-toolbar__filters-toggle" aria-controls="evaluaciones-toolbar-opciones" aria-expanded="true">
+                <span class="material-symbols-rounded" aria-hidden="true">tune</span>
+                <span>Filtros</span>
+                <span class="list-toolbar__filters-count" aria-live="polite" hidden></span>
             </button>
         </div>
 
-        <div class="toolbar-opciones">
-            <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar proyectos">
-                <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
-                <span class="toolbar-control__label">Estado:</span>
-                <select id="estado-proyectos-evaluados" class="toolbar-select" data-filter data-filter-key="estado" data-custom data-dropdown-anchor=".toolbar-control--filter">
-                    <option value="">Todos</option>
-                    <option value="parcial">Parcial</option>
-                    <option value="completa">Completa</option>
-                </select>
-            </label>
-            <label class="toolbar-control toolbar-control--sort" aria-label="Ordenar proyectos">
-                <span class="material-symbols-rounded" aria-hidden="true">swap_vert</span>
-                <span class="toolbar-control__label">Ordenar por:</span>
-                <select id="orden-proyectos-evaluados" class="toolbar-select" data-sort data-custom data-dropdown-anchor=".toolbar-control--sort">
-                    <option value="id-desc" selected>Más recientes</option>
-                    <option value="id-asc">Más antiguos</option>
-                </select>
-            </label>
-        </div>
+        <dialog id="dialogo-filtros-evaluaciones" data-filtros-lista aria-labelledby="dialogo-filtros-evaluaciones-titulo">
+            <div class="toolbar-opciones" id="evaluaciones-toolbar-opciones">
+                <div class="project-filters-heading">
+                    <h2 id="dialogo-filtros-evaluaciones-titulo">Filtrar evaluaciones</h2>
+                    <button type="button" class="project-filters-close" aria-label="Cerrar filtros">
+                        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por año escolar">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                    <span class="toolbar-control__label">Año:</span>
+                    <select id="filtro-anio-evaluaciones" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="anio" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="" selected>Todos</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por grado">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                    <span class="toolbar-control__label">Grado:</span>
+                    <select id="filtro-grado-evaluaciones" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="gradoKey" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="" selected>Todos</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por sección">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                    <span class="toolbar-control__label">Sección:</span>
+                    <select id="filtro-seccion-evaluaciones" class="toolbar-select toolbar-select--filtro" data-filter data-filter-key="seccion" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="" selected>Todas</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por rúbrica">
+                    <span class="material-symbols-rounded" aria-hidden="true">library_books</span>
+                    <span class="toolbar-control__label">Rúbrica:</span>
+                    <select id="filtro-rubrica-evaluaciones" class="toolbar-select" data-filter data-filter-key="rubrica" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por materia">
+                    <span class="material-symbols-rounded" aria-hidden="true">menu_book</span>
+                    <span class="toolbar-control__label">Materia:</span>
+                    <select id="filtro-materia-evaluaciones" class="toolbar-select" data-filter data-filter-key="materiaId" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--filter" aria-label="Filtrar por estado">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_list</span>
+                    <span class="toolbar-control__label">Estado:</span>
+                    <select id="estado-proyectos-evaluados" class="toolbar-select" data-filter data-filter-key="estado" data-custom data-dropdown-anchor=".toolbar-control--filter">
+                        <option value="">Todos</option>
+                        <option value="parcial">Parcial</option>
+                        <option value="completa">Completa</option>
+                    </select>
+                </label>
+                <label class="toolbar-control toolbar-control--sort" aria-label="Ordenar proyectos">
+                    <span class="material-symbols-rounded" aria-hidden="true">swap_vert</span>
+                    <span class="toolbar-control__label">Ordenar por:</span>
+                    <select id="orden-proyectos-evaluados" class="toolbar-select" data-sort data-custom data-dropdown-anchor=".toolbar-control--sort">
+                        <option value="id-desc" selected>Más recientes</option>
+                        <option value="id-asc">Más antiguos</option>
+                    </select>
+                </label>
+                <button type="button" class="project-filters-reset" aria-label="Limpiar búsqueda y filtros">
+                    <span class="material-symbols-rounded" aria-hidden="true">filter_alt_off</span>
+                    <span>Limpiar</span>
+                </button>
+                <button type="button" class="project-filters-done">Ver evaluaciones</button>
+            </div>
+        </dialog>
     </div>
     <!-- Loader: siempre visible por defecto; se oculta al cargar datos -->
     <div class="section-loader">
@@ -121,7 +176,7 @@
         <div class="dialog-form">
             <div class="field-group">
                 <label for="grado-select-descargar">Grado</label>
-                <select id="grado-select-descargar" class="grado-select-descargar" data-custom required>
+                <select id="grado-select-descargar" class="grado-select-descargar" data-custom data-dropdown-prefer="down" required>
                     <option value="" hidden>Selecciona un grado…</option>
                 </select>
             </div>

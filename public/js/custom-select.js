@@ -366,7 +366,15 @@
 
             // Abrir hacia el lado con más espacio real para evitar desperdiciar
             // viewport y recortar listas largas cuando el selector está abajo.
-            const openUp = spaceAbove > spaceBelow;
+            // data-dropdown-prefer fuerza un lado solo si ahí cabe el panel
+            // (p. ej. un diálogo corto: abrir hacia arriba lo recorta contra
+            // el borde superior de la modal).
+            const prefer = select.dataset.dropdownPrefer;
+            const cabeAbajo = spaceBelow >= 140;
+            const cabeArriba = spaceAbove >= 140;
+            let openUp = spaceAbove > spaceBelow;
+            if (prefer === 'down' && cabeAbajo) openUp = false;
+            else if (prefer === 'up' && cabeArriba) openUp = true;
             container.classList.toggle('is-open-up', openUp);
             dropdown.classList.toggle('is-open-up', openUp);
 
@@ -374,10 +382,10 @@
             // NO se fuerza un mínimo que pueda desbordar el viewport.
             const available = openUp ? spaceAbove : spaceBelow;
             const ownerDialog = insideDialog ? select.closest('dialog') : null;
-            const anchorToViewport = ownerDialog?.id === 'dialogo-filtros-proyectos';
+            const anchorToViewport = ownerDialog?.hasAttribute('data-filtros-lista');
             const maxDropdownHeight = Math.max(0, Math.min(maxH, available));
             dropdown.style.maxHeight = maxDropdownHeight + 'px';
-            if (ownerDialog?.id === 'dialogo-filtros-proyectos') {
+            if (ownerDialog?.hasAttribute('data-filtros-lista')) {
                 const options = dropdown.querySelector('.custom-select__options');
                 if (options) {
                     options.style.maxHeight = Math.max(0, Math.min(250, maxDropdownHeight - 24)) + 'px';

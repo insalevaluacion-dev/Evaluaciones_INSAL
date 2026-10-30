@@ -8,7 +8,7 @@
 //   • Ocultar/mostrar items al filtrar: delegado a listAnimations.js (WAAPI)
 // ═══════════════════════════════════════════════════════════════
 
-import { animarMostrar, animarOcultar, cancelarAnimacionLista } from './listAnimations.js';
+import { animarEntrada, animarMostrar, animarOcultar, cancelarAnimacionLista } from './listAnimations.js';
 
 // Por debajo de este umbral el filtrado anima cada ítem. Por encima, mostrar
 // u ocultar es instantáneo: medir la altura de cientos de filas (offsetHeight)
@@ -263,7 +263,11 @@ function aplicarListaAhora(container) {
         if (visible) visibleCount++;
     });
 
-    if (cambios.length > UMBRAL_ANIMACION_FILTRO) {
+    // Mientras la lista se prepara (vuelta de otra página con filtros), ocultar
+    // es instantáneo: animar el colapso deja la sección en blanco y parece
+    // que no hay coincidencias.
+    const preparando = container.classList.contains('is-lista-preparando');
+    if (preparando || cambios.length > UMBRAL_ANIMACION_FILTRO) {
         cambios.forEach(({ item, visible }) => fijarVisibilidadInmediata(item, visible));
     } else {
         cambios.forEach(({ item, visible }) => applyItemVisibility(item, visible));
@@ -280,8 +284,8 @@ function aplicarListaAhora(container) {
     const hasQuery = state.query.trim().length > 0;
     const showNoResults = items.length > 0 && visibleCount === 0;
 
-    noResultsEl.style.display = showNoResults ? 'flex' : 'none';
-    if (showNoResults) {
+    noResultsEl.style.display = !preparando && showNoResults ? 'flex' : 'none';
+    if (!preparando && showNoResults) {
         if (hasQuery) {
             // Mensaje: "No hay coincidencias para '<término>'."
             subEl.style.display = '';
@@ -302,6 +306,92 @@ function aplicarListaAhora(container) {
     if (state.sort !== 'relevancia' || state.baseline) {
         const sorted = [...items].sort(getSortComparator(state));
         orderItems(container, sorted);
+    }
+
+    actualizarBotonLimpiar(container);
+}
+
+/** true si hay búsqueda, algún filtro o un orden distinto del inicial. */
+function hayAlgoQueLimpiar(container) {
+    const state = getListState(container);
+    if (state.query.trim()) return true;
+    if (Object.values(state.filters).some(Boolean)) return true;
+    const sort = container.querySelector('select[data-sort]');
+    if (!sort) return state.sort === 'rubrica';
+    const defecto = sort.options[0]?.value || 'id-desc';
+    return sort.value !== defecto || (state.sort && state.sort !== defecto);
+}
+
+/** Muestra el botón Limpiar solo cuando hay algo que quitar. */
+function actualizarBotonLimpiar(container) {
+    const btn = container.querySelector('.project-filters-reset');
+    if (!btn) return;
+    btn.hidden = !hayAlgoQueLimpiar(container);
+}
+
+/** Quita búsqueda, filtros y orden de una lista. */
+function limpiarLista(container) {
+    const toolbar = container.querySelector(':scope > .list-toolbar');
+    if (!toolbar) return;
+
+    const input = toolbar.querySelector('.search-input');
+    if (input?.value) {
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    toolbar.querySelectorAll('select[data-filter]').forEach((sel) => {
+        if (!sel.value) return;
+        sel.value = '';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    const sort = toolbar.querySelector('select[data-sort]');
+    const defecto = sort?.options[0]?.value || 'id-desc';
+    const state = getListState(container);
+    if (sort && (sort.value !== defecto || state.sort !== defecto)) {
+        sort.value = defecto;
+        sort.dispatchEvent(new Event('change', { bubbles: true }));
+        if (state.sort !== defecto) {
+            state.sort = defecto;
+            programarAplicar(container);
+        }
+    }
+}
+
+/**
+ * Mantiene visible la barra de progreso y oculta ítems y el aviso de
+ * "sin coincidencias" hasta que los filtros recordados ya se aplicaron.
+ */
+function prepararLista(container) {
+    if (!container) return;
+    container.classList.add('is-lista-preparando');
+    const loader = container.querySelector(':scope > .section-loader');
+    if (loader) loader.style.display = '';
+    const noResults = container.querySelector(':scope > .search-no-results');
+    if (noResults) noResults.style.display = 'none';
+}
+
+/**
+ * Aplica filtros y orden, oculta la barra y anima solo lo que queda visible.
+ */
+function revelarLista(container) {
+    if (!container) return;
+    applyListState(container);
+    container.classList.remove('is-lista-preparando');
+
+    const loader = container.querySelector(':scope > .section-loader');
+    if (loader) loader.style.display = 'none';
+
+    const items = [...container.querySelectorAll(':scope > .list-item')];
+    const toolbar = container.querySelector(':scope > .list-toolbar');
+    if (toolbar) toolbar.style.display = items.length ? '' : 'none';
+
+    applyListState(container);
+
+    const visibles = items.filter((el) => !itemEstaOculto(el));
+    if (visibles.length > 0 && visibles.length <= 24) {
+        visibles.forEach((el, i) => animarEntrada(el, i * 36));
     }
 }
 
@@ -380,6 +470,13 @@ function initListContainer(container) {
         });
     });
 
+    const resetBtn = toolbar?.querySelector('.project-filters-reset');
+    if (resetBtn && resetBtn.dataset.limpiarLista !== 'true') {
+        resetBtn.dataset.limpiarLista = 'true';
+        resetBtn.addEventListener('click', () => limpiarLista(container));
+    }
+    actualizarBotonLimpiar(container);
+
     // Si la lista se actualiza (cargas, refresh, router) se re-aplica el estado.
     // Las mutaciones hechas por el propio filtrado (reordenar ítems) se ignoran
     // para no volver a entrar y congelar la página.
@@ -402,6 +499,8 @@ window.clearSearch = clearSearch;
 // re-aplicar el filtrado/orden tras un soft refresh que actualizó los
 // data-* de items existentes (los atributos no disparan el MutationObserver).
 window.aplicarEstadoLista = applyListState;
+window.prepararLista = prepararLista;
+window.revelarLista = revelarLista;
 
 // Inicialización (carga inicial + router SPA)
 document.addEventListener('DOMContentLoaded', initListControls);

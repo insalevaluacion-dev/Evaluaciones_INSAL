@@ -328,6 +328,17 @@
     overflow-y: auto;
 }
 
+/* Mientras se restauran filtros al volver de otra página: solo la barra. */
+.list-container.is-lista-preparando > .list-item,
+.list-container.is-lista-preparando > .search-no-results,
+.list-container.is-lista-preparando > .section-empty {
+    display: none !important;
+}
+
+.list-container.is-lista-preparando > .section-loader {
+    display: block !important;
+}
+
 #proyectos-evaluados__container {
     flex: 1;
     min-height: 0;
@@ -650,13 +661,15 @@
 }
 
 @media (max-width: 640px) {
-    #proyectos__container .list-toolbar {
+    #proyectos__container .list-toolbar,
+    #proyectos-evaluados__container .list-toolbar {
         gap: 8px;
         padding: 10px;
         margin-bottom: 8px;
     }
 
-    #proyectos__container .list-toolbar__filters-toggle {
+    #proyectos__container .list-toolbar__filters-toggle,
+    #proyectos-evaluados__container .list-toolbar__filters-toggle {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -676,12 +689,15 @@
     }
 
     #proyectos__container .list-toolbar__filters-toggle:hover,
-    #proyectos__container .list-toolbar__filters-toggle:active {
+    #proyectos__container .list-toolbar__filters-toggle:active,
+    #proyectos-evaluados__container .list-toolbar__filters-toggle:hover,
+    #proyectos-evaluados__container .list-toolbar__filters-toggle:active {
         background: var(--azul);
         color: var(--font-color);
     }
 
-    #proyectos__container .list-toolbar__filters-toggle > .material-symbols-rounded {
+    #proyectos__container .list-toolbar__filters-toggle > .material-symbols-rounded,
+    #proyectos-evaluados__container .list-toolbar__filters-toggle > .material-symbols-rounded {
         color: inherit;
         font-size: var(--fs-lg);
     }
@@ -701,71 +717,24 @@
     }
 
     #proyectos__container .list-toolbar__filters-toggle:hover .list-toolbar__filters-count,
-    #proyectos__container .list-toolbar__filters-toggle:active .list-toolbar__filters-count {
+    #proyectos__container .list-toolbar__filters-toggle:active .list-toolbar__filters-count,
+    #proyectos-evaluados__container .list-toolbar__filters-toggle:hover .list-toolbar__filters-count,
+    #proyectos-evaluados__container .list-toolbar__filters-toggle:active .list-toolbar__filters-count {
         background: #fff;
         color: var(--azul);
     }
-
-    #proyectos__container .toolbar-opciones {
-        display: none;
-    }
-
-    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-opciones {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: stretch;
-        gap: 8px;
-    }
-
-    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto auto;
-        align-content: center;
-        gap: 2px;
-        width: auto;
-        min-width: 0;
-        min-height: 58px;
-        padding: 5px 8px;
-    }
-
-    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control > .material-symbols-rounded {
-        display: none;
-    }
-
-    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control__label {
-        overflow: hidden;
-        font-size: var(--fs-xs);
-        text-overflow: ellipsis;
-    }
-
-    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control .custom-select {
-        width: 100%;
-        min-width: 0;
-    }
-
-    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control .custom-select__trigger {
-        min-width: 0;
-        max-width: 100%;
-    }
-
-    #proyectos__container .list-toolbar.is-filters-expanded .toolbar-control .custom-select__trigger-label {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
 }
 
-/* Filtros de proyectos: controles compactos en escritorio y hoja modal en móvil */
-#dialogo-filtros-proyectos {
+/* Filtros de lista: controles compactos en escritorio y hoja modal en móvil */
+[data-filtros-lista] {
     display: contents;
 }
 
-#dialogo-filtros-proyectos .custom-select__dropdown {
+[data-filtros-lista] .custom-select__dropdown {
     overflow: hidden;
 }
 
-#dialogo-filtros-proyectos .custom-select__options {
+[data-filtros-lista] .custom-select__options {
     margin-top: 0;
     padding-right: 0;
     overflow-y: auto;
@@ -800,17 +769,21 @@
     color: var(--font-color);
 }
 
+.project-filters-reset[hidden] {
+    display: none;
+}
+
 .project-filters-reset .material-symbols-rounded {
     color: inherit;
     font-size: var(--fs-lg);
 }
 
 @media (max-width: 640px) {
-    #dialogo-filtros-proyectos:not([open]) {
+    [data-filtros-lista]:not([open]) {
         display: none;
     }
 
-    #dialogo-filtros-proyectos[open] {
+    [data-filtros-lista][open] {
         display: block;
         position: fixed;
         inset: auto 0 0;
@@ -828,11 +801,11 @@
         animation: projectFiltersSheetIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
-    #dialogo-filtros-proyectos.closing {
+    [data-filtros-lista].closing {
         animation: projectFiltersSheetOut 140ms cubic-bezier(0.4, 0, 1, 1) both;
     }
 
-    #dialogo-filtros-proyectos[open] .toolbar-opciones {
+    [data-filtros-lista][open] .toolbar-opciones {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         align-items: stretch;
@@ -843,7 +816,7 @@
         overscroll-behavior: contain;
     }
 
-    #dialogo-filtros-proyectos .project-filters-heading {
+    [data-filtros-lista] .project-filters-heading {
         display: flex;
         grid-column: 1 / -1;
         align-items: center;
@@ -869,7 +842,7 @@
         cursor: pointer;
     }
 
-    #dialogo-filtros-proyectos .toolbar-control {
+    [data-filtros-lista] .toolbar-control {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -883,14 +856,14 @@
         background: var(--bg2);
     }
 
-    #dialogo-filtros-proyectos .toolbar-control > .material-symbols-rounded {
+    [data-filtros-lista] .toolbar-control > .material-symbols-rounded {
         display: flex;
         flex: 0 0 auto;
         color: var(--azul-med);
         font-size: var(--fs-lg);
     }
 
-    #dialogo-filtros-proyectos .toolbar-control__label {
+    [data-filtros-lista] .toolbar-control__label {
         flex: 0 0 auto;
         min-width: 76px;
         font-size: var(--fs-sm);
@@ -898,13 +871,13 @@
         color: var(--texto-color);
     }
 
-    #dialogo-filtros-proyectos .toolbar-control .custom-select {
+    [data-filtros-lista] .toolbar-control .custom-select {
         flex: 1 1 auto;
         width: auto;
         min-width: 0;
     }
 
-    #dialogo-filtros-proyectos .toolbar-control .custom-select__trigger {
+    [data-filtros-lista] .toolbar-control .custom-select__trigger {
         justify-content: space-between;
         width: 100%;
         min-width: 0;
@@ -915,11 +888,11 @@
         font-size: var(--fs-sm);
     }
 
-    #dialogo-filtros-proyectos .toolbar-control .custom-select__arrow {
+    [data-filtros-lista] .toolbar-control .custom-select__arrow {
         margin-left: 6px;
     }
 
-    #dialogo-filtros-proyectos .project-filters-done {
+    [data-filtros-lista] .project-filters-done {
         display: block;
         grid-column: 1 / -1;
         min-height: 50px;
@@ -933,7 +906,7 @@
         cursor: pointer;
     }
 
-    #dialogo-filtros-proyectos .project-filters-reset {
+    [data-filtros-lista] .project-filters-reset {
         grid-column: 1 / -1;
         min-height: 52px;
         margin-top: 4px;
@@ -963,8 +936,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #dialogo-filtros-proyectos[open],
-    #dialogo-filtros-proyectos.closing {
+    [data-filtros-lista][open],
+    [data-filtros-lista].closing {
         animation: none;
     }
     #dialogo-acciones-proyecto[open],
@@ -2361,4 +2334,89 @@ Elementos de lista
 
 .info-evaluaciones__lista li + li {
     margin-top: 6px;
+}
+
+/* Diálogo "Descargar reporte por grado".
+   El menú del custom-select se monta como hijo del <dialog>. Con overflow:hidden
+   (dialog.css / main.css) el panel se corta contra el borde de la modal, sobre
+   todo al abrir hacia arriba. El scroll, si hiciera falta, sigue en .dialog-inner. */
+#dialogo-descargar-grado {
+    overflow: visible;
+}
+
+#dialogo-descargar-grado .field-group {
+    width: 100%;
+    min-width: 0;
+    gap: 6px;
+}
+
+#dialogo-descargar-grado .field-group label {
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    margin: 0;
+}
+
+#dialogo-descargar-grado .custom-select {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--fs-lg);
+}
+
+#dialogo-descargar-grado .custom-select__trigger {
+    box-sizing: border-box;
+    min-height: 48px;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    color: var(--texto-color);
+}
+
+#dialogo-descargar-grado .custom-select__trigger:focus-visible {
+    background: var(--font-color-important);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal-color) 25%, transparent);
+}
+
+#dialogo-descargar-grado .custom-select:not(.has-value) .custom-select__trigger-label {
+    opacity: 0.45;
+}
+
+#dialogo-descargar-grado .custom-select:not(.has-value):not(.is-disabled) .custom-select__trigger:not(:hover):not(:focus-visible) {
+    background: #aacff0;
+}
+
+#dialogo-descargar-grado .custom-select__arrow {
+    border-color: var(--texto-color);
+    opacity: 0.6;
+}
+
+/* Panel flotante: misma tarjeta que el resto de selects (borde, radio, sombra).
+   Sin el margin-top de .custom-select__options, que empuja la primera fila y,
+   con la altura justa, la deja cortada. */
+#dialogo-descargar-grado .custom-select__dropdown {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 6px;
+    overflow: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35),
+        0 18px 44px rgba(0, 0, 0, 0.32);
+}
+
+#dialogo-descargar-grado .custom-select__options {
+    margin: 0;
+    padding: 0;
+    gap: 2px;
+}
+
+#dialogo-descargar-grado .custom-select__option {
+    height: auto;
+    min-height: 50px;
+    padding: 10px 13px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    font-family: Poppins, sans-serif;
+    font-size: var(--fs-lg);
 }

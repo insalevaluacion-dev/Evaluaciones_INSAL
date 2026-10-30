@@ -39,6 +39,7 @@
     <script>window.__appLoaderHoldData = true;</script>
     <script type="module" src="/js/app-loader.js"></script>
     <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dialog.css">
     <link rel="stylesheet" href="/css/resumen.css">
     <link rel="stylesheet" href="/css/guia.css">
     <link rel="stylesheet" href="/css/circular-progress.css">
@@ -167,6 +168,27 @@
                 </button>
             </div>
         </div>
+
+        <dialog id="dialogo-nota-sin-confirmar" class="app-dialog--xs dialogo-confirmar" aria-labelledby="dialogo-nota-sin-confirmar-titulo">
+            <form method="dialog" class="dialog-inner" id="dialogo-nota-sin-confirmar-form">
+                <button type="button" class="dialog-close-btn" onclick="cerrarAdvertenciaNota()" aria-label="Cancelar">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+                <span class="material-symbols-rounded dialogo-confirmar__icono" aria-hidden="true">warning</span>
+                <h2 class="dialogo-confirmar-title" id="dialogo-nota-sin-confirmar-titulo">Nota sin confirmar</h2>
+                <p class="dialogo-confirmar-subtitle" id="dialogo-nota-sin-confirmar-mensaje">Esta evaluación aún no tiene la nota confirmada. Las puntuaciones quedan guardadas, pero no contarán hasta que la confirmes. ¿Deseas salir?</p>
+                <div class="dialogo-confirmar-actions">
+                    <button type="button" class="boton-confirmar" onclick="cerrarAdvertenciaNota()" data-ripple>
+                        <span class="material-symbols-rounded" aria-hidden="true">check</span>
+                        <span>Seguir aquí</span>
+                    </button>
+                    <button type="button" class="boton-cancelar" onclick="confirmarSalidaSinNota()" data-ripple>
+                        <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                        <span>Salir igual</span>
+                    </button>
+                </div>
+            </form>
+        </dialog>
     </main>
 </body>
 
