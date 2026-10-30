@@ -141,6 +141,29 @@ body{
     overflow-wrap: break-word;
 }
 
+.resumen-aviso{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 500px;
+    min-width: 0;
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--principal-color) 14%, var(--font-color));
+    color: var(--text-color-secondary);
+    font-size: var(--fs-sm);
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
+.resumen-aviso .material-symbols-rounded{
+    flex-shrink: 0;
+    color: var(--principal-color);
+    font-size: var(--fs-xl);
+}
+
 .calificar{
     font-size: var(--fs-3xl) !important;
     margin-bottom: 10px;

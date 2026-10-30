@@ -129,8 +129,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitButton.innerHTML = `
             <div class="submit-states">
                 <div class="centrar gap-btn mostrar" data-normal-content>
-                    Enviar evaluación
-                    <span class="material-symbols-rounded" aria-hidden="true">send</span>
+                    Siguiente
+                    <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
                 </div>
                 <div class="centrar gap-btn quitar" data-loading-content>
                     <p>Enviando...</p>
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <div class="centrar gap-btn quitar" data-success-content>
                     <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
-                    <span>Guardado</span>
+                    <span>Listo</span>
                 </div>
             </div>
         `;
@@ -393,7 +393,7 @@ function guardarEvaluacion() {
                         setBotonEnviarFeedback(false);
                         return;
                     }
-                    mostrarNotificacion('Evaluación guardada correctamente', 'bien');
+                    mostrarNotificacion('Evaluación registrada', 'bien');
                     window.setButtonFeedbackState(
                         document.getElementById('boton-enviar'),
                         'success',

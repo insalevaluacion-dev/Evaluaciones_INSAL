@@ -78,8 +78,8 @@ const GUIAS = {
             element: '#boton-enviar',
             soloSiVisible: true,
             popover: {
-                title: 'Enviar evaluación',
-                description: 'Guarda las notas de esta pantalla y abre el resumen. La guía no lo pulsa.',
+                title: 'Siguiente',
+                description: 'Pasa al resumen con las notas de esta pantalla. La guía no lo pulsa.',
                 side: 'top',
                 align: 'center',
             },
